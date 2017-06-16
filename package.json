@@ -1,0 +1,19 @@
+{
+  "name": "react-action-state-path",
+  "version": "0.0.1",
+  "description": "An alternative to redux for use when components choose children dynamically based on user input and where simplified state needs to be recorded in the URL path so that users can navigate.",
+  "main": "react-action-state-path.jsx",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ddfridley/react-action-state-path.git"
+  },
+  "author": "David Fridley",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ddfridley/react-action-state-path/issues"
+  },
+  "homepage": "https://github.com/ddfridley/react-action-state-path#readme"
+}
