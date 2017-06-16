@@ -18,3 +18,6 @@ I am sharing it on github in case its useful for anyone else, and I welcome any 
 # Usage
 
 <ReactActionSatePath>
+
+# To Do
+* allow and collect state from orpan components. Right now there can be only one RASP that has no parent. But it could be possible to have orphan components that still use the action to state model, and even collect state from them.  Not sure if they could be in the path though.
