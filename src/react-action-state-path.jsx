@@ -28,7 +28,7 @@ var equaly=function(a,b){
 //     each child component can add more properties to it's state, through the actionToState function
 //     }
 //
-export default class ReactActionStatePath extends React.Component {
+export class ReactActionStatePath extends React.Component {
 
     constructor(props) {
         super(props);
@@ -291,6 +291,8 @@ export default class ReactActionStatePath extends React.Component {
         );
     }
 }
+
+export default ReactActionStatePath;
 
 export class ReactActionStatePathClient extends React.Component {
 
