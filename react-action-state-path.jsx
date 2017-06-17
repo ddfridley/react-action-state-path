@@ -292,8 +292,6 @@ export default class ReactActionStatePath extends React.Component {
     }
 }
 
-export default ReactActionStatePath;
-
 export class ReactActionStatePathClient extends React.Component {
 
   constructor(props, keyField='key') {

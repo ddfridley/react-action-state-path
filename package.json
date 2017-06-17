@@ -2,9 +2,10 @@
   "name": "react-action-state-path",
   "version": "0.0.1",
   "description": "An alternative to redux for use when components choose children dynamically based on user input and where simplified state needs to be recorded in the URL path so that users can navigate.",
-  "main": "react-action-state-path.jsx",
+  "main": "dist/react-action-state-path.jsx",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "babel --out-dir dist *.jsx"
   },
   "repository": {
     "type": "git",
@@ -15,5 +16,11 @@
   "bugs": {
     "url": "https://github.com/ddfridley/react-action-state-path/issues"
   },
-  "homepage": "https://github.com/ddfridley/react-action-state-path#readme"
+  "homepage": "https://github.com/ddfridley/react-action-state-path#readme",
+  "devDependencies": {
+    "babel-cli": "^6.24.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "babel-preset-stage-0": "^6.24.1"
+  }
 }
