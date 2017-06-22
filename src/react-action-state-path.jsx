@@ -272,10 +272,17 @@ export class ReactActionStatePath extends React.Component {
     }
 
     renderChildren() {
-        return React.Children.map(this.props.children, child =>
-            React.cloneElement(child, Object.assign({}, this.props, 
-                        {rasp: Object.assign({}, this.state.rasp, {depth: this.props.rasp && this.props.rasp.depth ? this.props.rasp.depth +1 : 1, toParent: this.toMeFromChild.bind(this)})}  //rasp in state override rasp in props
-        )));
+        return React.Children.map(this.props.children, child =>{
+            var newProps= Object.assign({}, 
+                this.props, 
+                {rasp:  Object.assign({}, 
+                        this.state.rasp, 
+                        {depth: this.props.rasp && this.props.rasp.depth ? this.props.rasp.depth +1 : 1,
+                        toParent: this.toMeFromChild.bind(this)})
+                }  //rasp in state override rasp in props
+            );
+            delete newProps.children;
+            React.cloneElement(child, newProps)});
     }
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
