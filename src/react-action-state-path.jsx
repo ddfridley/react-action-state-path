@@ -284,7 +284,8 @@ export class ReactActionStatePath extends React.Component {
             );
             delete newProps.children;
             console.info("ReactActionStatePath.renderChildren",newProps,child.props.children);
-            React.cloneElement(child, newProps, child.props.children)});
+            return React.cloneElement(child, newProps, child.props.children)
+        });
     }
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
