@@ -272,6 +272,7 @@ export class ReactActionStatePath extends React.Component {
     }
 
     renderChildren() {
+        console.info("ReactActionStatePath.renderChildren",this.props);
         return React.Children.map(this.props.children, child =>{
             var newProps= Object.assign({}, 
                 this.props, 
@@ -282,6 +283,7 @@ export class ReactActionStatePath extends React.Component {
                 }  //rasp in state override rasp in props
             );
             delete newProps.children;
+            console.info("ReactActionStatePath.renderChildren",newProps,child.props.children);
             React.cloneElement(child, newProps, child.props.children)});
     }
 
