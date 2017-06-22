@@ -282,7 +282,7 @@ export class ReactActionStatePath extends React.Component {
                 }  //rasp in state override rasp in props
             );
             delete newProps.children;
-            React.cloneElement(child, newProps)});
+            React.cloneElement(child, newProps, child.props.children)});
     }
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
