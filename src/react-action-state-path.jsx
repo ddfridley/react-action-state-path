@@ -30,12 +30,13 @@ var equaly=function(a,b){
 //
 export class ReactActionStatePath extends React.Component {
 
-    constructor(props) {
+    constructor(props, initialRASP) {
         super(props);
         //logger.trace("ReactActionStatePath.constructor", this.constructor.name, this.props.rasp, this.props.initialRASP);
         this.toChild=null;
         this.childName='';
         this.childTitle='';
+        this.initialRASP=initialRASP;
         if(!(this.props.rasp && this.props.rasp.toParent)){
             if(typeof ReactActionStatePath.nextId !== 'undefined') logger.error("ReactActionStatePath.constructor no parent, but not root!");
         }else{
@@ -68,7 +69,8 @@ export class ReactActionStatePath extends React.Component {
                     {   shape: this.props.rasp && this.props.rasp.shape ? this.props.rasp.shape : 'truncated',
                         depth: this.props.rasp ? this.props.rasp.depth : 0  // for debugging  - this is my depth to check
                     },
-                    this.props.initialRASP
+                    this.props.initialRASP,
+                    this.initialRASP
                 )
         }
     }
@@ -306,9 +308,9 @@ export default ReactActionStatePath;
 
 export class ReactActionStatePathClient extends React.Component {
 
-  constructor(props, keyField='key') {
+  constructor(props, keyField='key', initialRASP) {
     //logger.trace("ReactActionStatePathClient.constructor", props, keyField);
-    super(props);
+    super(props, initialRASP);
     this.toChild = [];
     this.waitingOn=null;
     this.keyField=keyField;

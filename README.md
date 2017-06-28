@@ -10,15 +10,20 @@ An alternative to redux for use when:
 
 I created this as I was building in support for the back and forward keys of the browser in a repo for Synaccord that already had a lot going on.  (Children dynamicly selecting children). I looked at redux and react-router but it seemed like a big change and I didn't see an easy way to encode state info in the URL so the user could send a link to the same spot.  react-action-state-path is what evolved and I'm pleased by the simplicity of it and how it's worked in so many components in my code.  
 
-I am sharing it on github in case its useful for anyone else, and I welcome any critical discussion of the concept.  
+I am sharing it on github in case its useful for anyone else, and I welcome any critical discussion of the concept. It is still evolving.  
 
 
 6/15/2017: I've just started moving this out of the code base and into this separate repository, so don't start using this yet.
 
 # Usage
+component-name.jsx:
+    'use strict';
+
+    import React from 'react';
+    import {ReactActionStatePath, ReactActionStatePathClient} from 'react-action-state-path';
 
     export default class ComponentName extends React.Component {
-        this.initialRASP={ left: 0, right: 1, cursor: 1, key: ''};
+        this.initialRASP={ stateVar: 0, stateVar1: 1, ...};
         render() {
             return (
                 <ReactActionStatePath {...this.props} initialRASP={this.initialRASP} >
@@ -31,10 +36,13 @@ I am sharing it on github in case its useful for anyone else, and I welcome any 
     class RASPComponentName extends ReactActionStatePathClient {
         constructor(props) {
             var raspProps = { rasp: props.rasp };
-            super(raspProps, 'key');  // the 'key' property name can be specified here to make your code easier to understand. If left out it will be 'key'
+            super(raspProps, 'key');    // the 'key' property name can be specified here to make your code easier to understand. 
+                                        // If left out it will be 'key'. key is the index into this.toChild where each rasp child's 
+                                        // function is.  this.toChild[key]({type: "ACTION_NAME"})
+                                        
         }
 
-        segmentToState(action) {
+        segmentToState(action) {  // this is optional. confert a 
 
             ...
 
@@ -43,15 +51,20 @@ I am sharing it on github in case its useful for anyone else, and I welcome any 
             return { nextRASP, setBeforeWait: false };  //setBeforeWait means set the new state and then wait for the key child to appear, otherwise wait for the key child to appear and then set the new state.
         }
         
-        actionToState(action, rasp) {
+        actionToState(action, rasp) {   // this is required, it should be a pure function on input parameters only
+                                        // this is called from the <ReactActionState /> component, so 'this' is in that context.
             var nextRASP = {}, delta={};
 
             if(action.type==="ACTION_NAME"){
+                toChild[key]({type: "ACTION_NAME"}) // toChild is an Array of functions to call to send action's to children.  'key' is the index name, but it can be defined in the constructor.  
                 
-            }
+            } else if (...)
 
-            ...
+            } else 
+            return null;
 
+            delta.shape= // compute shape
+            delta.pathSegment = // compute segment
             Object.assign(nextRASP, rasp, delta);
             return nextRASP; // return the new state
         }
@@ -66,10 +79,27 @@ I am sharing it on github in case its useful for anyone else, and I welcome any 
         }
     }
 
+## action
+{   type: "ACTION_NAME"
+    distance: undefined when generated an event by default (like a button click)
+              0 : action applies to this component
+              1 : action applied to the immediate child
+             -n: ignore the action and send it to parent component
+    toBeContinued: false/undefined - default
+                   true : do not generate a CHILD_SHAP_CHANGED action yet, another action will follow
+}
+
+These are the inherent actions:
+
+RESET_STATE:  Reset the state of a component, can be sent to a child or a parent
+CHILD_SHAPE_CHANGED:  If a child's shape changes, this action is generated and propgated up, with distance increasing each time.  You would use this to reduce, or hide, or change components that are far from the action
+
+
+
 # Guidelines
 
 * render children first, then self, then return to parent
-* coponent children that are not in the active path will get their rasp state reset to initialRASP on user navigation
+* component children that are not in the active path will get their rasp state reset to initialRASP on user navigation
 * when sending an action to a parent use setTimeout(()=>this.props.rasp.toParent({type: "ACTION_NAME", distance: -1, ...})) so that the action will take place after the children and the current component have rendered. distance: -2 will skip the immediate parent and go to the grandparent, etc.
 
 
