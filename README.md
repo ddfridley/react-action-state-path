@@ -23,7 +23,6 @@ component-name.jsx:
     import {ReactActionStatePath, ReactActionStatePathClient} from 'react-action-state-path';
 
     export default class ComponentName extends React.Component {
-        this.initialRASP={ stateVar: 0, stateVar1: 1, ...};
         render() {
             return (
                 <ReactActionStatePath {...this.props} initialRASP={this.initialRASP} >
@@ -36,7 +35,8 @@ component-name.jsx:
     class RASPComponentName extends ReactActionStatePathClient {
         constructor(props) {
             var raspProps = { rasp: props.rasp };
-            super(raspProps, 'key');    // the 'key' property name can be specified here to make your code easier to understand. 
+            this.initialRASP={ stateVar: 0, stateVar1: 1, ...}; // if you need to initialize the state.  Kf you don't you don't need this.
+            super(raspProps, 'key', this.initialRASP);    // the 'key' property name can be specified here to make your code easier to understand. 
                                         // If left out it will be 'key'. key is the index into this.toChild where each rasp child's 
                                         // function is.  this.toChild[key]({type: "ACTION_NAME"})
                                         
