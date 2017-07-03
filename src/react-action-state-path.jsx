@@ -68,7 +68,7 @@ export class ReactActionStatePath extends React.Component {
                     {   shape: this.props.rasp && this.props.rasp.shape ? this.props.rasp.shape : 'truncated',
                         depth: this.props.rasp ? this.props.rasp.depth : 0  // for debugging  - this is my depth to check
                     },
-                    this.initialRASP
+                    this.props.initialRASP
                 )
         }
     }
@@ -236,12 +236,12 @@ export class ReactActionStatePath extends React.Component {
             this.setState({rasp: nextRASP});
             return null;
         }else if(action.type==="SET_PATH"){ // let child handle this one without complaint
-            action.initialRASP=this.initialRASP; // segmentToState needs to apply this
+            action.initialRASP=this.props.initialRASP; // segmentToState needs to apply this
             return this.toChild(action);
         }else {
             logger.error("ReactActionStatePath.toMeFromParent: Unknown Action",{action}, {state: this.state});
             return this.toChild(action);
-        }   
+        }
     }
 
     updateHistory() {
@@ -284,6 +284,7 @@ export class ReactActionStatePath extends React.Component {
                 }  //rasp in state override rasp in props
             );
             delete newProps.children;
+            delete newProps.initialRASP; // don't let this propogate down to the next RASP with no initialization required
             console.info("ReactActionStatePath.renderChildren",newProps,child.props.children);
             return React.cloneElement(child, newProps, child.props.children)
         });
