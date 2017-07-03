@@ -30,13 +30,12 @@ var equaly=function(a,b){
 //
 export class ReactActionStatePath extends React.Component {
 
-    constructor(props, initialRASP) {
+    constructor(props) {
         super(props);
-        //logger.trace("ReactActionStatePath.constructor", this.constructor.name, this.props.rasp, this.props.initialRASP);
+        //logger.trace("ReactActionStatePath.constructor", this.constructor.name, this.props.rasp);
         this.toChild=null;
         this.childName='';
         this.childTitle='';
-        this.initialRASP=initialRASP;
         if(!(this.props.rasp && this.props.rasp.toParent)){
             if(typeof ReactActionStatePath.nextId !== 'undefined') logger.error("ReactActionStatePath.constructor no parent, but not root!");
         }else{
@@ -69,7 +68,6 @@ export class ReactActionStatePath extends React.Component {
                     {   shape: this.props.rasp && this.props.rasp.shape ? this.props.rasp.shape : 'truncated',
                         depth: this.props.rasp ? this.props.rasp.depth : 0  // for debugging  - this is my depth to check
                     },
-                    this.props.initialRASP,
                     this.initialRASP
                 )
         }
@@ -238,6 +236,7 @@ export class ReactActionStatePath extends React.Component {
             this.setState({rasp: nextRASP});
             return null;
         }else if(action.type==="SET_PATH"){ // let child handle this one without complaint
+            action.initialRASP=this.initialRASP; // segmentToState needs to apply this
             return this.toChild(action);
         }else {
             logger.error("ReactActionStatePath.toMeFromParent: Unknown Action",{action}, {state: this.state});
@@ -308,9 +307,9 @@ export default ReactActionStatePath;
 
 export class ReactActionStatePathClient extends React.Component {
 
-  constructor(props, keyField='key', initialRASP) {
+  constructor(props, keyField='key') {
     //logger.trace("ReactActionStatePathClient.constructor", props, keyField);
-    super(props, initialRASP);
+    super(props);
     this.toChild = [];
     this.waitingOn=null;
     this.keyField=keyField;
