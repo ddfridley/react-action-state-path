@@ -200,7 +200,7 @@ export class ReactActionStatePath extends React.Component {
         var nextRASP={};
         if (action.type==="ONPOPSTATE") {
             let {stackDepth, stateStack} = action;
-            if(stateStack[stackDepth].depth !== this.props.rasp.depth) logger.error("ReactActionStatePath.toMeFromParent ONPOPSTATE state depth not equal to component depth",action.stateStack[stackDepth], this.props.rasp.depth); // debugging info
+            if(stateStack[stackDepth].depth !== (this.id ? this.props.rasp.depth : 0 )) logger.error("ReactActionStatePath.toMeFromParent ONPOPSTATE state depth not equal to component depth",action.stateStack[stackDepth], this.props.rasp.depth); // debugging info
             if(stateStack.length > (stackDepth+1)){
                 if(this.toChild) this.toChild({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth+1});
                 else logger.error("ReactActionStatePath.toMeFromParent ONPOPSTATE more stack but no toChild", {action}, {rasp: this.props.rasp});
