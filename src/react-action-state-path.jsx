@@ -365,7 +365,7 @@ export class ReactActionStatePathClient extends React.Component {
         else this.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
       });
       if (key && !sent) logger.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action });
-      return;// this was the end of the line
+      return;// this was the end of the lines
     } else if (action.type === "GET_STATE") {
       key = this.props.rasp[this.keyField] || null;
       if (key && this.toChild[key]) return this.toChild[key](action); // pass the action to the child
