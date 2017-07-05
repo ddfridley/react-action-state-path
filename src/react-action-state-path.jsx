@@ -80,7 +80,7 @@ export class ReactActionStatePath extends React.Component {
         logger.trace("ReactActionStatePath.onpopstate", this.id, {event})
         if(event.state && event.state.stateStack) {
             ReactActionStatePath.topState="ONPOPSTATE";
-            this.toMeFromParent({type: "ONPOPSTATE", event: event});
+            this.toMeFromParent({type: "ONPOPSTATE", stateStack: event.state.stateStack, stackDepth: 0});
             logger.trace("ReactActionStatePath.onpopsate: returned.")
             ReactActionStatePath.topState=null;
         }
@@ -104,7 +104,9 @@ export class ReactActionStatePath extends React.Component {
             }
         } else if (action.type==="SET_ACTION_TO_STATE") { // child component passing action to state calculator
             this.actionToState = action.function;
-        } else if (action.type==="GET_STATE") {
+        } 
+        /** Not Used Get State is down from Parent to Child not up
+        else if (action.type==="GET_STATE") {
             // return the array of all RASP States from here to the beginning
             // it works by recursivelly calling GET_STATE from here to the beginning and then pusing the RASP state of each component onto an array
             // the top RASP state of the array is the root component, the bottom one is that of the RASP that inititated the call
@@ -118,7 +120,8 @@ export class ReactActionStatePath extends React.Component {
                 stack.push(thisRASP); // push this rasp state to the rasp state list and return it
                 return stack;
             }
-        }else if (action.type==="SET_STATE"){
+        } **/
+        else if (action.type==="SET_STATE"){
             logger.trace("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
             this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)});
         }else if (action.type==="SET_TITLE"){
@@ -196,14 +199,14 @@ export class ReactActionStatePath extends React.Component {
         console.info("ReactActionStatePath.toMeFromParent", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
         var nextRASP={};
         if (action.type==="ONPOPSTATE") {
-            let depth=(this.props.rasp && this.props.rasp.depth) ? this.props.rasp.depth : 0;
-            /* debug only */ if(action.event.state.stateStack[depth].depth !== depth) logger.error("ReactActionStatePath.toMeFromParent ONPOPSTATE stateStack depth not equal to depth",action.event.state.stateStack[depth],depth); // debugging info
-            if(action.event.state.stateStack.length > (depth+1)){
-                if(this.toChild) this.toChild(action);
+            let {stackDepth, stateStack} = action;
+            if(stateStack[stackDepth].depth !== this.props.rasp.depth) logger.error("ReactActionStatePath.toMeFromParent ONPOPSTATE state depth not equal to component depth",action.stateStack[stackDepth], this.props.rasp.depth); // debugging info
+            if(stateStack.length > (stackDepth+1)){
+                if(this.toChild) this.toChild({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth+1});
                 else logger.error("ReactActionStatePath.toMeFromParent ONPOPSTATE more stack but no toChild", {action}, {rasp: this.props.rasp});
             }else if(this.toChild) this.toChild({type: "CLEAR_PATH"}); // at the end of the new state, deeper states should be reset
-            this.setState({rasp: action.event.state.stateStack[depth]});
-            return null;
+            this.setState({rasp: stateStack[stackDepth]});
+            return;
         } else if (action.type==="GET_STATE") {
             // return the array of all RASP States from the top down - with the top at 0 and the bottom at the end
             // it works by recursivelly calling GET_STATE from here to the end and then unshifting the RASP state of each component onto an array
@@ -354,17 +357,15 @@ export class ReactActionStatePathClient extends React.Component {
   toMeFromParent(action) {
     logger.trace("ReactActionStatePathClient.toMeFromParent", this.props.rasp.depth, action);
     if (action.type === "ONPOPSTATE") {
-      var { shape } = action.event.state.stateStack[this.props.rasp.depth - 1];  // the button was passed to the parent RASPanager by actionToState
-      var key = action.event.state.stateStack[this.props.rasp.depth - 1][this.keyField];
-      if ((action.event.state.stateStack.length > (this.props.rasp.depth))) {
-        let sent = false;
-        Object.keys(this.toChild).forEach(child => { // only child panels with RASP managers will have entries in this list. 
-          if (child === key) { sent = true; this.toChild[child](action); }
-          else this.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
-        });
-        if (key && !sent) logger.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action });
-      }
-      return null;// this was the end of the line
+      let {stateStack, stackDepth} = action;
+      var key = stateStack[stackDepth][this.keyField];
+      let sent = false;
+      Object.keys(this.toChild).forEach(child => { // only child panels with RASP managers will have entries in this list. 
+        if (child === key) { sent = true; this.toChild[child]({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth}); }
+        else this.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
+      });
+      if (key && !sent) logger.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action });
+      return;// this was the end of the line
     } else if (action.type === "GET_STATE") {
       key = this.props.rasp[this.keyField] || null;
       if (key && this.toChild[key]) return this.toChild[key](action); // pass the action to the child
