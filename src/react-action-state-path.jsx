@@ -202,7 +202,7 @@ export class ReactActionStatePath extends React.Component {
             let {stackDepth, stateStack} = action;
             if(stateStack[stackDepth].depth !== (this.id ? this.props.rasp.depth : 0 )) logger.error("ReactActionStatePath.toMeFromParent ONPOPSTATE state depth not equal to component depth",action.stateStack[stackDepth], this.props.rasp.depth); // debugging info
             if(stateStack.length > (stackDepth+1)){
-                if(this.toChild) this.toChild({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth+1});
+                if(this.toChild) this.toChild({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth});
                 else logger.error("ReactActionStatePath.toMeFromParent ONPOPSTATE more stack but no toChild", {action}, {rasp: this.props.rasp});
             }else if(this.toChild) this.toChild({type: "CLEAR_PATH"}); // at the end of the new state, deeper states should be reset
             this.setState({rasp: stateStack[stackDepth]});
@@ -355,13 +355,13 @@ export class ReactActionStatePathClient extends React.Component {
   // this can handle a one to many pattern for the RASP, handle each action  appropriatly
   //
   toMeFromParent(action) {
-    logger.trace("ReactActionStatePathClient.toMeFromParent", this.props.rasp.depth, action);
+    console.info("ReactActionStatePathClient.toMeFromParent", this.props.rasp.depth, action);
     if (action.type === "ONPOPSTATE") {
       let {stateStack, stackDepth} = action;
       var key = stateStack[stackDepth][this.keyField];
       let sent = false;
       Object.keys(this.toChild).forEach(child => { // only child panels with RASP managers will have entries in this list. 
-        if (child === key) { sent = true; this.toChild[child]({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth}); }
+        if (child === key) { sent = true; this.toChild[child]({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth+1}); }
         else this.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
       });
       if (key && !sent) logger.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action });
