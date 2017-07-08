@@ -141,7 +141,13 @@ export class ReactActionStatePath extends React.Component {
                 this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)},()=>action.function({type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift()}));
             } else {
                 logger.trace("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp, action.nextRASP);
-                this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)}, ()=>{ if(this.id!==0) this.props.rasp.toParent({type: "SET_PATH_COMPLETE"}); else { logger.trace("ReactActionStatePath.toMeFromChild  SET_STATE_AND_CONTINUE last one updateHistory");this.updateHistory()} });
+                this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)}, ()=>{ 
+                    if(this.id!==0) this.props.rasp.toParent({type: "SET_PATH_COMPLETE"}); 
+                    else { 
+                        logger.trace("ReactActionStatePath.toMeFromChild  SET_STATE_AND_CONTINUE last one updateHistory");
+                        ReactActionStatePath.topState=null;
+                        this.updateHistory()} 
+                    });
             }
         }else if(action.type==="SET_PATH_COMPLETE") {
             if(this.id!==0) return this.props.rasp.toParent({type: "SET_PATH_COMPLETE"});
