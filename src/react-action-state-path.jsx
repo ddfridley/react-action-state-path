@@ -373,8 +373,8 @@ export class ReactActionStatePathClient extends React.Component {
       if (key && !sent) logger.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action });
       return;// this was the end of the lines
     } else if (action.type === "GET_STATE") {
-      key = this.props.rasp[this.keyField] || null;
-      if (key && this.toChild[key]) return this.toChild[key](action); // pass the action to the child
+      key = this.props.rasp[this.keyField];
+      if (typeof key !== undefined && this.toChild[key]) return this.toChild[key](action); // pass the action to the child
       else return null; // end of the line
     } else if (action.type === "CLEAR_PATH") {  // clear the path and reset the RASP state back to what the const
       Object.keys(this.toChild).forEach(child => { // send the action to every child
