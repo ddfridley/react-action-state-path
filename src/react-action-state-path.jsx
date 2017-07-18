@@ -111,7 +111,7 @@ export class ReactActionStatePath extends React.Component {
                         console.error("ReactActionStatePath.toMeFromChild SET_PATH did not complete", this);
                         ReactActionStatePath.topState=null;
                     }
-                });
+                },10000);
                 setTimeout(()=>{
                     ReactActionStatePath.topState="SET_PATH";
                     this.toChild({type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift()});
@@ -149,6 +149,7 @@ export class ReactActionStatePath extends React.Component {
                     else { 
                         logger.trace("ReactActionStatePath.toMeFromChild  SET_STATE_AND_CONTINUE last one updateHistory");
                         ReactActionStatePath.topState=null;
+                        clearTimeout(this.completionCheck);
                         this.updateHistory()} 
                     });
             }
