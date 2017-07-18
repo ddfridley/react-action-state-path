@@ -389,7 +389,7 @@ export class ReactActionStatePathClient extends React.Component {
       return;// this was the end of the lines
     } else if (action.type === "GET_STATE") {
       key = this.props.rasp[this.keyField];
-      if (typeof key !== undefined && this.toChild[key]) return this.toChild[key](action); // pass the action to the child
+      if (typeof key !== 'undefined' && this.toChild[key]) return this.toChild[key](action); // pass the action to the child
       else return null; // end of the line
     } else if (action.type === "CLEAR_PATH") {  // clear the path and reset the RASP state back to what the const
       Object.keys(this.toChild).forEach(child => { // send the action to every child
@@ -398,7 +398,7 @@ export class ReactActionStatePathClient extends React.Component {
     } else if (action.type === "SET_PATH") {
       const { nextRASP, setBeforeWait } = this.segmentToState(action);
       var key = nextRASP[this.keyField];
-      if (typeof key !== undefined && key !== null) {
+      if (typeof key !== 'undefined' && key !== null) {
         if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
         else if (setBeforeWait) {
             this.waitingOn={nextRASP, nextFunc: ()=>this.props.rasp.toParent({type: "CONTINUE_SET_PATH", function: this.toChild[key]})};
