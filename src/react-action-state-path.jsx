@@ -58,7 +58,7 @@ export class ReactActionStatePath extends React.Component {
                 window.onpopstate=this.onpopstate.bind(this);
                 if(ReactActionStatePath.pathSegments.length===0) setTimeout(()=>this.updateHistory(),0); // aftr things have settled down, update history for the first time
              }
-            console.info("ReactActionStatePath", ReactActionStatePath);
+            console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
         }
         this.id=ReactActionStatePath.nextId++; // get the next id
 
