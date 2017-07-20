@@ -36,6 +36,7 @@ export class ReactActionStatePath extends React.Component {
         this.toChild=null;
         this.childName='';
         this.childTitle='';
+        this.debug=0;
         if(!(this.props.rasp && this.props.rasp.toParent)){
             if(typeof ReactActionStatePath.nextId !== 'undefined') logger.error("ReactActionStatePath.constructor no parent, but not root!");
         }else{
@@ -45,6 +46,7 @@ export class ReactActionStatePath extends React.Component {
         if(typeof ReactActionStatePath.nextId === 'undefined') { // this is the root ReactActionStatePath
              ReactActionStatePath.nextId= 0;
              ReactActionStatePath.topState=null;
+             ReactActionStatePath.thiss=[];
              if(this.props.path && this.props.path !== '/'){
                 ReactActionStatePath.pathSegments= this.props.path.split('/');
                 var root=(this.props.RASPRoot || '/h/').split('/');
@@ -56,10 +58,12 @@ export class ReactActionStatePath extends React.Component {
                 window.onpopstate=this.onpopstate.bind(this);
                 if(ReactActionStatePath.pathSegments.length===0) setTimeout(()=>this.updateHistory(),0); // aftr things have settled down, update history for the first time
              }
+            console.info("ReactActionStatePath", ReactActionStatePath);
         }
         this.id=ReactActionStatePath.nextId++; // get the next id
 
         this.state=this.getDefaultState();
+        ReactActionStatePath.thiss[this.id]={parent: this, client: null};
     }
 
     // consistently get the default state from multiple places
@@ -77,7 +81,7 @@ export class ReactActionStatePath extends React.Component {
     // only the root ReactActionStatePath will set this 
     // it works by recursively passing the ONPOPSTATE action to each child RASP component starting with the root
     onpopstate(event){
-        logger.trace("ReactActionStatePath.onpopstate", this.id, {event})
+        if(this.debug) console.info("ReactActionStatePath.onpopstate", this.id, {event})
         if(event.state && event.state.stateStack) {
             if(ReactActionStatePath.topState) console.error("ReactActionStatePath.onpopstate expected topState null, got:", ReactActionStatePath.topState);
             ReactActionStatePath.topState="ONPOPSTATE";
@@ -95,14 +99,17 @@ export class ReactActionStatePath extends React.Component {
     }
 
     toMeFromChild(action) {
-        console.info("ReactActionStatePath.toMeFromChild", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
+        if(this.debug) console.info("ReactActionStatePath.toMeFromChild", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
         var  nextRASP={};
         if(!action.distance) action.distance=0; // action was from component so add distance
         if(action.distance < 0) {action.distance +=1; if(this.id) return this.props.rasp.toParent(action); else return }
         if(action.type==="SET_TO_CHILD") { // child is passing up her func
+            this.debug=action.debug;
+            if(this.debug) console.info("ReactActionStatePath.toMeFromChild debug set", this.debug, this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
             this.toChild = action.function;
             if(action.name) this.childName=action.name;
             if(action.actionToState) this.actionToState=action.actionToState; 
+            if(action.clientThis) ReactActionStatePath.thiss[this.id].client=action.clientThis;
             else console.error("ReactActionStatePath.toMeFromChild actionToState mission", action);
             if((typeof window !== 'undefined') && this.id===0 && ReactActionStatePath.pathSegments.length ){ // this is the root and we are on the browser and there is at least one pathSegment
                 logger.trace("ReactActionStatePath.toMeFromChild will SET_PATH to",ReactActionStatePath.pathSegments);
@@ -206,7 +213,7 @@ export class ReactActionStatePath extends React.Component {
     }
 
     toMeFromParent(action) {
-        console.info("ReactActionStatePath.toMeFromParent", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
+        if(this.debug) console.info("ReactActionStatePath.toMeFromParent", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
         var nextRASP={};
         if (action.type==="ONPOPSTATE") {
             let {stackDepth, stateStack} = action;
@@ -258,7 +265,7 @@ export class ReactActionStatePath extends React.Component {
     }
 
     updateHistory() {
-        logger.trace("ReactActionStatePath.updateHistory",  this.id);
+        if(this.debug) console.info("ReactActionStatePath.updateHistory",  this.id);
         if(typeof window === 'undefined') { logger.trace("ReactActionStatePath.updateHistory called on servr side, ignoring"); return; }
         if(this.id!==0) logger.error("ReactActionStatePath.updateHistory called but not from root", this.props.rasp);
         if(ReactActionStatePath.topState) console.error("ReactActionStatePath.updateHistory, expected topState null, got:", ReactActionStatePath.topState);
@@ -296,7 +303,6 @@ export class ReactActionStatePath extends React.Component {
     }
 
     renderChildren() {
-        console.info("ReactActionStatePath.renderChildren",this.props);
         return React.Children.map(this.props.children, child =>{
             var newProps= Object.assign({}, 
                 this.props, 
@@ -308,7 +314,6 @@ export class ReactActionStatePath extends React.Component {
             );
             delete newProps.children;
             delete newProps.initialRASP; // don't let this propogate down to the next RASP with no initialization required
-            console.info("ReactActionStatePath.renderChildren",newProps,child.props.children);
             return React.cloneElement(child, newProps, child.props.children)
         });
     }
@@ -317,8 +322,7 @@ export class ReactActionStatePath extends React.Component {
 
     render() {
         const children = this.renderChildren();
-        logger.trace("ReactActionStatePath render", this.id);
-
+        if(this.debug) console.info("ReactActionStatePath.renderChildren", this.childName, this.childTitle, this.id, this.props);
         return (
             <section>
                 {children}
@@ -331,15 +335,15 @@ export default ReactActionStatePath;
 
 export class ReactActionStatePathClient extends React.Component {
 
-  constructor(props, keyField='key') {
-    //logger.trace("ReactActionStatePathClient.constructor", props, keyField);
+  constructor(props, keyField='key', debug=0) {
     super(props);
     this.toChild = [];
     this.waitingOn=null;
     this.keyField=keyField;
+    this.debug=debug;
     if(!this.props.rasp) logger.error("ReactActionStatePathClient no rasp",this.constructor.name, this.props);
     if (this.props.rasp.toParent) {
-      this.props.rasp.toParent({ type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: this.constructor.name, actionToState: this.actionToState.bind(this) })
+      this.props.rasp.toParent({ type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: this.constructor.name, actionToState: this.actionToState.bind(this), debug, clientThis: this })
     }else logger.error("ReactActionStatePathClient no rasp.toParent",this.props);
   }
 
@@ -348,7 +352,7 @@ export class ReactActionStatePathClient extends React.Component {
   // send all unhandled actions to the parent RASP
   //
   toMeFromChild(key, action) {
-    logger.trace(" ReactActionStatePathClient.toMeFromChild", this.props.rasp.depth, key, action);
+    if(this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.depth, key, action);
     if (action.type === "SET_TO_CHILD") { // child is passing up her func
       this.toChild[key] = action.function; // don't pass this to parent
       if (this.waitingOn) {
@@ -375,7 +379,7 @@ export class ReactActionStatePathClient extends React.Component {
   // this can handle a one to many pattern for the RASP, handle each action  appropriatly
   //
   toMeFromParent(action) {
-    console.info("ReactActionStatePathClient.toMeFromParent", this.props.rasp.depth, action);
+    if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.depth, action);
     if (action.type === "ONPOPSTATE") {
       let {stateStack, stackDepth} = action;
       var key = stateStack[stackDepth][this.keyField];
