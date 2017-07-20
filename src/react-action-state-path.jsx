@@ -103,6 +103,7 @@ export class ReactActionStatePath extends React.Component {
             this.toChild = action.function;
             if(action.name) this.childName=action.name;
             if(action.actionToState) this.actionToState=action.actionToState; 
+            else console.error("ReactActionStatePath.toMeFromChild actionToState mission", action);
             if((typeof window !== 'undefined') && this.id===0 && ReactActionStatePath.pathSegments.length ){ // this is the root and we are on the browser and there is at least one pathSegment
                 logger.trace("ReactActionStatePath.toMeFromChild will SET_PATH to",ReactActionStatePath.pathSegments);
                 if(ReactActionStatePath.topState) console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD, expected topState null got:", ReactActionStatePath.topState);
@@ -117,8 +118,6 @@ export class ReactActionStatePath extends React.Component {
                     this.toChild({type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift()});
                 },0); // this starts after the return toChild so it completes.
             }
-        } else if (action.type==="SET_ACTION_TO_STATE") { // child component passing action to state calculator
-            this.actionToState = action.function;
         } else if (action.type==="SET_STATE"){
             logger.trace("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
             this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)});
