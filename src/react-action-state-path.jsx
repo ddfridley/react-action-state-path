@@ -324,7 +324,7 @@ export class ReactActionStatePath extends React.Component {
         const children = this.renderChildren();
         if(this.debug) console.info("ReactActionStatePath.renderChildren", this.childName, this.childTitle, this.id, this.props, this.state);
         return (
-            <section id={'rasp-'+this.id}>
+            <section id={`rasp-${this.id}`} >
                 {children}
             </section>
         );
@@ -392,8 +392,10 @@ export class ReactActionStatePathClient extends React.Component {
       return;// this was the end of the lines
     } else if (action.type === "GET_STATE") {
       key = this.props.rasp[this.keyField];
-      if (typeof key !== 'undefined' && this.toChild[key]) return this.toChild[key](action); // pass the action to the child
-      else return null; // end of the line
+      if (typeof key !== 'undefined'){
+          if( this.toChild[key]) return this.toChild[key](action); // pass the action to the child
+          else console.error("ReactActionStatePathClien.toMeFromParent GET_STATE key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp)
+      } else return null; // end of the line
     } else if (action.type === "CLEAR_PATH") {  // clear the path and reset the RASP state back to what the const
       Object.keys(this.toChild).forEach(child => { // send the action to every child
         this.toChild[child](action)
