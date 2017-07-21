@@ -392,15 +392,17 @@ export class ReactActionStatePathClient extends React.Component {
       if (key && !sent) logger.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action });
       return;// this was the end of the lines
     } else if (action.type === "GET_STATE") {
-      key = this.props.rasp[this.keyField];
+      var key = this.props.rasp[this.keyField];
       if (typeof key !== 'undefined' && key !== null){
           if( this.toChild[key]) return this.toChild[key](action); // pass the action to the child
           else console.error("ReactActionStatePathClien.toMeFromParent GET_STATE key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp)
       } else return null; // end of the line
     } else if (action.type === "CLEAR_PATH") {  // clear the path and reset the RASP state back to what the const
-      Object.keys(this.toChild).forEach(child => { // send the action to every child
-        this.toChild[child](action)
-      });
+        var key = this.props.rasp[this.keyField];
+        if (typeof key !== 'undefined' && key !== null){
+            if( this.toChild[key]) return this.toChild[key](action); // pass the action to the child
+            else console.error("ReactActionStatePathClien.toMeFromParent CLEAR_PATH key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp)
+        } else return null; // end of the line
     } else if (action.type === "SET_PATH") {
       const { nextRASP, setBeforeWait } = this.segmentToState(action);
       var key = nextRASP[this.keyField];
