@@ -167,7 +167,7 @@ export class ReactActionStatePath extends React.Component {
                 clearTimeout(this.completionCheck);
                 return this.updateHistory();
             }
-        }else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "CHILD")))!==null) {
+        }else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp)))!==null) {
             if((this.state.rasp.pathSegment) && !(nextRASP.pathSegment)) {  // path has been removed
                 logger.trace("ReactActionStatePath.toChildFromParent child changed state and path being removed so reset children", this.id, this.state.rasp.pathSegment)
                 if(this.toChild) this.toChild({type:"CLEAR_PATH"});
@@ -234,7 +234,7 @@ export class ReactActionStatePath extends React.Component {
             if(stack) stack.unshift(Object.assign({},this.state.rasp)); // if non-rasp child is at the end, it returns null
             else stack=[Object.assign({},this.state.rasp)];
             return stack;
-        } else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "PARENT"))!==null)){
+        } else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp))!==null)){
             if(!equaly(this.state.rasp, nextRASP)) { // really the shape changed
                 if(this.id!==0 && !action.toBeContinued) {// if there's a parent to tell of the change
                     this.setState({rasp: nextRASP}, ()=>this.props.rasp.toParent({type: "CHILD_SHAPE_CHANGED", shape: nextRASP.shape, distance: 1}));
