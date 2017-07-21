@@ -324,7 +324,7 @@ export class ReactActionStatePath extends React.Component {
         const children = this.renderChildren();
         if(this.debug) console.info("ReactActionStatePath.renderChildren", this.childName, this.childTitle, this.id, this.props, this.state);
         return (
-            <section rasp={this.id}>
+            <section id={'rasp-'+this.id}>
                 {children}
             </section>
         );
