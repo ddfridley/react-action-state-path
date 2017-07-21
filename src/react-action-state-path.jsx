@@ -181,8 +181,8 @@ export class ReactActionStatePath extends React.Component {
             }else if(this.id!==0){
                 this.setState({rasp: nextRASP});
             } else { // this is the root, after changing shape, remind me so I can update the window.histor
-                if(equaly(this.state.rasp,nextRASP)) { logger.trace("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action);this.updateHistory()} // updateHistory now!
-                else this.setState({rasp: nextRASP},()=>{ logger.trace("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action);this.updateHistory()}); // otherwise, set the state and let history update on componentDidUpdate
+                if(equaly(this.state.rasp,nextRASP)) { if(this.debug) console.info("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action); this.updateHistory()} // updateHistory now!
+                else this.setState({rasp: nextRASP},()=>{ if(this.debug) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action); this.updateHistory()}); // otherwise, set the state and let history update on componentDidUpdate
             }
         } 
         // these actions are overridden by the component's actonToState if either there is and it returns a new RASP to set (not null)
@@ -322,9 +322,9 @@ export class ReactActionStatePath extends React.Component {
 
     render() {
         const children = this.renderChildren();
-        if(this.debug) console.info("ReactActionStatePath.renderChildren", this.childName, this.childTitle, this.id, this.props);
+        if(this.debug) console.info("ReactActionStatePath.renderChildren", this.childName, this.childTitle, this.id, this.props, this.state);
         return (
-            <section>
+            <section rasp={this.id}>
                 {children}
             </section>
         );
