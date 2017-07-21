@@ -56,6 +56,7 @@ export class ReactActionStatePath extends React.Component {
              }else ReactActionStatePath.pathSegments=[];
              if(typeof window !== 'undefined'){ // if we are running on the browser
                 window.onpopstate=this.onpopstate.bind(this);
+                window.ReactActionStatePath={thiss: ReactActionStatePath.thiss};
                 if(ReactActionStatePath.pathSegments.length===0) setTimeout(()=>this.updateHistory(),0); // aftr things have settled down, update history for the first time
              }
             console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
@@ -110,7 +111,7 @@ export class ReactActionStatePath extends React.Component {
             if(action.name) this.childName=action.name;
             if(action.actionToState) this.actionToState=action.actionToState; 
             if(action.clientThis) ReactActionStatePath.thiss[this.id].client=action.clientThis;
-            else console.error("ReactActionStatePath.toMeFromChild actionToState mission", action);
+            else console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD clientThis missing", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action);
             if((typeof window !== 'undefined') && this.id===0 && ReactActionStatePath.pathSegments.length ){ // this is the root and we are on the browser and there is at least one pathSegment
                 logger.trace("ReactActionStatePath.toMeFromChild will SET_PATH to",ReactActionStatePath.pathSegments);
                 if(ReactActionStatePath.topState) console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD, expected topState null got:", ReactActionStatePath.topState);
@@ -392,7 +393,7 @@ export class ReactActionStatePathClient extends React.Component {
       return;// this was the end of the lines
     } else if (action.type === "GET_STATE") {
       key = this.props.rasp[this.keyField];
-      if (typeof key !== 'undefined'){
+      if (typeof key !== 'undefined' && key !== null){
           if( this.toChild[key]) return this.toChild[key](action); // pass the action to the child
           else console.error("ReactActionStatePathClien.toMeFromParent GET_STATE key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp)
       } else return null; // end of the line
