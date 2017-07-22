@@ -37,6 +37,7 @@ export class ReactActionStatePath extends React.Component {
         this.childName='';
         this.childTitle='';
         this.debug=0;
+        this.waitingOn=false;
         if(!(this.props.rasp && this.props.rasp.toParent)){
             if(typeof ReactActionStatePath.nextId !== 'undefined') logger.error("ReactActionStatePath.constructor no parent, but not root!");
         }else{
@@ -125,6 +126,11 @@ export class ReactActionStatePath extends React.Component {
                     ReactActionStatePath.topState="SET_PATH";
                     this.toChild({type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift()});
                 },0); // this starts after the return toChild so it completes.
+            } else if(this.waitingOn){
+                var nextFunc=this.waitingOn.nextFunc;
+                this.waitingOn=null;
+                setTimeout(nextFunc,0);
+                return;
             }
         } else if (action.type==="SET_STATE"){
             logger.trace("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
@@ -171,7 +177,7 @@ export class ReactActionStatePath extends React.Component {
         }else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp)))!==null) {
             if((this.state.rasp.pathSegment) && !(nextRASP.pathSegment)) {  // path has been removed
                 logger.trace("ReactActionStatePath.toChildFromParent child changed state and path being removed so reset children", this.id, this.state.rasp.pathSegment)
-                if(this.toChild) this.toChild({type:"CLEAR_PATH"});
+                this.toChild({type:"CLEAR_PATH"}); // if toChild is not set let there be an error
             } else if(!(this.state.rasp.pathSegment) && (nextRASP.pathSegment)) { // path being added
                 logger.trace("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment)
             }                 
@@ -221,7 +227,7 @@ export class ReactActionStatePath extends React.Component {
             if(stateStack[stackDepth].depth !== (this.id ? this.props.rasp.depth : 0 )) logger.error("ReactActionStatePath.toMeFromParent ONPOPSTATE state depth not equal to component depth",action.stateStack[stackDepth], this.props.rasp.depth); // debugging info
             if(stateStack.length > (stackDepth+1)){
                 if(this.toChild) this.toChild({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth});
-                else logger.error("ReactActionStatePath.toMeFromParent ONPOPSTATE more stack but no toChild", {action}, {rasp: this.props.rasp});
+                else console.error("ReactActionStatePath.toMeFromParent ONPOPSTATE more stack but no toChild", {action}, {rasp: this.props.rasp});
             }else if(this.toChild) this.toChild({type: "CLEAR_PATH"}); // at the end of the new state, deeper states should be reset
             this.setState({rasp: stateStack[stackDepth]});
             return;
@@ -230,8 +236,10 @@ export class ReactActionStatePath extends React.Component {
             // it works by recursivelly calling GET_STATE from here to the end and then unshifting the RASP state of each component onto an array
             // the top RASP state of the array is the root component
             let stack;
-            if(!this.toChild) return [Object.assign({},this.state.rasp)];
-            else stack=this.toChild(action);
+            if(!this.toChild) {
+                console.error("ReactActionStatePath.toMeFromParetn GET_STATE child not ready", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
+                return [Object.assign({},this.state.rasp)];
+            } else stack=this.toChild(action);
             if(stack) stack.unshift(Object.assign({},this.state.rasp)); // if non-rasp child is at the end, it returns null
             else stack=[Object.assign({},this.state.rasp)];
             return stack;
@@ -258,7 +266,9 @@ export class ReactActionStatePath extends React.Component {
             return null;
         }else if(action.type==="SET_PATH"){ // let child handle this one without complaint
             action.initialRASP=this.props.initialRASP; // segmentToState needs to apply this
-            return this.toChild(action);
+            if(this.toChild) return this.toChild(action);
+            else this.waitingOn={nextFunc: ()=>{this.toChild(action)}}
+            return;
         }else {
             logger.error("ReactActionStatePath.toMeFromParent: Unknown Action",{action}, {state: this.state});
             return this.toChild(action);
