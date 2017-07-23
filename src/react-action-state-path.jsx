@@ -177,7 +177,7 @@ export class ReactActionStatePath extends React.Component {
         }else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp)))!==null) {
             if((this.state.rasp.pathSegment) && !(nextRASP.pathSegment)) {  // path has been removed
                 logger.trace("ReactActionStatePath.toChildFromParent child changed state and path being removed so reset children", this.id, this.state.rasp.pathSegment)
-                this.toChild({type:"CLEAR_PATH"}); // if toChild is not set let there be an error
+                //this.toChild({type:"CLEAR_PATH"}); // if toChild is not set let there be an error
             } else if(!(this.state.rasp.pathSegment) && (nextRASP.pathSegment)) { // path being added
                 logger.trace("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment)
             }                 
