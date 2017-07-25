@@ -38,6 +38,12 @@ export class ReactActionStatePath extends React.Component {
         this.childTitle='';
         this.debug=0;
         this.waitingOn=false;
+        this.initialRASP=Object.assign({},
+                    {   shape: this.props.rasp && this.props.rasp.shape ? this.props.rasp.shape : 'truncated',
+                        depth: this.props.rasp ? this.props.rasp.depth : 0  // for debugging  - this is my depth to check
+                    },
+                    this.props.initialRASP
+                );
         if(!(this.props.rasp && this.props.rasp.toParent)){
             if(typeof ReactActionStatePath.nextId !== 'undefined') logger.error("ReactActionStatePath.constructor no parent, but not root!");
         }else{
@@ -70,13 +76,7 @@ export class ReactActionStatePath extends React.Component {
 
     // consistently get the default state from multiple places
     getDefaultState(){
-        return {rasp: Object.assign({},
-                    {   shape: this.props.rasp && this.props.rasp.shape ? this.props.rasp.shape : 'truncated',
-                        depth: this.props.rasp ? this.props.rasp.depth : 0  // for debugging  - this is my depth to check
-                    },
-                    this.props.initialRASP
-                )
-        }
+        return {rasp: Object.assign({},this.initialRASP)}
     }
 
     // handler for the window onpop state
