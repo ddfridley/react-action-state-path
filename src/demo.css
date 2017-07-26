@@ -1,0 +1,35 @@
+.subject {
+    text-overflow: hidden;
+    font-size: 1.5em;
+    color: darkslategray;
+}
+
+.subject .rasp-truncated{
+    text-overflow: hidden;
+    font-size: 1em;
+    color: darkslategray;
+}
+
+.text {
+    font-size: 1em;
+    color: slategray;
+}
+
+.text .rasp-truncated{
+    display: none;
+}
+
+.articles{
+    display: block;
+    padding-left: 1em;
+}
+
+.articles .rasp-truncated {
+    display: none;
+}
+
+.rasp-demo {
+    border: 1px solid black;
+    margin: 5em;
+    background: white;
+}
