@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "bash postinstall.sh",
-    "heroku-prebuild": "npm install --only=development"
+    "heroku-prebuild": "npm install babel-cli babel-preset-es2015 babel-preset-react babel-preset-stage-0 browserify"
   },
   "repository": {
     "type": "git",
