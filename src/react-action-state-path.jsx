@@ -45,7 +45,7 @@ export class ReactActionStatePath extends React.Component {
                     this.props.initialRASP
                 );
         if(!(this.props.rasp && this.props.rasp.toParent)){
-            if(typeof ReactActionStatePath.nextId !== 'undefined') logger.error("ReactActionStatePath.constructor no parent, but not root!");
+            if(typeof ReactActionStatePath.nextId !== 'undefined') console.error("ReactActionStatePath.constructor no parent, but not root!");
         }else{
             this.props.rasp.toParent({type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: "ReactActionStatePath"});
         }
@@ -59,7 +59,7 @@ export class ReactActionStatePath extends React.Component {
                 var root=(this.props.RASPRoot || '/h/').split('/');
                 while(!ReactActionStatePath.pathSegments[ReactActionStatePath.pathSegments.length-1]) ReactActionStatePath.pathSegments.pop(); // '/'s at the end translate to null elements, remove them
                 while(!root[root.length-1]) root.pop(); // '/'s at the end translate to null elements, remove them
-                if(root.some(segment=>segment!==ReactActionStatePath.pathSegments.shift())) {logger.error("ReactActionStatePath.componentDidMount path didn't match props", root, ReactActionStatePath.pathSegments )}
+                if(root.some(segment=>segment!==ReactActionStatePath.pathSegments.shift())) {console.error("ReactActionStatePath.componentDidMount path didn't match props", root, ReactActionStatePath.pathSegments )}
              }else ReactActionStatePath.pathSegments=[];
              if(typeof window !== 'undefined'){ // if we are running on the browser
                 window.onpopstate=this.onpopstate.bind(this);
@@ -224,7 +224,7 @@ export class ReactActionStatePath extends React.Component {
         var nextRASP={};
         if (action.type==="ONPOPSTATE") {
             let {stackDepth, stateStack} = action;
-            if(stateStack[stackDepth].depth !== (this.id ? this.props.rasp.depth : 0 )) logger.error("ReactActionStatePath.toMeFromParent ONPOPSTATE state depth not equal to component depth",action.stateStack[stackDepth], this.props.rasp.depth); // debugging info
+            if(stateStack[stackDepth].depth !== (this.id ? this.props.rasp.depth : 0 )) console.error("ReactActionStatePath.toMeFromParent ONPOPSTATE state depth not equal to component depth",action.stateStack[stackDepth], this.props.rasp.depth); // debugging info
             if(stateStack.length > (stackDepth+1)){
                 if(this.toChild) this.toChild({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth});
                 else console.error("ReactActionStatePath.toMeFromParent ONPOPSTATE more stack but no toChild", {action}, {rasp: this.props.rasp});
@@ -265,12 +265,12 @@ export class ReactActionStatePath extends React.Component {
             this.setState({rasp: nextRASP});
             return null;
         }else if(action.type==="SET_PATH"){ // let child handle this one without complaint
-            action.initialRASP=this.props.initialRASP; // segmentToState needs to apply this
+            action.initialRASP=this.initialRASP; // segmentToState needs to apply this
             if(this.toChild) return this.toChild(action);
             else this.waitingOn={nextFunc: ()=>{this.toChild(action)}}
             return;
         }else {
-            logger.error("ReactActionStatePath.toMeFromParent: Unknown Action",{action}, {state: this.state});
+            console.error("ReactActionStatePath.toMeFromParent: Unknown Action",{action}, {state: this.state});
             return this.toChild(action);
         }
     }
@@ -278,7 +278,7 @@ export class ReactActionStatePath extends React.Component {
     updateHistory() {
         if(this.debug) console.info("ReactActionStatePath.updateHistory",  this.id);
         if(typeof window === 'undefined') { logger.trace("ReactActionStatePath.updateHistory called on servr side, ignoring"); return; }
-        if(this.id!==0) logger.error("ReactActionStatePath.updateHistory called but not from root", this.props.rasp);
+        if(this.id!==0) console.error("ReactActionStatePath.updateHistory called but not from root", this.props.rasp);
         if(ReactActionStatePath.topState) console.error("ReactActionStatePath.updateHistory, expected topState null, got:", ReactActionStatePath.topState);
         let completionCheck=setTimeout(()=>{
             if(ReactActionStatePath.topState==="GET_STATE"){
@@ -333,7 +333,7 @@ export class ReactActionStatePath extends React.Component {
 
     render() {
         const children = this.renderChildren();
-        if(this.debug) console.info("ReactActionStatePath.renderChildren", this.childName, this.childTitle, this.id, this.props, this.state);
+        if(this.debug >1) console.info("ReactActionStatePath.render", this.childName, this.childTitle, this.id, this.props, this.state);
         return (
             <section id={`rasp-${this.id}`} >
                 {children}
@@ -352,10 +352,10 @@ export class ReactActionStatePathClient extends React.Component {
     this.waitingOn=null;
     this.keyField=keyField;
     this.debug=debug;
-    if(!this.props.rasp) logger.error("ReactActionStatePathClient no rasp",this.constructor.name, this.props);
+    if(!this.props.rasp) console.error("ReactActionStatePathClient no rasp",this.constructor.name, this.props);
     if (this.props.rasp.toParent) {
       this.props.rasp.toParent({ type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: this.constructor.name, actionToState: this.actionToState.bind(this), debug, clientThis: this })
-    }else logger.error("ReactActionStatePathClient no rasp.toParent",this.props);
+    }else console.error("ReactActionStatePathClient no rasp.toParent",this.props);
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -399,7 +399,7 @@ export class ReactActionStatePathClient extends React.Component {
         if (child === key) { sent = true; this.toChild[child]({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth+1}); }
         else this.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
       });
-      if (key && !sent) logger.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action });
+      if (key && !sent) console.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action });
       return;// this was the end of the lines
     } else if (action.type === "GET_STATE") {
       var key = this.props.rasp[this.keyField];
@@ -411,7 +411,7 @@ export class ReactActionStatePathClient extends React.Component {
         var key = this.props.rasp[this.keyField];
         if (typeof key !== 'undefined' && key !== null){
             if( this.toChild[key]) return this.toChild[key](action); // pass the action to the child
-            else console.error("ReactActionStatePathClien.toMeFromParent CLEAR_PATH key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp)
+            else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp)
         } else return null; // end of the line
     } else if (action.type === "SET_PATH") {
       const { nextRASP, setBeforeWait } = this.segmentToState(action);
@@ -428,6 +428,6 @@ export class ReactActionStatePathClient extends React.Component {
       } else {
         this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
       }
-    } else logger.error("ReactActionStatePathClient.toMeFromParent action type unknown not handled", action)
+    } else console.error("ReactActionStatePathClient.toMeFromParent action type unknown not handled", action)
   }
 }

@@ -4,18 +4,22 @@
     color: darkslategray;
 }
 
-.subject .rasp-truncated{
+.subject.rasp-truncated{
     text-overflow: hidden;
-    font-size: 1em;
+    font-size: 1.5em;
     color: darkslategray;
 }
 
 .text {
     font-size: 1em;
     color: slategray;
+    white-space: pre-line;
 }
 
-.text .rasp-truncated{
+.text.rasp-truncated{
+    display: none;
+}
+.text.rasp-open.rasp-minimize{
     display: none;
 }
 
@@ -24,12 +28,16 @@
     padding-left: 1em;
 }
 
-.articles .rasp-truncated {
-    display: none;
-}
-
 .rasp-demo {
     border: 1px solid black;
     margin: 5em;
     background: white;
+}
+
+.subarticles.rasp-truncated {
+    display: none;
+}
+
+.subarticle.rasp-minimize {
+    display: none;
 }
