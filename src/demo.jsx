@@ -81,9 +81,9 @@ class RASPArticle extends ReactActionStatePathClient {
                 delta.open='open'; 
                 delta.minimize=null;
             }
-        } else if(action.type==="CHILD_SHAPE_CHANGED" && action.distance > 1 && action.shape==='open' ){
+        } else if(action.type==="CHILD_SHAPE_CHANGED" && action.distance > 2 && action.shape==='open' ){
             delta.minimize=true;
-        } else if(action.type==="CHILD_SHAPE_CHANGED" && action.distance == 2 && action.shape!=='open' ){
+        } else if(action.type==="CHILD_SHAPE_CHANGED" && action.distance == 3 && action.shape!=='open' ){
             delta.minimize=false;
         }else
             return null;

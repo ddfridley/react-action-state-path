@@ -12,8 +12,17 @@ I created this as I was building in support for the back and forward keys of the
 
 I am sharing it on github in case its useful for anyone else, and I welcome any critical discussion of the concept. It is still evolving.  
 
+##Demo
+http://react-action-state-path.herokuapp.com
 
-6/15/2017: I've just started moving this out of the code base and into this separate repository, so don't start using this yet.
+This is a demo of nested text - like an outline.  The demo shows the root <Article>.  An article contains a subject and text. An Article also has an id and a parent id.  When you click on the subject an an <Article>, the text is shown, and the SubArticleList of it's children is retrieved. When you click on the subject of a sub Article, the text and SubArticleList of that Article are shown, and the grand parent Article's text will collapse again.
+
+The data for the Articles is retrieved through <ArticleStore>, which gets it's data from an array, but more normally this data would come from a data base.  These components, <ArticleStore, <SubArticleList>, and <Article> are recursively called, the deeper you go. 
+
+You can move through the articles by clicking on the subject to expand/contract each one. You can use the forward and back browser buttons. The URL is updated with every user action, and you can save the URL and go back to it.
+
+If you git fork https://github.com/ddfridley/react-action-state-path you can open the file dist/demo/demo.html and it should work. (Tested on windows with edge and chrome). You can also run node dist/server.js to fire up a server. http://localhost:5000
+
 
 # Usage
 component-name.jsx:
@@ -93,15 +102,19 @@ These are the inherent actions:
 
 RESET_STATE:  Reset the state of a component, can be sent to a child or a parent
 CHILD_SHAPE_CHANGED:  If a child's shape changes, this action is generated and propgated up, with distance increasing each time.  You would use this to reduce, or hide, or change components that are far from the action
-
-
+CLEAR_PATH:    Reset the state of a component's children, and then the component. (order matters)
 
 # Guidelines
 
 * render children first, then self, then return to parent
 * component children that are not in the active path will get their rasp state reset to initialRASP on user navigation
 * when sending an action to a parent use setTimeout(()=>this.props.rasp.toParent({type: "ACTION_NAME", distance: -1, ...})) so that the action will take place after the children and the current component have rendered. distance: -2 will skip the immediate parent and go to the grandparent, etc.
+* make sure you set the React key of the rendered lists.
 
+# Debugging
+*When you construct(props) a component, you can super(props,'keyField', debugl) to it. If debug is great than 0, messages will print out.  This will cause that component (and it's parent RASP) to print out messages on state changes.
+*ReactActionStatePath.thiss[] is available on the browser.  Each RASP and Client component register's it's this in this array.  This makes it really easy to look at the state of things.
+*Also you can look at history.pushState.stateStack to the the state of all the comonents as they have been saved.
 
 # To Do
 * allow and collect state from orpan components. Right now there can be only one RASP that has no parent. But it could be possible to have orphan components that still use the action to state model, and even collect state from them.  Not sure if they could be in the path though.
