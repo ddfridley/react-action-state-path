@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "bash postinstall.sh",
-    "heroku-prebuild": "npm install -g babel-cli babel-preset-es2015 babel-preset-react babel-preset-stage-0 browserify"
+    "heroku-prebuild": "npm install --only=dev"
   },
   "repository": {
     "type": "git",
@@ -20,12 +20,13 @@
   "homepage": "https://github.com/ddfridley/react-action-state-path#readme",
   "devDependencies": {
     "babel-cli": "^6.24.0",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-preset-react": "^6.24.1",
-    "babel-preset-stage-0": "^6.24.1",
     "browserify": "^14.4.0"
   },
   "dependencies": {
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "babel-preset-stage-0": "^6.24.1",
+    "express": "4.15.2",
     "classnames": "^2.2.5",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
