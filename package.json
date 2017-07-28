@@ -5,7 +5,7 @@
   "main": "dist/react-action-state-path.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "babel --out-dir dist src && browserify dist/demo.js -o dist/assets/demo.js && cp src/index.html dist && cp src/demo.css dist"
+    "postinstall": "bash postinstall.sh"
   },
   "repository": {
     "type": "git",
