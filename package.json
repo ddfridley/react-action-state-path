@@ -20,16 +20,17 @@
   "homepage": "https://github.com/ddfridley/react-action-state-path#readme",
   "devDependencies": {
     "babel-cli": "^6.24.0",
-    "browserify": "^14.4.0"
-  },
-  "dependencies": {
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-react": "^6.24.1",
     "babel-preset-stage-0": "^6.24.1",
+    "browserify": "^14.4.0"
+  },
+  "dependencies": {
     "classnames": "^2.2.5",
-    "express": "^4.15.2",
+    "express": "^4.15.4",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
+    "react-proactive-accordion": "github:ddfridley/react-proactive-accordion",
     "shallowequal": "^1.0.2"
   }
 }

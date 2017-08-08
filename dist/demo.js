@@ -16,6 +16,8 @@ var _reactDom2 = _interopRequireDefault(_reactDom);
 
 var _reactActionStatePath = require('./react-action-state-path');
 
+var _reactProactiveAccordion = require('react-proactive-accordion');
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -106,6 +108,9 @@ var RASPArticle = function (_ReactActionStatePath) {
         var _this3 = _possibleConstructorReturn(this, (RASPArticle.__proto__ || Object.getPrototypeOf(RASPArticle)).call(this, props, 'open', 1));
 
         _this3.mounted = [];
+        if (props.subject) {
+            _this3.title = props.subject;_this3.props.rasp.toParent({ type: "SET_TITLE", title: _this3.title });
+        } // used in debug messages
         return _this3;
     }
 
@@ -123,9 +128,10 @@ var RASPArticle = function (_ReactActionStatePath) {
                     delta.open = 'open';
                     delta.minimize = null;
                 }
-            } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance > 2 && action.shape === 'open') {
+            } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance > 2 && action.shape === 'open' && !rasp.minimize) {
+                // a 2+ distant sub child has chanaged shape, so minimize, but don't minimize if already minimized which will change the shape of the propogating message
                 delta.minimize = true;
-            } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance >= 2 && action.shape !== 'open') {
+            } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance >= 2 && action.shape !== 'open' && rasp.minimize) {
                 delta.minimize = false;
             } else return null;
             Object.assign(nextRASP, rasp, delta);
@@ -151,6 +157,18 @@ var RASPArticle = function (_ReactActionStatePath) {
             if (nextRASP.minimize) parts.push('m');
             nextRASP.pathSegment = parts.join(',');
             return { nextRASP: nextRASP, setBeforeWait: true };
+        }
+    }, {
+        key: 'componentDidUpdate',
+        value: function componentDidUpdate() {
+            // we are using max-height to animate the transitions - but we don't initially know the max-height. So the CSS starts with a guess, and we correct it here.
+            if (this.props.rasp.shape === 'open' && !this.props.rasp.minimize) {
+                var height = this.refs.text.getBoundingClientRect().height;
+                if (!height) return;
+                if (parseInt(this.refs.text.style.maxHeight) === height) height = 2 * height; // the max-height value was a constraint  this is sloppy but good enough for this demo
+                this.refs.text.style.maxHeight = height + 'px';
+                console.info("height:", height);
+            }
         }
     }, {
         key: 'render',
@@ -179,17 +197,21 @@ var RASPArticle = function (_ReactActionStatePath) {
                     subject
                 ),
                 _react2.default.createElement(
-                    'div',
-                    { className: 'text' + ' rasp-' + rasp.shape + (rasp.minimize ? ' rasp-minimize' : '') },
-                    text
-                ),
-                _react2.default.createElement(
-                    'div',
-                    { className: 'articles' + ' rasp-' + rasp.shape },
+                    _reactProactiveAccordion.Accordion,
+                    { active: rasp.shape === 'open' },
                     _react2.default.createElement(
                         'div',
-                        { className: "subarticles" + " rasp-" + rasp.shape },
-                        this.mounted
+                        { className: 'text' + ' rasp-' + rasp.shape + (rasp.minimize ? ' rasp-minimize' : ''), ref: 'text' },
+                        text
+                    ),
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'articles' + ' rasp-' + rasp.shape },
+                        _react2.default.createElement(
+                            'div',
+                            { className: "subarticles" + " rasp-" + rasp.shape },
+                            this.mounted
+                        )
                     )
                 )
             );

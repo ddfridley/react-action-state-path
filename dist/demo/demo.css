@@ -14,13 +14,16 @@
     font-size: 1em;
     color: slategray;
     white-space: pre-line;
+    transition: all linear 0.5s;
+    max-height: 1000px;
+    overflow: hidden;
 }
 
 .text.rasp-truncated{
-    display: none;
+    max-height: 0px;
 }
 .text.rasp-open.rasp-minimize{
-    display: none;
+    max-height: 0px;
 }
 
 .articles{
@@ -35,9 +38,15 @@
 }
 
 .subarticles.rasp-truncated {
-    display: none;
+    max-height: 0px;
 }
 
 .subarticle.rasp-minimize {
-    display: none;
+    max-height: 0px;
+}
+
+.subarticle {
+    transition: all linear 0.5s;
+    overflow: hidden;
+    max-height: 1000px;
 }

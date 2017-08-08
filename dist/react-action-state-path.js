@@ -289,7 +289,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     logger.trace("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState", this.id, this.props.rasp && this.props.rasp.depth);
                     if (this.id !== 0) {
                         logger.trace("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState not root", this.id, this.props.rasp && this.props.rasp.depth);
-                        this.props.rasp.toParent({ type: "CHILD_SHAPE_CHANGED", shape: this.state.rasp.shape, distance: action.distance + 1 }); // pass a new action, not a copy including internal properties like itemId. This shape hasn't changed
+                        this.props.rasp.toParent({ type: "CHILD_SHAPE_CHANGED", shape: action.shape, distance: action.distance + 1 }); // pass a new action, not a copy including internal properties like itemId. This shape hasn't changed
                     } else {
                         // this is the root RASP, update history.state
                         logger.trace("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth);

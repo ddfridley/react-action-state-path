@@ -107,6 +107,9 @@ var RASPArticle = function (_ReactActionStatePath) {
         var _this3 = _possibleConstructorReturn(this, (RASPArticle.__proto__ || Object.getPrototypeOf(RASPArticle)).call(this, props, 'open', 1));
 
         _this3.mounted = [];
+        if (props.subject) {
+            _this3.title = props.subject;_this3.props.rasp.toParent({ type: "SET_TITLE", title: _this3.title });
+        } // used in debug messages
         return _this3;
     }
 
@@ -124,9 +127,10 @@ var RASPArticle = function (_ReactActionStatePath) {
                     delta.open = 'open';
                     delta.minimize = null;
                 }
-            } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance > 2 && action.shape === 'open') {
+            } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance > 2 && action.shape === 'open' && !rasp.minimize) {
+                // a 2+ distant sub child has chanaged shape, so minimize, but don't minimize if already minimized which will change the shape of the propogating message
                 delta.minimize = true;
-            } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance >= 2 && action.shape !== 'open') {
+            } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance >= 2 && action.shape !== 'open' && rasp.minimize) {
                 delta.minimize = false;
             } else return null;
             Object.assign(nextRASP, rasp, delta);
@@ -152,6 +156,18 @@ var RASPArticle = function (_ReactActionStatePath) {
             if (nextRASP.minimize) parts.push('m');
             nextRASP.pathSegment = parts.join(',');
             return { nextRASP: nextRASP, setBeforeWait: true };
+        }
+    }, {
+        key: 'componentDidUpdate',
+        value: function componentDidUpdate() {
+            // we are using max-height to animate the transitions - but we don't initially know the max-height. So the CSS starts with a guess, and we correct it here.
+            if (this.props.rasp.shape === 'open' && !this.props.rasp.minimize) {
+                var height = this.refs.text.getBoundingClientRect().height;
+                if (!height) return;
+                if (parseInt(this.refs.text.style.maxHeight) === height) height = 2 * height; // the max-height value was a constraint  this is sloppy but good enough for this demo
+                this.refs.text.style.maxHeight = height + 'px';
+                console.info("height:", height);
+            }
         }
     }, {
         key: 'render',
@@ -181,7 +197,7 @@ var RASPArticle = function (_ReactActionStatePath) {
                 ),
                 _react2.default.createElement(
                     'div',
-                    { className: 'text' + ' rasp-' + rasp.shape + (rasp.minimize ? ' rasp-minimize' : '') },
+                    { className: 'text' + ' rasp-' + rasp.shape + (rasp.minimize ? ' rasp-minimize' : ''), ref: 'text' },
                     text
                 ),
                 _react2.default.createElement(
@@ -660,7 +676,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     logger.trace("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState", this.id, this.props.rasp && this.props.rasp.depth);
                     if (this.id !== 0) {
                         logger.trace("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState not root", this.id, this.props.rasp && this.props.rasp.depth);
-                        this.props.rasp.toParent({ type: "CHILD_SHAPE_CHANGED", shape: this.state.rasp.shape, distance: action.distance + 1 }); // pass a new action, not a copy including internal properties like itemId. This shape hasn't changed
+                        this.props.rasp.toParent({ type: "CHILD_SHAPE_CHANGED", shape: action.shape, distance: action.distance + 1 }); // pass a new action, not a copy including internal properties like itemId. This shape hasn't changed
                     } else {
                         // this is the root RASP, update history.state
                         logger.trace("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth);

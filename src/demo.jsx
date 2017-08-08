@@ -3,6 +3,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {ReactActionStatePath, ReactActionStatePathClient} from './react-action-state-path';
+import {Accordion} from 'react-proactive-accordion';
 
 window.logger={};
 logger.info=()=>console.info(...arguments);
@@ -69,6 +70,7 @@ class RASPArticle extends ReactActionStatePathClient {
 
     constructor(props){
         super(props,'open',1) // key is [open] debug level is 1
+        if (props.subject) { this.title = props.subject; this.props.rasp.toParent({ type: "SET_TITLE", title: this.title }); } // used in debug messages
     }
     actionToState(action,rasp,source,initialRASP){
         var nextRASP={}, delta={};
@@ -81,9 +83,10 @@ class RASPArticle extends ReactActionStatePathClient {
                 delta.open='open'; 
                 delta.minimize=null;
             }
-        } else if(action.type==="CHILD_SHAPE_CHANGED" && action.distance > 2 && action.shape==='open' ){
+        } else if(action.type==="CHILD_SHAPE_CHANGED" && action.distance > 2 && action.shape==='open' && !rasp.minimize ){
+        // a 2+ distant sub child has chanaged shape, so minimize, but don't minimize if already minimized which will change the shape of the propogating message
             delta.minimize=true;
-        } else if(action.type==="CHILD_SHAPE_CHANGED" && action.distance >= 2 && action.shape!=='open' ){
+        } else if(action.type==="CHILD_SHAPE_CHANGED" && action.distance >= 2 && action.shape!=='open' && rasp.minimize){
             delta.minimize=false;
         }else
             return null;
@@ -111,6 +114,17 @@ class RASPArticle extends ReactActionStatePathClient {
         return {nextRASP, setBeforeWait: true};
     }
 
+    componentDidUpdate(){
+        // we are using max-height to animate the transitions - but we don't initially know the max-height. So the CSS starts with a guess, and we correct it here.
+        if(this.props.rasp.shape==='open' && !this.props.rasp.minimize) {
+            let height=this.refs.text.getBoundingClientRect().height;
+            if(!height) return;
+            if(parseInt(this.refs.text.style.maxHeight) === height) height=2*height; // the max-height value was a constraint  this is sloppy but good enough for this demo
+           this.refs.text.style.maxHeight=height+'px';
+           console.info("height:", height)
+        }
+    }
+
     render() {
         const {subject, text, id, rasp}=this.props;
 
@@ -123,12 +137,14 @@ class RASPArticle extends ReactActionStatePathClient {
         return(
             <div className={'rasp-article'}>
                 <div className={'subject'+' rasp-'+rasp.shape + (rasp.minimize ? ' rasp-minimize' : '') } onClick={()=>{rasp.toParent({type: "TOGGLE"})}}>{subject}</div>
-                <div className={'text'+' rasp-'+rasp.shape + (rasp.minimize ? ' rasp-minimize' : '')}>{text}</div>
-                <div className={'articles'+' rasp-'+rasp.shape}>
-                    <div className={"subarticles"+" rasp-"+rasp.shape}>
-                        {this.mounted}
+                <Accordion active={rasp.shape==='open'}>
+                    <div className={'text'+' rasp-'+rasp.shape + (rasp.minimize ? ' rasp-minimize' : '')} ref='text'>{text}</div>
+                    <div className={'articles'+' rasp-'+rasp.shape}>
+                        <div className={"subarticles"+" rasp-"+rasp.shape}>
+                            {this.mounted}
+                        </div>
                     </div>
-                </div>
+                </Accordion>
             </div>
         );
     }
