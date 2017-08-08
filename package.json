@@ -5,8 +5,7 @@
   "main": "dist/react-action-state-path.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "bash postinstall.sh",
-    "heroku-prebuild": "npm install --only=dev"
+    "postinstall": "bash postinstall.sh"
   },
   "repository": {
     "type": "git",
