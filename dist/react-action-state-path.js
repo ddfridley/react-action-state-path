@@ -560,7 +560,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                     else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there", this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp);
                 } else return null; // end of the line
             } else if (action.type === "SET_PATH") {
-                var _segmentToState = this.segmentToState(action),
+                var _segmentToState = this.segmentToState(action, action.initialRASP),
                     nextRASP = _segmentToState.nextRASP,
                     setBeforeWait = _segmentToState.setBeforeWait;
 

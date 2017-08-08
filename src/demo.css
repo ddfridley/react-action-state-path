@@ -16,13 +16,6 @@
     white-space: pre-line;
 }
 
-.text.rasp-truncated{
-    max-height: 0px;
-}
-.text.rasp-open.rasp-minimize{
-    max-height: 0px;
-}
-
 .articles{
     display: block;
     padding-left: 1em;

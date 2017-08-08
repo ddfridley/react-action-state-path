@@ -18,6 +18,8 @@ var _reactActionStatePath = require('./react-action-state-path');
 
 var _reactProactiveAccordion = require('react-proactive-accordion');
 
+var _reactProactiveAccordion2 = _interopRequireDefault(_reactProactiveAccordion);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -65,16 +67,6 @@ var demoData = [{ subject: "The Constitution of the United States",
     id: '6'
 }];
 
-var renderChildren = function renderChildren() {
-    var _this = this;
-
-    return _react2.default.Children.map(this.props.children, function (child) {
-        var newProps = Object.assign({}, _this.props, _this.state);
-        delete newProps.children;
-        return _react2.default.cloneElement(child, newProps, child.props.children);
-    });
-};
-
 var Article = function (_React$Component) {
     _inherits(Article, _React$Component);
 
@@ -87,6 +79,7 @@ var Article = function (_React$Component) {
     _createClass(Article, [{
         key: 'render',
         value: function render() {
+            // props plus the rasp state created by ReactActionStatePath are pased through to the RASPArticle child
             return _react2.default.createElement(
                 _reactActionStatePath.ReactActionStatePath,
                 this.props,
@@ -101,74 +94,85 @@ var Article = function (_React$Component) {
 var RASPArticle = function (_ReactActionStatePath) {
     _inherits(RASPArticle, _ReactActionStatePath);
 
+    // subarticles are not rendered until this component is opened. Once rendered they are kept so they don't have to be rerendered again
+
     function RASPArticle(props) {
         _classCallCheck(this, RASPArticle);
 
-        // key is [open] debug level is 1
-        var _this3 = _possibleConstructorReturn(this, (RASPArticle.__proto__ || Object.getPrototypeOf(RASPArticle)).call(this, props, 'open', 1));
+        // the key is [open]. If a subcomponent is selected, this.child['open'] is the child to send actions to.  debug level is 1
+        var _this2 = _possibleConstructorReturn(this, (RASPArticle.__proto__ || Object.getPrototypeOf(RASPArticle)).call(this, props, 'open', 1));
 
-        _this3.mounted = [];
+        _this2.mounted = [];
         if (props.subject) {
-            _this3.title = props.subject;_this3.props.rasp.toParent({ type: "SET_TITLE", title: _this3.title });
+            _this2.title = props.subject;_this2.props.rasp.toParent({ type: "SET_TITLE", title: _this2.title });
         } // used in debug messages
-        return _this3;
+        return _this2;
     }
+
+    // called by the RASP source='PARENT' or form the RASP source='CHILD' to get the new state based on the current state (rasp) and the action. initialRASP is the rasp state to reset to.
+
 
     _createClass(RASPArticle, [{
         key: 'actionToState',
         value: function actionToState(action, rasp, source, initialRASP) {
             var nextRASP = {},
-                delta = {};
+                delta = {}; // nextRASP will be the next state, delta is where all the changes to state are recorded. There may be other properties in the state, only change them deliberatly  
             if (action.type === "TOGGLE") {
+                // the user clicks on a subject which sends the toggle event, to either open or close the article
                 if (rasp.open === 'open') {
-                    this.toChild['open']({ type: "CLEAR_PATH" }); // clear sub children
+                    // if the article was open close it, but 
+                    this.toChild['open']({ type: "CLEAR_PATH" }); // first clear the state of all the sub children, so when they are reopened they are back to their initial state.
+                    // this is good for 3 reasons: 1) reduces the number of items we need to save state for,
+                    // 2) reduces the state information we have to encode in to the URL path
+                    // 3) it fits many use cases that when something becomes visibile it consistently starts in the same state
                     delta.open = null; // closed
-                    delta.minimize = null;
+                    delta.minimize = null; // not minimized anymore
                 } else {
-                    delta.open = 'open';
-                    delta.minimize = null;
+                    delta.open = 'open'; // was closed, now open
+                    delta.minimize = null; // not minimized
                 }
             } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance > 2 && action.shape === 'open' && !rasp.minimize) {
-                // a 2+ distant sub child has chanaged shape, so minimize, but don't minimize if already minimized which will change the shape of the propogating message
+                // a 2+ distant sub child has chanaged to open, so minimize, but don't minimize if already minimized which will change the shape of the propogating message
                 delta.minimize = true;
             } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance >= 2 && action.shape !== 'open' && rasp.minimize) {
+                // a 2+ distant sub child has changed from open, and we are minimized, so unminimize
                 delta.minimize = false;
-            } else return null;
-            Object.assign(nextRASP, rasp, delta);
-            nextRASP.shape = nextRASP.open === 'open' ? 'open' : initialRASP.shape;
+            } else return null; // if we don't understand the action, just pass it on
+            // we did understand the action and so now calculate the computed state information
+            Object.assign(nextRASP, rasp, delta); // calculate the new state based on the previous state and the delta.  There may be other properties in the previous state (like depth). Don't clobber them.
+            nextRASP.shape = nextRASP.open === 'open' ? 'open' : initialRASP.shape; // shape is the piece of state information that all RASP components can understand
+            // build the pathSegment out of parts for each state property
             var parts = [];
             if (nextRASP.open === 'open') parts.push('o');
             if (nextRASP.minimize) parts.push('m');
-            nextRASP.pathSegment = parts.join(',');
+            nextRASP.pathSegment = parts.join(','); // pathSegment is be incorporated into the URL path. It should be calculated and the minimal length necessary to do the job
             return nextRASP;
         }
+
+        // called to get the next RASP state based on what is in the action.segment.
+        // also returns setBeforeWait which indicates that the new state should be set and then a match to the keyField waited on
+        // otherwise, a match to the new state's keyfield will be waited on before the new state is set
+
     }, {
         key: 'segmentToState',
-        value: function segmentToState(action) {
-            var nextRASP = {};
+        value: function segmentToState(action, initialRASP) {
+            var nextRASP = {},
+                delta = {};
+            // first convert the state info in the segment into real state properties
             var parts = action.segment.split(',');
             parts.forEach(function (part) {
-                if (part === 'o') nextRASP.open = 'open';
-                if (part === 'm') nextRASP.minimize = true;
+                if (part === 'o') delta.open = 'open';
+                if (part === 'm') delta.minimize = true;
             });
+            Object.assign(nextRASP, initialRASP, delta);
+            // then calculate the derived state information
             nextRASP.shape = nextRASP.open === 'open' ? 'open' : initialRASP.shape;
+            // then recalculate the path, don't copy it and include stuff that wasn't understood. 
             parts = [];
             if (nextRASP.open === 'open') parts.push('o');
             if (nextRASP.minimize) parts.push('m');
             nextRASP.pathSegment = parts.join(',');
             return { nextRASP: nextRASP, setBeforeWait: true };
-        }
-    }, {
-        key: 'componentDidUpdate',
-        value: function componentDidUpdate() {
-            // we are using max-height to animate the transitions - but we don't initially know the max-height. So the CSS starts with a guess, and we correct it here.
-            if (this.props.rasp.shape === 'open' && !this.props.rasp.minimize) {
-                var height = this.refs.text.getBoundingClientRect().height;
-                if (!height) return;
-                if (parseInt(this.refs.text.style.maxHeight) === height) height = 2 * height; // the max-height value was a constraint  this is sloppy but good enough for this demo
-                this.refs.text.style.maxHeight = height + 'px';
-                console.info("height:", height);
-            }
         }
     }, {
         key: 'render',
@@ -179,30 +183,45 @@ var RASPArticle = function (_ReactActionStatePath) {
                 id = _props.id,
                 rasp = _props.rasp;
 
-            // don't render sub articles until the list is opened or it will never end. don't delete them once rendered, user may come back to them
+            // don't render sub articles until the article is opened or it will never end. don't delete them once rendered, user may come back to them
+            // Accordion is used to smooth the apperance/disappearents of components so changes are not discontinuous making it hearder for the user to understand what is happening
+            // nextRASP is created for every (this) child, with a default shape, and a toParent function that calls back here. The bound argument ('open') will be included actions generated by this child
+            // in this case action.open='open' 
 
             if (rasp.shape === 'open' && !this.mounted.length) {
                 var nextRASP = Object.assign({}, rasp, { shape: 'truncated', toParent: this.toMeFromChild.bind(this, 'open') });
-                this.mounted = _react2.default.createElement(SubArticleList, { parent: id, rasp: nextRASP });
+                this.mounted = _react2.default.createElement(
+                    _reactProactiveAccordion2.default,
+                    { active: !rasp.minlist },
+                    _react2.default.createElement(SubArticleList, { parent: id, rasp: nextRASP })
+                );
             }
 
             return _react2.default.createElement(
                 'div',
                 { className: 'rasp-article' },
                 _react2.default.createElement(
-                    'div',
-                    { className: 'subject' + ' rasp-' + rasp.shape + (rasp.minimize ? ' rasp-minimize' : ''), onClick: function onClick() {
-                            rasp.toParent({ type: "TOGGLE" });
-                        } },
-                    subject
-                ),
-                _react2.default.createElement(
-                    _reactProactiveAccordion.Accordion,
-                    { active: rasp.shape === 'open' },
+                    _reactProactiveAccordion2.default,
+                    { active: !rasp.minimize },
                     _react2.default.createElement(
                         'div',
-                        { className: 'text' + ' rasp-' + rasp.shape + (rasp.minimize ? ' rasp-minimize' : ''), ref: 'text' },
-                        text
+                        { className: 'subject' + ' rasp-' + rasp.shape, onClick: function onClick() {
+                                rasp.toParent({ type: "TOGGLE" });
+                            } },
+                        subject
+                    )
+                ),
+                _react2.default.createElement(
+                    _reactProactiveAccordion2.default,
+                    { active: rasp.shape === 'open' },
+                    _react2.default.createElement(
+                        _reactProactiveAccordion2.default,
+                        { active: !rasp.minimize },
+                        _react2.default.createElement(
+                            'div',
+                            { className: 'text' + ' rasp-' + rasp.shape },
+                            text
+                        )
                     ),
                     _react2.default.createElement(
                         'div',
@@ -224,33 +243,42 @@ var RASPArticle = function (_ReactActionStatePath) {
 var ArticleStore = function (_React$Component2) {
     _inherits(ArticleStore, _React$Component2);
 
-    function ArticleStore(props) {
+    function ArticleStore() {
+        var _ref;
+
+        var _temp, _this3, _ret;
+
         _classCallCheck(this, ArticleStore);
 
-        var _this4 = _possibleConstructorReturn(this, (ArticleStore.__proto__ || Object.getPrototypeOf(ArticleStore)).call(this, props));
+        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+            args[_key] = arguments[_key];
+        }
 
-        _this4.state = { articles: [] };
-        return _this4;
+        return _ret = (_temp = (_this3 = _possibleConstructorReturn(this, (_ref = ArticleStore.__proto__ || Object.getPrototypeOf(ArticleStore)).call.apply(_ref, [this].concat(args))), _this3), _this3.state = { articles: [] }, _temp), _possibleConstructorReturn(_this3, _ret);
     }
 
     _createClass(ArticleStore, [{
         key: 'renderChildren',
-        value: function renderChildren() {
-            var _this5 = this;
+        // retrived articles are stored here
 
+        value: function renderChildren() {
+            var _this4 = this;
+
+            // this is how props and state are passed as props to children
             return _react2.default.Children.map(this.props.children, function (child) {
-                var newProps = Object.assign({}, _this5.props, _this5.state);
-                delete newProps.children;
+                var newProps = Object.assign({}, _this4.props, _this4.state);
+                delete newProps.children; // be careful not to make the child it's child
                 return _react2.default.cloneElement(child, newProps, child.props.children);
             });
         }
     }, {
         key: 'componentDidMount',
         value: function componentDidMount() {
-            var _this6 = this;
+            var _this5 = this;
 
+            // this simulates getting data from an external resouce/database by 
             var articles = demoData.reduce(function (acc, dat) {
-                if (dat.parent === _this6.props.parent) acc.push(dat);
+                if (dat.parent === _this5.props.parent) acc.push(dat);
                 return acc;
             }, []);
             this.setState({ articles: articles });
@@ -281,6 +309,9 @@ var SubArticleList = function (_React$Component3) {
     _createClass(SubArticleList, [{
         key: 'render',
         value: function render() {
+            // this.prop is passed through the ArticleStore with the found articles[] being added, after a delay
+            // that information is passed through ReactActionStatePath which adds the rasp state.
+            // all those props (this.props, articles[], and rasp) are passed to RASPSubArticles
             return _react2.default.createElement(
                 ArticleStore,
                 this.props,
@@ -302,7 +333,7 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
     function RASPSubArticleList(props) {
         _classCallCheck(this, RASPSubArticleList);
 
-        return _possibleConstructorReturn(this, (RASPSubArticleList.__proto__ || Object.getPrototypeOf(RASPSubArticleList)).call(this, props, 'id', 1));
+        return _possibleConstructorReturn(this, (RASPSubArticleList.__proto__ || Object.getPrototypeOf(RASPSubArticleList)).call(this, props, 'id', 1)); // the keyField for toChild is the 'id' of the article, debug level is 1 so we can see some actions travel between components
     }
 
     _createClass(RASPSubArticleList, [{
@@ -310,6 +341,9 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
         value: function actionToState(action, rasp, source, initialRASP) {
             var nextRASP = {},
                 delta = {};
+            // if the immediate child of this list (an article) changes shape to open, 
+            // close all the other articles in the list, to focus on just this one.
+            // if the article changes out of open, then show the list again
             if (action.type === "CHILD_SHAPE_CHANGED" && action.distance === 1) {
                 if (action.shape === 'open') {
                     if (rasp.id && rasp.id !== action.id) this.toChild[rasp.id]({ type: "CLEAR_PATH" }); // if some other child is open, close it
@@ -325,32 +359,42 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
         }
     }, {
         key: 'segmentToState',
-        value: function segmentToState(action) {
-            var nextRASP = {};
+        value: function segmentToState(action, initialRASP) {
+            // if an article is open, the article id is the path segment
+            var nextRASP = {},
+                delta = {};
             var id = action.segment;
-            if (id) nextRASP.id = id;
-            if (nextRASP.id) nextRASP.shape = 'open';else nextRASP.shape = action.initialRASP.shape;
+            if (id) delta.id = id;
+            Object.assign(nextRASP, initialRASP, delta);
+            if (nextRASP.id) nextRASP.shape = 'open';
             if (nextRASP.id) nextRASP.pathSegment = id;
             return { nextRASP: nextRASP, setBeforeWait: true };
         }
     }, {
         key: 'render',
         value: function render() {
-            var _this9 = this;
+            var _this8 = this;
 
             var _props2 = this.props,
                 articles = _props2.articles,
                 rasp = _props2.rasp;
 
+            // Accordion is used to smooth the apperance/disappearents of components so changes are not discontinuous making it hearder for the user to understand what is happening
+            // The Accordion, showing each subarticle in a list, is open when the component is truncated.  But when on sub article opens, the Accordion of all the subarticles is closed,
+            // until no subarticle is open.
+            //
+            // nextRASP is created for every child, with a default shape (truncated), and a toParent function that calls back here. The bound argument ('a.id') will be included in actions generated by each child
+            // in this case action.id=a.id  or action[this.keyField]=a.id where this.keyField was set to 'id' in the constructor. 
+            // this way every child will have a unique index that can be used in this.toChild[id](action) to send actions to the child.  The super component and this component (can) both acess this.toChild
 
             return _react2.default.createElement(
                 'div',
                 { className: "articles" + " rasp-" + rasp.shape },
                 articles.map(function (a) {
-                    var nextRASP = Object.assign({}, rasp, { shape: 'truncated', toParent: _this9.toMeFromChild.bind(_this9, a.id) });
+                    var nextRASP = Object.assign({}, rasp, { shape: 'truncated', toParent: _this8.toMeFromChild.bind(_this8, a.id) });
                     return _react2.default.createElement(
-                        'div',
-                        { key: a.id, className: 'subarticle' + (rasp.shape === 'open' && rasp.id !== a.id ? ' rasp-minimize' : '') },
+                        _reactProactiveAccordion2.default,
+                        { active: rasp.shape !== 'open' || rasp.id === a.id, key: a.id, className: 'subarticle' },
                         _react2.default.createElement(Article, _extends({}, a, { rasp: nextRASP }))
                     );
                 })
@@ -376,7 +420,11 @@ var App = function (_React$Component4) {
             var path = window.location.href;
             var root = path.split('?');
             var RASPRoot = root[0] + '?/';
-            if (root.length === 1 && path[path.length - 1] !== '?') path += '?';
+            if (root.length === 1 && path[path.length - 1] !== '?') path += '?'; // append a ? to the end if it's just the file name
+            // only the first instance of ReactActionStatePath looks at path and RASPRoot. 
+            // in this demo '?' is used to separate the file name from the rest of the URL because when you are opening demo.html on a file system, and the file system does not like demo.html/anything
+            // but demo.html? works, and so does demo.html?/
+            // if you are strictly serving from a server, the ? is not required
             return _react2.default.createElement(
                 'div',
                 { className: 'rasp-demo' },

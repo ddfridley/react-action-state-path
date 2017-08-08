@@ -17,6 +17,10 @@ var _reactDom2 = _interopRequireDefault(_reactDom);
 
 var _reactActionStatePath = require('./react-action-state-path');
 
+var _reactProactiveAccordion = require('react-proactive-accordion');
+
+var _reactProactiveAccordion2 = _interopRequireDefault(_reactProactiveAccordion);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -64,16 +68,6 @@ var demoData = [{ subject: "The Constitution of the United States",
     id: '6'
 }];
 
-var renderChildren = function renderChildren() {
-    var _this = this;
-
-    return _react2.default.Children.map(this.props.children, function (child) {
-        var newProps = Object.assign({}, _this.props, _this.state);
-        delete newProps.children;
-        return _react2.default.cloneElement(child, newProps, child.props.children);
-    });
-};
-
 var Article = function (_React$Component) {
     _inherits(Article, _React$Component);
 
@@ -86,6 +80,7 @@ var Article = function (_React$Component) {
     _createClass(Article, [{
         key: 'render',
         value: function render() {
+            // props plus the rasp state created by ReactActionStatePath are pased through to the RASPArticle child
             return _react2.default.createElement(
                 _reactActionStatePath.ReactActionStatePath,
                 this.props,
@@ -100,74 +95,85 @@ var Article = function (_React$Component) {
 var RASPArticle = function (_ReactActionStatePath) {
     _inherits(RASPArticle, _ReactActionStatePath);
 
+    // subarticles are not rendered until this component is opened. Once rendered they are kept so they don't have to be rerendered again
+
     function RASPArticle(props) {
         _classCallCheck(this, RASPArticle);
 
-        // key is [open] debug level is 1
-        var _this3 = _possibleConstructorReturn(this, (RASPArticle.__proto__ || Object.getPrototypeOf(RASPArticle)).call(this, props, 'open', 1));
+        // the key is [open]. If a subcomponent is selected, this.child['open'] is the child to send actions to.  debug level is 1
+        var _this2 = _possibleConstructorReturn(this, (RASPArticle.__proto__ || Object.getPrototypeOf(RASPArticle)).call(this, props, 'open', 1));
 
-        _this3.mounted = [];
+        _this2.mounted = [];
         if (props.subject) {
-            _this3.title = props.subject;_this3.props.rasp.toParent({ type: "SET_TITLE", title: _this3.title });
+            _this2.title = props.subject;_this2.props.rasp.toParent({ type: "SET_TITLE", title: _this2.title });
         } // used in debug messages
-        return _this3;
+        return _this2;
     }
+
+    // called by the RASP source='PARENT' or form the RASP source='CHILD' to get the new state based on the current state (rasp) and the action. initialRASP is the rasp state to reset to.
+
 
     _createClass(RASPArticle, [{
         key: 'actionToState',
         value: function actionToState(action, rasp, source, initialRASP) {
             var nextRASP = {},
-                delta = {};
+                delta = {}; // nextRASP will be the next state, delta is where all the changes to state are recorded. There may be other properties in the state, only change them deliberatly  
             if (action.type === "TOGGLE") {
+                // the user clicks on a subject which sends the toggle event, to either open or close the article
                 if (rasp.open === 'open') {
-                    this.toChild['open']({ type: "CLEAR_PATH" }); // clear sub children
+                    // if the article was open close it, but 
+                    this.toChild['open']({ type: "CLEAR_PATH" }); // first clear the state of all the sub children, so when they are reopened they are back to their initial state.
+                    // this is good for 3 reasons: 1) reduces the number of items we need to save state for,
+                    // 2) reduces the state information we have to encode in to the URL path
+                    // 3) it fits many use cases that when something becomes visibile it consistently starts in the same state
                     delta.open = null; // closed
-                    delta.minimize = null;
+                    delta.minimize = null; // not minimized anymore
                 } else {
-                    delta.open = 'open';
-                    delta.minimize = null;
+                    delta.open = 'open'; // was closed, now open
+                    delta.minimize = null; // not minimized
                 }
             } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance > 2 && action.shape === 'open' && !rasp.minimize) {
-                // a 2+ distant sub child has chanaged shape, so minimize, but don't minimize if already minimized which will change the shape of the propogating message
+                // a 2+ distant sub child has chanaged to open, so minimize, but don't minimize if already minimized which will change the shape of the propogating message
                 delta.minimize = true;
             } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance >= 2 && action.shape !== 'open' && rasp.minimize) {
+                // a 2+ distant sub child has changed from open, and we are minimized, so unminimize
                 delta.minimize = false;
-            } else return null;
-            Object.assign(nextRASP, rasp, delta);
-            nextRASP.shape = nextRASP.open === 'open' ? 'open' : initialRASP.shape;
+            } else return null; // if we don't understand the action, just pass it on
+            // we did understand the action and so now calculate the computed state information
+            Object.assign(nextRASP, rasp, delta); // calculate the new state based on the previous state and the delta.  There may be other properties in the previous state (like depth). Don't clobber them.
+            nextRASP.shape = nextRASP.open === 'open' ? 'open' : initialRASP.shape; // shape is the piece of state information that all RASP components can understand
+            // build the pathSegment out of parts for each state property
             var parts = [];
             if (nextRASP.open === 'open') parts.push('o');
             if (nextRASP.minimize) parts.push('m');
-            nextRASP.pathSegment = parts.join(',');
+            nextRASP.pathSegment = parts.join(','); // pathSegment is be incorporated into the URL path. It should be calculated and the minimal length necessary to do the job
             return nextRASP;
         }
+
+        // called to get the next RASP state based on what is in the action.segment.
+        // also returns setBeforeWait which indicates that the new state should be set and then a match to the keyField waited on
+        // otherwise, a match to the new state's keyfield will be waited on before the new state is set
+
     }, {
         key: 'segmentToState',
-        value: function segmentToState(action) {
-            var nextRASP = {};
+        value: function segmentToState(action, initialRASP) {
+            var nextRASP = {},
+                delta = {};
+            // first convert the state info in the segment into real state properties
             var parts = action.segment.split(',');
             parts.forEach(function (part) {
-                if (part === 'o') nextRASP.open = 'open';
-                if (part === 'm') nextRASP.minimize = true;
+                if (part === 'o') delta.open = 'open';
+                if (part === 'm') delta.minimize = true;
             });
+            Object.assign(nextRASP, initialRASP, delta);
+            // then calculate the derived state information
             nextRASP.shape = nextRASP.open === 'open' ? 'open' : initialRASP.shape;
+            // then recalculate the path, don't copy it and include stuff that wasn't understood. 
             parts = [];
             if (nextRASP.open === 'open') parts.push('o');
             if (nextRASP.minimize) parts.push('m');
             nextRASP.pathSegment = parts.join(',');
             return { nextRASP: nextRASP, setBeforeWait: true };
-        }
-    }, {
-        key: 'componentDidUpdate',
-        value: function componentDidUpdate() {
-            // we are using max-height to animate the transitions - but we don't initially know the max-height. So the CSS starts with a guess, and we correct it here.
-            if (this.props.rasp.shape === 'open' && !this.props.rasp.minimize) {
-                var height = this.refs.text.getBoundingClientRect().height;
-                if (!height) return;
-                if (parseInt(this.refs.text.style.maxHeight) === height) height = 2 * height; // the max-height value was a constraint  this is sloppy but good enough for this demo
-                this.refs.text.style.maxHeight = height + 'px';
-                console.info("height:", height);
-            }
         }
     }, {
         key: 'render',
@@ -178,35 +184,54 @@ var RASPArticle = function (_ReactActionStatePath) {
                 id = _props.id,
                 rasp = _props.rasp;
 
-            // don't render sub articles until the list is opened or it will never end. don't delete them once rendered, user may come back to them
+            // don't render sub articles until the article is opened or it will never end. don't delete them once rendered, user may come back to them
+            // Accordion is used to smooth the apperance/disappearents of components so changes are not discontinuous making it hearder for the user to understand what is happening
+            // nextRASP is created for every (this) child, with a default shape, and a toParent function that calls back here. The bound argument ('open') will be included actions generated by this child
+            // in this case action.open='open' 
 
             if (rasp.shape === 'open' && !this.mounted.length) {
                 var nextRASP = Object.assign({}, rasp, { shape: 'truncated', toParent: this.toMeFromChild.bind(this, 'open') });
-                this.mounted = _react2.default.createElement(SubArticleList, { parent: id, rasp: nextRASP });
+                this.mounted = _react2.default.createElement(
+                    _reactProactiveAccordion2.default,
+                    { active: !rasp.minlist },
+                    _react2.default.createElement(SubArticleList, { parent: id, rasp: nextRASP })
+                );
             }
 
             return _react2.default.createElement(
                 'div',
                 { className: 'rasp-article' },
                 _react2.default.createElement(
-                    'div',
-                    { className: 'subject' + ' rasp-' + rasp.shape + (rasp.minimize ? ' rasp-minimize' : ''), onClick: function onClick() {
-                            rasp.toParent({ type: "TOGGLE" });
-                        } },
-                    subject
-                ),
-                _react2.default.createElement(
-                    'div',
-                    { className: 'text' + ' rasp-' + rasp.shape + (rasp.minimize ? ' rasp-minimize' : ''), ref: 'text' },
-                    text
-                ),
-                _react2.default.createElement(
-                    'div',
-                    { className: 'articles' + ' rasp-' + rasp.shape },
+                    _reactProactiveAccordion2.default,
+                    { active: !rasp.minimize },
                     _react2.default.createElement(
                         'div',
-                        { className: "subarticles" + " rasp-" + rasp.shape },
-                        this.mounted
+                        { className: 'subject' + ' rasp-' + rasp.shape, onClick: function onClick() {
+                                rasp.toParent({ type: "TOGGLE" });
+                            } },
+                        subject
+                    )
+                ),
+                _react2.default.createElement(
+                    _reactProactiveAccordion2.default,
+                    { active: rasp.shape === 'open' },
+                    _react2.default.createElement(
+                        _reactProactiveAccordion2.default,
+                        { active: !rasp.minimize },
+                        _react2.default.createElement(
+                            'div',
+                            { className: 'text' + ' rasp-' + rasp.shape },
+                            text
+                        )
+                    ),
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'articles' + ' rasp-' + rasp.shape },
+                        _react2.default.createElement(
+                            'div',
+                            { className: "subarticles" + " rasp-" + rasp.shape },
+                            this.mounted
+                        )
                     )
                 )
             );
@@ -219,33 +244,42 @@ var RASPArticle = function (_ReactActionStatePath) {
 var ArticleStore = function (_React$Component2) {
     _inherits(ArticleStore, _React$Component2);
 
-    function ArticleStore(props) {
+    function ArticleStore() {
+        var _ref;
+
+        var _temp, _this3, _ret;
+
         _classCallCheck(this, ArticleStore);
 
-        var _this4 = _possibleConstructorReturn(this, (ArticleStore.__proto__ || Object.getPrototypeOf(ArticleStore)).call(this, props));
+        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+            args[_key] = arguments[_key];
+        }
 
-        _this4.state = { articles: [] };
-        return _this4;
+        return _ret = (_temp = (_this3 = _possibleConstructorReturn(this, (_ref = ArticleStore.__proto__ || Object.getPrototypeOf(ArticleStore)).call.apply(_ref, [this].concat(args))), _this3), _this3.state = { articles: [] }, _temp), _possibleConstructorReturn(_this3, _ret);
     }
 
     _createClass(ArticleStore, [{
         key: 'renderChildren',
-        value: function renderChildren() {
-            var _this5 = this;
+        // retrived articles are stored here
 
+        value: function renderChildren() {
+            var _this4 = this;
+
+            // this is how props and state are passed as props to children
             return _react2.default.Children.map(this.props.children, function (child) {
-                var newProps = Object.assign({}, _this5.props, _this5.state);
-                delete newProps.children;
+                var newProps = Object.assign({}, _this4.props, _this4.state);
+                delete newProps.children; // be careful not to make the child it's child
                 return _react2.default.cloneElement(child, newProps, child.props.children);
             });
         }
     }, {
         key: 'componentDidMount',
         value: function componentDidMount() {
-            var _this6 = this;
+            var _this5 = this;
 
+            // this simulates getting data from an external resouce/database by 
             var articles = demoData.reduce(function (acc, dat) {
-                if (dat.parent === _this6.props.parent) acc.push(dat);
+                if (dat.parent === _this5.props.parent) acc.push(dat);
                 return acc;
             }, []);
             this.setState({ articles: articles });
@@ -276,6 +310,9 @@ var SubArticleList = function (_React$Component3) {
     _createClass(SubArticleList, [{
         key: 'render',
         value: function render() {
+            // this.prop is passed through the ArticleStore with the found articles[] being added, after a delay
+            // that information is passed through ReactActionStatePath which adds the rasp state.
+            // all those props (this.props, articles[], and rasp) are passed to RASPSubArticles
             return _react2.default.createElement(
                 ArticleStore,
                 this.props,
@@ -297,7 +334,7 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
     function RASPSubArticleList(props) {
         _classCallCheck(this, RASPSubArticleList);
 
-        return _possibleConstructorReturn(this, (RASPSubArticleList.__proto__ || Object.getPrototypeOf(RASPSubArticleList)).call(this, props, 'id', 1));
+        return _possibleConstructorReturn(this, (RASPSubArticleList.__proto__ || Object.getPrototypeOf(RASPSubArticleList)).call(this, props, 'id', 1)); // the keyField for toChild is the 'id' of the article, debug level is 1 so we can see some actions travel between components
     }
 
     _createClass(RASPSubArticleList, [{
@@ -305,6 +342,9 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
         value: function actionToState(action, rasp, source, initialRASP) {
             var nextRASP = {},
                 delta = {};
+            // if the immediate child of this list (an article) changes shape to open, 
+            // close all the other articles in the list, to focus on just this one.
+            // if the article changes out of open, then show the list again
             if (action.type === "CHILD_SHAPE_CHANGED" && action.distance === 1) {
                 if (action.shape === 'open') {
                     if (rasp.id && rasp.id !== action.id) this.toChild[rasp.id]({ type: "CLEAR_PATH" }); // if some other child is open, close it
@@ -320,32 +360,42 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
         }
     }, {
         key: 'segmentToState',
-        value: function segmentToState(action) {
-            var nextRASP = {};
+        value: function segmentToState(action, initialRASP) {
+            // if an article is open, the article id is the path segment
+            var nextRASP = {},
+                delta = {};
             var id = action.segment;
-            if (id) nextRASP.id = id;
-            if (nextRASP.id) nextRASP.shape = 'open';else nextRASP.shape = action.initialRASP.shape;
+            if (id) delta.id = id;
+            Object.assign(nextRASP, initialRASP, delta);
+            if (nextRASP.id) nextRASP.shape = 'open';
             if (nextRASP.id) nextRASP.pathSegment = id;
             return { nextRASP: nextRASP, setBeforeWait: true };
         }
     }, {
         key: 'render',
         value: function render() {
-            var _this9 = this;
+            var _this8 = this;
 
             var _props2 = this.props,
                 articles = _props2.articles,
                 rasp = _props2.rasp;
 
+            // Accordion is used to smooth the apperance/disappearents of components so changes are not discontinuous making it hearder for the user to understand what is happening
+            // The Accordion, showing each subarticle in a list, is open when the component is truncated.  But when on sub article opens, the Accordion of all the subarticles is closed,
+            // until no subarticle is open.
+            //
+            // nextRASP is created for every child, with a default shape (truncated), and a toParent function that calls back here. The bound argument ('a.id') will be included in actions generated by each child
+            // in this case action.id=a.id  or action[this.keyField]=a.id where this.keyField was set to 'id' in the constructor. 
+            // this way every child will have a unique index that can be used in this.toChild[id](action) to send actions to the child.  The super component and this component (can) both acess this.toChild
 
             return _react2.default.createElement(
                 'div',
                 { className: "articles" + " rasp-" + rasp.shape },
                 articles.map(function (a) {
-                    var nextRASP = Object.assign({}, rasp, { shape: 'truncated', toParent: _this9.toMeFromChild.bind(_this9, a.id) });
+                    var nextRASP = Object.assign({}, rasp, { shape: 'truncated', toParent: _this8.toMeFromChild.bind(_this8, a.id) });
                     return _react2.default.createElement(
-                        'div',
-                        { key: a.id, className: 'subarticle' + (rasp.shape === 'open' && rasp.id !== a.id ? ' rasp-minimize' : '') },
+                        _reactProactiveAccordion2.default,
+                        { active: rasp.shape !== 'open' || rasp.id === a.id, key: a.id, className: 'subarticle' },
                         _react2.default.createElement(Article, _extends({}, a, { rasp: nextRASP }))
                     );
                 })
@@ -371,7 +421,11 @@ var App = function (_React$Component4) {
             var path = window.location.href;
             var root = path.split('?');
             var RASPRoot = root[0] + '?/';
-            if (root.length === 1 && path[path.length - 1] !== '?') path += '?';
+            if (root.length === 1 && path[path.length - 1] !== '?') path += '?'; // append a ? to the end if it's just the file name
+            // only the first instance of ReactActionStatePath looks at path and RASPRoot. 
+            // in this demo '?' is used to separate the file name from the rest of the URL because when you are opening demo.html on a file system, and the file system does not like demo.html/anything
+            // but demo.html? works, and so does demo.html?/
+            // if you are strictly serving from a server, the ? is not required
             return _react2.default.createElement(
                 'div',
                 { className: 'rasp-demo' },
@@ -384,7 +438,7 @@ var App = function (_React$Component4) {
 }(_react2.default.Component);
 
 _reactDom2.default.render(_react2.default.createElement(App, null), document.getElementById('root'));
-},{"./react-action-state-path":2,"react":259,"react-dom":107}],2:[function(require,module,exports){
+},{"./react-action-state-path":2,"react":260,"react-dom":107,"react-proactive-accordion":234}],2:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -947,7 +1001,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                     else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there", this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp);
                 } else return null; // end of the line
             } else if (action.type === "SET_PATH") {
-                var _segmentToState = this.segmentToState(action),
+                var _segmentToState = this.segmentToState(action, action.initialRASP),
                     nextRASP = _segmentToState.nextRASP,
                     setBeforeWait = _segmentToState.setBeforeWait;
 
@@ -972,7 +1026,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
 
     return ReactActionStatePathClient;
 }(_react2.default.Component);
-},{"classnames":3,"lodash/union":100,"react":259,"react-dom":107,"shallowequal":260}],3:[function(require,module,exports){
+},{"classnames":3,"lodash/union":100,"react":260,"react-dom":107,"shallowequal":261}],3:[function(require,module,exports){
 /*!
   Copyright (c) 2016 Jed Watson.
   Licensed under the MIT License (MIT), see
@@ -9418,7 +9472,7 @@ var LinkedValueUtils = {
 
 module.exports = LinkedValueUtils;
 }).call(this,require('_process'))
-},{"./ReactPropTypesSecret":177,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"prop-types/factory":104,"react/lib/React":236}],131:[function(require,module,exports){
+},{"./ReactPropTypesSecret":177,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"prop-types/factory":104,"react/lib/React":237}],131:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -10011,7 +10065,7 @@ var ReactChildReconciler = {
 
 module.exports = ReactChildReconciler;
 }).call(this,require('_process'))
-},{"./KeyEscapeUtils":129,"./ReactReconciler":179,"./instantiateReactComponent":223,"./shouldUpdateReactComponent":231,"./traverseAllChildren":232,"_process":102,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":239}],134:[function(require,module,exports){
+},{"./KeyEscapeUtils":129,"./ReactReconciler":179,"./instantiateReactComponent":223,"./shouldUpdateReactComponent":231,"./traverseAllChildren":232,"_process":102,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":240}],134:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -10987,7 +11041,7 @@ var ReactCompositeComponent = {
 
 module.exports = ReactCompositeComponent;
 }).call(this,require('_process'))
-},{"./ReactComponentEnvironment":135,"./ReactErrorUtils":160,"./ReactInstanceMap":168,"./ReactInstrumentation":169,"./ReactNodeTypes":174,"./ReactReconciler":179,"./checkReactTypeSpec":206,"./reactProdInvariant":227,"./shouldUpdateReactComponent":231,"_process":102,"fbjs/lib/emptyObject":13,"fbjs/lib/invariant":20,"fbjs/lib/shallowEqual":26,"fbjs/lib/warning":27,"object-assign":101,"react/lib/React":236,"react/lib/ReactCurrentOwner":240}],137:[function(require,module,exports){
+},{"./ReactComponentEnvironment":135,"./ReactErrorUtils":160,"./ReactInstanceMap":168,"./ReactInstrumentation":169,"./ReactNodeTypes":174,"./ReactReconciler":179,"./checkReactTypeSpec":206,"./reactProdInvariant":227,"./shouldUpdateReactComponent":231,"_process":102,"fbjs/lib/emptyObject":13,"fbjs/lib/invariant":20,"fbjs/lib/shallowEqual":26,"fbjs/lib/warning":27,"object-assign":101,"react/lib/React":237,"react/lib/ReactCurrentOwner":241}],137:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -12858,7 +12912,7 @@ var ReactDOMInvalidARIAHook = {
 
 module.exports = ReactDOMInvalidARIAHook;
 }).call(this,require('_process'))
-},{"./DOMProperty":118,"_process":102,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":239}],147:[function(require,module,exports){
+},{"./DOMProperty":118,"_process":102,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":240}],147:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -12903,7 +12957,7 @@ var ReactDOMNullInputValuePropHook = {
 
 module.exports = ReactDOMNullInputValuePropHook;
 }).call(this,require('_process'))
-},{"_process":102,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":239}],148:[function(require,module,exports){
+},{"_process":102,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":240}],148:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -13027,7 +13081,7 @@ var ReactDOMOption = {
 
 module.exports = ReactDOMOption;
 }).call(this,require('_process'))
-},{"./ReactDOMComponentTree":140,"./ReactDOMSelect":149,"_process":102,"fbjs/lib/warning":27,"object-assign":101,"react/lib/React":236}],149:[function(require,module,exports){
+},{"./ReactDOMComponentTree":140,"./ReactDOMSelect":149,"_process":102,"fbjs/lib/warning":27,"object-assign":101,"react/lib/React":237}],149:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -14019,7 +14073,7 @@ var ReactDOMUnknownPropertyHook = {
 
 module.exports = ReactDOMUnknownPropertyHook;
 }).call(this,require('_process'))
-},{"./DOMProperty":118,"./EventPluginRegistry":124,"_process":102,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":239}],155:[function(require,module,exports){
+},{"./DOMProperty":118,"./EventPluginRegistry":124,"_process":102,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":240}],155:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2016-present, Facebook, Inc.
@@ -14382,7 +14436,7 @@ if (/[?&]react_perf\b/.test(url)) {
 
 module.exports = ReactDebugTool;
 }).call(this,require('_process'))
-},{"./ReactHostOperationHistoryHook":165,"./ReactInvalidSetStateWarningHook":170,"_process":102,"fbjs/lib/ExecutionEnvironment":6,"fbjs/lib/performanceNow":25,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":239}],156:[function(require,module,exports){
+},{"./ReactHostOperationHistoryHook":165,"./ReactInvalidSetStateWarningHook":170,"_process":102,"fbjs/lib/ExecutionEnvironment":6,"fbjs/lib/performanceNow":25,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":240}],156:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -15835,7 +15889,7 @@ var ReactMount = {
 
 module.exports = ReactMount;
 }).call(this,require('_process'))
-},{"./DOMLazyTree":116,"./DOMProperty":118,"./ReactBrowserEventEmitter":132,"./ReactDOMComponentTree":140,"./ReactDOMContainerInfo":141,"./ReactDOMFeatureFlags":143,"./ReactFeatureFlags":163,"./ReactInstanceMap":168,"./ReactInstrumentation":169,"./ReactMarkupChecksum":171,"./ReactReconciler":179,"./ReactUpdateQueue":183,"./ReactUpdates":184,"./instantiateReactComponent":223,"./reactProdInvariant":227,"./setInnerHTML":229,"./shouldUpdateReactComponent":231,"_process":102,"fbjs/lib/emptyObject":13,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"react/lib/React":236,"react/lib/ReactCurrentOwner":240}],173:[function(require,module,exports){
+},{"./DOMLazyTree":116,"./DOMProperty":118,"./ReactBrowserEventEmitter":132,"./ReactDOMComponentTree":140,"./ReactDOMContainerInfo":141,"./ReactDOMFeatureFlags":143,"./ReactFeatureFlags":163,"./ReactInstanceMap":168,"./ReactInstrumentation":169,"./ReactMarkupChecksum":171,"./ReactReconciler":179,"./ReactUpdateQueue":183,"./ReactUpdates":184,"./instantiateReactComponent":223,"./reactProdInvariant":227,"./setInnerHTML":229,"./shouldUpdateReactComponent":231,"_process":102,"fbjs/lib/emptyObject":13,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"react/lib/React":237,"react/lib/ReactCurrentOwner":241}],173:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -16283,7 +16337,7 @@ var ReactMultiChild = {
 
 module.exports = ReactMultiChild;
 }).call(this,require('_process'))
-},{"./ReactChildReconciler":133,"./ReactComponentEnvironment":135,"./ReactInstanceMap":168,"./ReactInstrumentation":169,"./ReactReconciler":179,"./flattenChildren":211,"./reactProdInvariant":227,"_process":102,"fbjs/lib/emptyFunction":12,"fbjs/lib/invariant":20,"react/lib/ReactCurrentOwner":240}],174:[function(require,module,exports){
+},{"./ReactChildReconciler":133,"./ReactComponentEnvironment":135,"./ReactInstanceMap":168,"./ReactInstrumentation":169,"./ReactReconciler":179,"./flattenChildren":211,"./reactProdInvariant":227,"_process":102,"fbjs/lib/emptyFunction":12,"fbjs/lib/invariant":20,"react/lib/ReactCurrentOwner":241}],174:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -16325,7 +16379,7 @@ var ReactNodeTypes = {
 
 module.exports = ReactNodeTypes;
 }).call(this,require('_process'))
-},{"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"react/lib/React":236}],175:[function(require,module,exports){
+},{"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"react/lib/React":237}],175:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -17370,7 +17424,7 @@ var ReactUpdateQueue = {
 
 module.exports = ReactUpdateQueue;
 }).call(this,require('_process'))
-},{"./ReactInstanceMap":168,"./ReactInstrumentation":169,"./ReactUpdates":184,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"react/lib/ReactCurrentOwner":240}],184:[function(require,module,exports){
+},{"./ReactInstanceMap":168,"./ReactInstrumentation":169,"./ReactUpdates":184,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"react/lib/ReactCurrentOwner":241}],184:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -19643,7 +19697,7 @@ function checkReactTypeSpec(typeSpecs, values, location, componentName, element,
 
 module.exports = checkReactTypeSpec;
 }).call(this,require('_process'))
-},{"./ReactPropTypeLocationNames":176,"./ReactPropTypesSecret":177,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":239}],207:[function(require,module,exports){
+},{"./ReactPropTypeLocationNames":176,"./ReactPropTypesSecret":177,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":240}],207:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -19940,7 +19994,7 @@ function findDOMNode(componentOrElement) {
 
 module.exports = findDOMNode;
 }).call(this,require('_process'))
-},{"./ReactDOMComponentTree":140,"./ReactInstanceMap":168,"./getHostComponentFromComposite":217,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"react/lib/ReactCurrentOwner":240}],211:[function(require,module,exports){
+},{"./ReactDOMComponentTree":140,"./ReactInstanceMap":168,"./getHostComponentFromComposite":217,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"react/lib/ReactCurrentOwner":241}],211:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -20018,7 +20072,7 @@ function flattenChildren(children, selfDebugID) {
 
 module.exports = flattenChildren;
 }).call(this,require('_process'))
-},{"./KeyEscapeUtils":129,"./traverseAllChildren":232,"_process":102,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":239}],212:[function(require,module,exports){
+},{"./KeyEscapeUtils":129,"./traverseAllChildren":232,"_process":102,"fbjs/lib/warning":27,"react/lib/ReactComponentTreeHook":240}],212:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -20822,7 +20876,7 @@ _assign(ReactCompositeComponentWrapper.prototype, ReactCompositeComponent, {
 
 module.exports = instantiateReactComponent;
 }).call(this,require('_process'))
-},{"./ReactCompositeComponent":136,"./ReactEmptyComponent":159,"./ReactHostComponent":164,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"object-assign":101,"react/lib/getNextDebugID":254}],224:[function(require,module,exports){
+},{"./ReactCompositeComponent":136,"./ReactEmptyComponent":159,"./ReactHostComponent":164,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"object-assign":101,"react/lib/getNextDebugID":255}],224:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -21384,7 +21438,7 @@ function traverseAllChildren(children, callback, traverseContext) {
 
 module.exports = traverseAllChildren;
 }).call(this,require('_process'))
-},{"./KeyEscapeUtils":129,"./ReactElementSymbol":158,"./getIteratorFn":218,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"react/lib/ReactCurrentOwner":240}],233:[function(require,module,exports){
+},{"./KeyEscapeUtils":129,"./ReactElementSymbol":158,"./getIteratorFn":218,"./reactProdInvariant":227,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27,"react/lib/ReactCurrentOwner":241}],233:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2015-present, Facebook, Inc.
@@ -21758,10 +21812,262 @@ if (process.env.NODE_ENV !== 'production') {
 module.exports = validateDOMNesting;
 }).call(this,require('_process'))
 },{"_process":102,"fbjs/lib/emptyFunction":12,"fbjs/lib/warning":27,"object-assign":101}],234:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _react = require('react');
+
+var _react2 = _interopRequireDefault(_react);
+
+var _classnames = require('classnames');
+
+var _classnames2 = _interopRequireDefault(_classnames);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Accordion = function (_React$Component) {
+  _inherits(Accordion, _React$Component);
+
+  //step rate
+
+  function Accordion(props) {
+    _classCallCheck(this, Accordion);
+
+    var _this = _possibleConstructorReturn(this, (Accordion.__proto__ || Object.getPrototypeOf(Accordion)).call(this, props));
+
+    _this.state = {
+      attr: 'collapsed'
+    };
+    _this.stepSize = 7;
+    _this.stepPeriod = 10;
+    _this.inOpen = 'inactive';
+    _this.openStart = null;
+    _this.inClose = 'inactive';
+    _this.closeStart = null;
+
+    var height;
+
+    if (typeof window !== 'undefined') {
+      height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+    } else {
+      height = 1024; // this is running on the server, guess the height of the screen this will be displayed on
+    }
+
+    var stepMaxDuration = props.duration || 500; //* maximum time allowed for a scroll if it were full screen in mSec
+    _this.stepSize = Math.round(height * _this.stepPeriod / stepMaxDuration); //needs to be an int
+    return _this;
+  }
+
+  _createClass(Accordion, [{
+    key: 'componentWillReceiveProps',
+    value: function componentWillReceiveProps(nextProps) {
+      if (this.props.active !== nextProps.active) {
+        if (!nextProps.active) {
+          this.smoothClose();
+        } else {
+          this.smoothOpen();
+        }
+      }
+    }
+  }, {
+    key: 'componentDidMount',
+    value: function componentDidMount() {
+      if (this.props.active) {
+        var maxHeight = parseInt(this.refs.accordion.style.maxHeight, 10) || 0;
+        if (this.refs.accordionWrapper.clientHeight >= maxHeight) {
+          if (typeof window !== 'undefined') {
+            this.smoothOpen();
+          } else {
+            this.setState({ attr: 'expanded' });
+          }
+        }
+      }
+    }
+  }, {
+    key: 'smoothOpen',
+    value: function smoothOpen() {
+      if (!this.openStart) this.openStart = new Date().getTime();else return; // don't stutter start
+      if (this.inOpen === 'active') {
+        return;
+      } // dont't stutter start.
+      this.inOpen = 'active';
+      if (this.inClose !== "inactive") {
+        this.inClose = 'abort';
+      }
+      var duration = this.props.duration || 500;
+      var accordion = this.refs.accordion;
+
+      var timerMax = 1000; //just in case
+
+      var maxHeight = parseInt(accordion.style.maxHeight, 10) || 0;
+      var height = accordion.clientHeight;
+      if (maxHeight < height) {
+        //minHeight may not be 0
+        accordion.style.maxHeight = height + 'px';
+      }
+
+      this.setState({ attr: 'expanding' });
+
+      var stepPeriod = this.stepPeriod;
+      var that = this;
+      var stepper = function stepper() {
+        if (that.inOpen === 'abort') {
+          that.openStart = null;that.inOpen = 'inactive';return;
+        }
+        var now = new Date().getTime();
+        if (now - that.openStart > duration) {
+          // time is up
+          that.inOpen = 'inactive';
+          that.openStart = null;
+          var nextFunc = that.props.onComplete ? function () {
+            return that.props.onComplete(true);
+          } : null;
+          that.setState({ attr: 'expanded' }, nextFunc);
+          accordion.style.maxHeight = null;
+          return;
+        }
+        var lmaxHeight = parseInt(accordion.style.maxHeight, 10) || 0;
+        var lheight = accordion.clientHeight;
+        var wheight = that.refs.accordionWrapper ? that.refs.accordionWrapper.clientHeight : 0;
+
+        if (wheight) {
+          // wrapper has a significant height
+          var timeRemaining = duration - (now - that.openStart);
+          var stepsRemaining = Math.max(1, Math.round(timeRemaining / stepPeriod)); // less than one step is one step
+          var distanceRemaining = Math.max(wheight - lheight, 0); // distance to go, but not negative
+          var nextStepDistance = distanceRemaining / stepsRemaining;
+          if (nextStepDistance < 1 && nextStepDistance > 0) {
+            // steps are less than 1 pixel at this rate
+            stepPeriod = Math.ceil(timeRemaining / distanceRemaining); // time between pixels
+            var shortStepPeriod = stepPeriod;
+            if (nextStepDistance < 0.5) {
+              shortStepPeriod = Math.max(that.stepPeriod, Math.ceil((1 - nextStepDistance) * stepPeriod)); // time to the next pixel but at least something
+              setTimeout(stepper, shortStepPeriod); // come back later and less often
+              return;
+            }
+          }
+          var newMax = Math.ceil(lheight + nextStepDistance); // top of the next step
+          accordion.style.maxHeight = newMax + 'px';
+        } else {
+          // we don't know the height of the wrapper, the data is not populated yet
+
+          if (lmaxHeight <= lheight) {
+            // if maxheight is equal to (or somehow less) increment the maxHeight another step
+            accordion.style.maxHeight = Math.max(lmaxHeight + that.stepSize, lheight + 1) + 'px';
+          }
+        }
+        setTimeout(stepper, stepPeriod); // continue the steps
+      };
+      setTimeout(stepper, stepPeriod); // start the stepper
+    }
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+  }, {
+    key: 'smoothClose',
+    value: function smoothClose() {
+      var _this2 = this;
+
+      // set an interval to update scrollTop attribute every 25 ms
+      if (!this.closeStart) this.closeStart = new Date().getTime();else return; // don't stutter close
+      if (this.inClose == 'active') {
+        return;
+      } //don't stutter the close
+      this.inClose = 'active';
+      if (this.inOpen != 'inactive') {
+        this.inOpen = 'abort';
+      } //override the open with a close
+      var duration = this.props.duration || 500;
+      var accordion = this.refs.accordion;
+
+      var height = accordion.clientHeight;
+      accordion.style.maxHeight = Math.floor(height) + 'px';
+
+      var minHeight = parseInt(accordion.style.minHeight, 10) || 0;
+      if (this.refs.accordionWrapper.children[0]) minHeight = Math.max(minHeight, parseInt(this.refs.accordionWrapper.children[0].style.minHeight, 10) || 0); // wrapper is a div which wraps around the innards may have a min-height set
+
+      this.setState({ attr: 'collapsing' });
+
+      var stepPeriod = this.stepPeriod;
+      var that = this;
+      var stepper = function stepper() {
+        if (_this2.inClose === 'abort') {
+          _this2.closeStart = null;_this2.inClose = 'inactive';return;
+        }
+        var now = new Date().getTime();
+        if (now - _this2.closeStart > duration || lmaxHeight < lheight || lheight <= minHeight) {
+          _this2.inClose = 'inactive';
+          _this2.closeStart = null;
+          var nextFunc = that.props.onComplete ? function () {
+            return that.props.onComplete(true);
+          } : null;
+          _this2.setState({ attr: 'collapsed' }, nextFunc);
+          accordion.style.maxHeight = null;
+          return;
+        }
+        var lmaxHeight = parseInt(accordion.style.maxHeight, 10) || 0;
+        var lheight = Math.floor(accordion.clientHeight);
+
+        var timeRemaining = duration - (now - that.closeStart);
+        var stepsRemaining = Math.max(1, Math.round(timeRemaining / stepPeriod)); // less than one step is one step
+        var distanceRemaining = Math.max(lheight - minHeight, 1); // distance to go, but not negative
+        var nextStepDistance = distanceRemaining / stepsRemaining;
+        if (nextStepDistance < 1 && nextStepDistance > 0) {
+          // steps are less than 1 pixel at this rate
+          stepPeriod = Math.ceil(timeRemaining / distanceRemaining); // time between pixels
+          var shortStepPeriod = stepPeriod;
+          if (nextStepDistance < 0.5) {
+            shortStepPeriod = Math.max(that.stepPeriod, Math.ceil((1 - nextStepDistance) * stepPeriod)); // time to the next pixel but at least something
+            setTimeout(stepper, shortStepPeriod); // come back later and less often
+            return;
+          }
+        }
+        var newMax = Math.floor(lheight - nextStepDistance); // top of the next step
+        accordion.style.maxHeight = newMax + 'px'; // set the new height
+        setTimeout(stepper, stepPeriod);
+      };
+      setTimeout(stepper, stepPeriod // kick off the stepper
+      );
+    }
+  }, {
+    key: 'render',
+    value: function render() {
+      var classes = (0, _classnames2.default)(this.props.className, 'accordion', {
+        'text': this.props.text
+      }, this.state.attr);
+      return _react2.default.createElement(
+        'section',
+        { className: classes, ref: 'accordion', style: this.props.style, onClick: this.props.onClick },
+        _react2.default.createElement(
+          'div',
+          { ref: 'accordionWrapper' },
+          this.props.children
+        )
+      );
+    }
+  }]);
+
+  return Accordion;
+}(_react2.default.Component);
+
+exports.default = Accordion;
+},{"classnames":3,"react":260}],235:[function(require,module,exports){
 arguments[4][129][0].apply(exports,arguments)
-},{"dup":129}],235:[function(require,module,exports){
+},{"dup":129}],236:[function(require,module,exports){
 arguments[4][131][0].apply(exports,arguments)
-},{"./reactProdInvariant":257,"_process":102,"dup":131,"fbjs/lib/invariant":20}],236:[function(require,module,exports){
+},{"./reactProdInvariant":258,"_process":102,"dup":131,"fbjs/lib/invariant":20}],237:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -21895,7 +22201,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = React;
 }).call(this,require('_process'))
-},{"./ReactBaseClasses":237,"./ReactChildren":238,"./ReactDOMFactories":241,"./ReactElement":242,"./ReactElementValidator":244,"./ReactPropTypes":247,"./ReactVersion":249,"./canDefineProperty":250,"./createClass":252,"./lowPriorityWarning":255,"./onlyChild":256,"_process":102,"object-assign":101}],237:[function(require,module,exports){
+},{"./ReactBaseClasses":238,"./ReactChildren":239,"./ReactDOMFactories":242,"./ReactElement":243,"./ReactElementValidator":245,"./ReactPropTypes":248,"./ReactVersion":250,"./canDefineProperty":251,"./createClass":253,"./lowPriorityWarning":256,"./onlyChild":257,"_process":102,"object-assign":101}],238:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -22040,7 +22346,7 @@ module.exports = {
   PureComponent: ReactPureComponent
 };
 }).call(this,require('_process'))
-},{"./ReactNoopUpdateQueue":245,"./canDefineProperty":250,"./lowPriorityWarning":255,"./reactProdInvariant":257,"_process":102,"fbjs/lib/emptyObject":13,"fbjs/lib/invariant":20,"object-assign":101}],238:[function(require,module,exports){
+},{"./ReactNoopUpdateQueue":246,"./canDefineProperty":251,"./lowPriorityWarning":256,"./reactProdInvariant":258,"_process":102,"fbjs/lib/emptyObject":13,"fbjs/lib/invariant":20,"object-assign":101}],239:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -22231,7 +22537,7 @@ var ReactChildren = {
 };
 
 module.exports = ReactChildren;
-},{"./PooledClass":235,"./ReactElement":242,"./traverseAllChildren":258,"fbjs/lib/emptyFunction":12}],239:[function(require,module,exports){
+},{"./PooledClass":236,"./ReactElement":243,"./traverseAllChildren":259,"fbjs/lib/emptyFunction":12}],240:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2016-present, Facebook, Inc.
@@ -22612,7 +22918,7 @@ var ReactComponentTreeHook = {
 
 module.exports = ReactComponentTreeHook;
 }).call(this,require('_process'))
-},{"./ReactCurrentOwner":240,"./reactProdInvariant":257,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27}],240:[function(require,module,exports){
+},{"./ReactCurrentOwner":241,"./reactProdInvariant":258,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27}],241:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -22641,7 +22947,7 @@ var ReactCurrentOwner = {
 };
 
 module.exports = ReactCurrentOwner;
-},{}],241:[function(require,module,exports){
+},{}],242:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -22812,7 +23118,7 @@ var ReactDOMFactories = {
 
 module.exports = ReactDOMFactories;
 }).call(this,require('_process'))
-},{"./ReactElement":242,"./ReactElementValidator":244,"_process":102}],242:[function(require,module,exports){
+},{"./ReactElement":243,"./ReactElementValidator":245,"_process":102}],243:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-present, Facebook, Inc.
@@ -23155,9 +23461,9 @@ ReactElement.isValidElement = function (object) {
 
 module.exports = ReactElement;
 }).call(this,require('_process'))
-},{"./ReactCurrentOwner":240,"./ReactElementSymbol":243,"./canDefineProperty":250,"_process":102,"fbjs/lib/warning":27,"object-assign":101}],243:[function(require,module,exports){
+},{"./ReactCurrentOwner":241,"./ReactElementSymbol":244,"./canDefineProperty":251,"_process":102,"fbjs/lib/warning":27,"object-assign":101}],244:[function(require,module,exports){
 arguments[4][158][0].apply(exports,arguments)
-},{"dup":158}],244:[function(require,module,exports){
+},{"dup":158}],245:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-present, Facebook, Inc.
@@ -23414,7 +23720,7 @@ var ReactElementValidator = {
 
 module.exports = ReactElementValidator;
 }).call(this,require('_process'))
-},{"./ReactComponentTreeHook":239,"./ReactCurrentOwner":240,"./ReactElement":242,"./canDefineProperty":250,"./checkReactTypeSpec":251,"./getIteratorFn":253,"./lowPriorityWarning":255,"_process":102,"fbjs/lib/warning":27}],245:[function(require,module,exports){
+},{"./ReactComponentTreeHook":240,"./ReactCurrentOwner":241,"./ReactElement":243,"./canDefineProperty":251,"./checkReactTypeSpec":252,"./getIteratorFn":254,"./lowPriorityWarning":256,"_process":102,"fbjs/lib/warning":27}],246:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2015-present, Facebook, Inc.
@@ -23511,9 +23817,9 @@ var ReactNoopUpdateQueue = {
 
 module.exports = ReactNoopUpdateQueue;
 }).call(this,require('_process'))
-},{"_process":102,"fbjs/lib/warning":27}],246:[function(require,module,exports){
+},{"_process":102,"fbjs/lib/warning":27}],247:[function(require,module,exports){
 arguments[4][176][0].apply(exports,arguments)
-},{"_process":102,"dup":176}],247:[function(require,module,exports){
+},{"_process":102,"dup":176}],248:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -23532,11 +23838,11 @@ var _require = require('./ReactElement'),
 var factory = require('prop-types/factory');
 
 module.exports = factory(isValidElement);
-},{"./ReactElement":242,"prop-types/factory":104}],248:[function(require,module,exports){
+},{"./ReactElement":243,"prop-types/factory":104}],249:[function(require,module,exports){
 arguments[4][177][0].apply(exports,arguments)
-},{"dup":177}],249:[function(require,module,exports){
+},{"dup":177}],250:[function(require,module,exports){
 arguments[4][185][0].apply(exports,arguments)
-},{"dup":185}],250:[function(require,module,exports){
+},{"dup":185}],251:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -23564,7 +23870,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = canDefineProperty;
 }).call(this,require('_process'))
-},{"_process":102}],251:[function(require,module,exports){
+},{"_process":102}],252:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -23653,7 +23959,7 @@ function checkReactTypeSpec(typeSpecs, values, location, componentName, element,
 
 module.exports = checkReactTypeSpec;
 }).call(this,require('_process'))
-},{"./ReactComponentTreeHook":239,"./ReactPropTypeLocationNames":246,"./ReactPropTypesSecret":248,"./reactProdInvariant":257,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27}],252:[function(require,module,exports){
+},{"./ReactComponentTreeHook":240,"./ReactPropTypeLocationNames":247,"./ReactPropTypesSecret":249,"./reactProdInvariant":258,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27}],253:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -23676,9 +23982,9 @@ var ReactNoopUpdateQueue = require('./ReactNoopUpdateQueue');
 var factory = require('create-react-class/factory');
 
 module.exports = factory(Component, isValidElement, ReactNoopUpdateQueue);
-},{"./ReactBaseClasses":237,"./ReactElement":242,"./ReactNoopUpdateQueue":245,"create-react-class/factory":4}],253:[function(require,module,exports){
+},{"./ReactBaseClasses":238,"./ReactElement":243,"./ReactNoopUpdateQueue":246,"create-react-class/factory":4}],254:[function(require,module,exports){
 arguments[4][218][0].apply(exports,arguments)
-},{"dup":218}],254:[function(require,module,exports){
+},{"dup":218}],255:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -23699,7 +24005,7 @@ function getNextDebugID() {
 }
 
 module.exports = getNextDebugID;
-},{}],255:[function(require,module,exports){
+},{}],256:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-2015, Facebook, Inc.
@@ -23766,7 +24072,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = lowPriorityWarning;
 }).call(this,require('_process'))
-},{"_process":102}],256:[function(require,module,exports){
+},{"_process":102}],257:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -23806,9 +24112,9 @@ function onlyChild(children) {
 
 module.exports = onlyChild;
 }).call(this,require('_process'))
-},{"./ReactElement":242,"./reactProdInvariant":257,"_process":102,"fbjs/lib/invariant":20}],257:[function(require,module,exports){
+},{"./ReactElement":243,"./reactProdInvariant":258,"_process":102,"fbjs/lib/invariant":20}],258:[function(require,module,exports){
 arguments[4][227][0].apply(exports,arguments)
-},{"dup":227}],258:[function(require,module,exports){
+},{"dup":227}],259:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -23986,12 +24292,12 @@ function traverseAllChildren(children, callback, traverseContext) {
 
 module.exports = traverseAllChildren;
 }).call(this,require('_process'))
-},{"./KeyEscapeUtils":234,"./ReactCurrentOwner":240,"./ReactElementSymbol":243,"./getIteratorFn":253,"./reactProdInvariant":257,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27}],259:[function(require,module,exports){
+},{"./KeyEscapeUtils":235,"./ReactCurrentOwner":241,"./ReactElementSymbol":244,"./getIteratorFn":254,"./reactProdInvariant":258,"_process":102,"fbjs/lib/invariant":20,"fbjs/lib/warning":27}],260:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./lib/React');
 
-},{"./lib/React":236}],260:[function(require,module,exports){
+},{"./lib/React":237}],261:[function(require,module,exports){
 module.exports = function shallowEqual(objA, objB, compare, compareContext) {
 
     var ret = compare ? compare.call(compareContext, objA, objB) : void 0;

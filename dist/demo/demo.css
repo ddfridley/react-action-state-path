@@ -14,16 +14,6 @@
     font-size: 1em;
     color: slategray;
     white-space: pre-line;
-    transition: all linear 0.5s;
-    max-height: 1000px;
-    overflow: hidden;
-}
-
-.text.rasp-truncated{
-    max-height: 0px;
-}
-.text.rasp-open.rasp-minimize{
-    max-height: 0px;
 }
 
 .articles{
@@ -37,16 +27,46 @@
     background: white;
 }
 
-.subarticles.rasp-truncated {
-    max-height: 0px;
+/* From Accordion.css */
+.accordion {
+  overflow: hidden;
+  max-height: 0;
+  position: relative;
+
 }
 
-.subarticle.rasp-minimize {
-    max-height: 0px;
-}
-
-.subarticle {
-    transition: all linear 0.5s;
+.accordion.expanding {
     overflow: hidden;
-    max-height: 1000px;
+}
+
+.accordion.text.expanding {
+  overflow: visible;
+  overflow-y: hidden;
+}
+
+.accordion.expanded {
+    max-height: none;
+    /* overflow nothing */
+}
+
+.accordion.text.expanded {
+    max-height: none;
+    overflow: visible;
+}
+
+.accordion.collapsing {
+  overflow: hidden;
+}
+
+.accordion.text.collapsing {
+  overflow: visible;
+  overflow-y: hidden;
+}
+
+.accordion.collapsed {
+  overflow: hidden;
+}
+
+.accordion.text.collapsed {
+  overflow: hidden;
 }

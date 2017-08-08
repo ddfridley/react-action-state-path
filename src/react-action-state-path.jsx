@@ -414,7 +414,7 @@ export class ReactActionStatePathClient extends React.Component {
             else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp)
         } else return null; // end of the line
     } else if (action.type === "SET_PATH") {
-      const { nextRASP, setBeforeWait } = this.segmentToState(action);
+      const { nextRASP, setBeforeWait } = this.segmentToState(action, action.initialRASP);
       var key = nextRASP[this.keyField];
       if (typeof key !== 'undefined' && key !== null) {
         if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
