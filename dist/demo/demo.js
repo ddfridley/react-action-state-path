@@ -21978,8 +21978,6 @@ var Accordion = function (_React$Component) {
   }, {
     key: 'smoothClose',
     value: function smoothClose() {
-      var _this2 = this;
-
       // set an interval to update scrollTop attribute every 25 ms
       if (!this.closeStart) this.closeStart = new Date().getTime();else return; // don't stutter close
       if (this.inClose == 'active') {
@@ -22003,17 +22001,17 @@ var Accordion = function (_React$Component) {
       var stepPeriod = this.stepPeriod;
       var that = this;
       var stepper = function stepper() {
-        if (_this2.inClose === 'abort') {
-          _this2.closeStart = null;_this2.inClose = 'inactive';return;
+        if (that.inClose === 'abort') {
+          that.closeStart = null;that.inClose = 'inactive';return;
         }
         var now = new Date().getTime();
-        if (now - _this2.closeStart > duration || lmaxHeight < lheight || lheight <= minHeight) {
-          _this2.inClose = 'inactive';
-          _this2.closeStart = null;
+        if (now - that.closeStart > duration || lmaxHeight < lheight || lheight <= minHeight) {
+          that.inClose = 'inactive';
+          that.closeStart = null;
           var nextFunc = that.props.onComplete ? function () {
-            return that.props.onComplete(true);
+            return that.props.onComplete(false);
           } : null;
-          _this2.setState({ attr: 'collapsed' }, nextFunc);
+          that.setState({ attr: 'collapsed' }, nextFunc);
           accordion.style.maxHeight = null;
           return;
         }
