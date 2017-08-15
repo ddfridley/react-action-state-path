@@ -20,7 +20,7 @@ Then in the component you are creating, there are two functions you need to supp
 
 the `<ReactActionStatePathClient>` base class provides these userful resources:
 This component should be used when there will only be one 'active' child at a time. - Meaning that state and path from no more than on child will be saved/restored.
-1. `this.toChild[]` an array of all the child RASP components of this component. Actions can be sent to children with this.toChild[child-id](action) such as RESET_SHAPE
+1. `this.toChild[]` an array of all the child RASP components of this component. Actions can be sent to children with `this.toChild[child-id](action)` such as `{type="RESET_STATE"}`
 2. `toMeFromChild()` which must be passed to children when created.
 
 # Demo
