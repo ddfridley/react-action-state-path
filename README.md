@@ -3,8 +3,8 @@ __DEMO__ (http://react-action-state-path.herokuapp.com)
 A state and history management package for React for use when:
 * components choose children dynamically based on user input
 * the URL should update based on user actions and take a user back to where they left off
-* the URL to a deep position should not be impossibly long and shouldn't contain sensitive stuff
-* components have external information that needs to be fetched when restoring a deep URL
+* the URL to a deep position should not be impossibly long and shouldn't contain sensitive stuff (not JSON.stringify()) 
+* components have external information that needs to be fetched when restoring a deep URL (restoring state based on path can wait for each compoents key state to be set )
 * users want the back and forward buttons of the browser to work
 * components want send actions to parents or children (yes you can easially RESET children)
 * parent state may change based on child actions
@@ -20,8 +20,9 @@ Then in the component you are creating, there are two functions you need to supp
 
 the `<ReactActionStatePathClient>` base class provides these userful resources:
 This component should be used when there will only be one 'active' child at a time. - Meaning that state and path from no more than on child will be saved/restored.
-1. `this.toChild[]` an array of all the child RASP components of this component. Actions can be sent to children with this.toChild[child-id](action) such as RESET_SHAPE
-2. `toMeFromChild()` which must be passed to children when created.
+1. `this.toChild[key]` an array of all the child RASP components of this component. Actions can be sent to children with this.toChild[key](action) such as RESET_SHAPE
+2. `this.raspChild(shape, key)` used to get the rasp object to pass to a child
+3. `this.toMeFromChild()` to send actions to change component state. eg: `onClick={()=>this.toMeFromChild({action: "TOGGLE})}`
 
 # Demo
 http://react-action-state-path.herokuapp.com
@@ -108,8 +109,7 @@ component-name.jsx:
             const {rasp, items, ... } = this.props;
             return(
                 {items.map(item->{
-                    var nextRASP=Object.assign({},rasp,{shape: 'truncated', toParent: this.toMeFromChild.bind(this,item.key)});  
-                    <Item item={item} rasp={nextRASP} key={item.key} style={{backgroundColor: rasp.backgroundColor}}> // key={} is for react so it can track what's changed
+                    <Item item={item} rasp={this.raspChild('truncated',item.key)} key={item.key} style={{backgroundColor: rasp.backgroundColor}}> // key={} is for react so it can track what's changed
                 })}
             )
         }
@@ -134,6 +134,7 @@ These are the inherent actions:
 * RESET_STATE:  Reset the state of a component, can be sent to a child or a parent
 * CHILD_SHAPE_CHANGED:  If a child's shape changes, this action is generated and propgated up, with distance increasing each time.  You would use this to reduce, or hide, or change components that are far from the action
 * CLEAR_PATH:    Reset the state of a component's children, and then the component. (order matters)
+* SET_PATH: Used when restoring state from a URL, SET_PATH is called for each component
 
 # Guidelines
 

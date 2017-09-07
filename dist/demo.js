@@ -281,11 +281,10 @@ var RASPArticle = function (_ReactActionStatePath) {
             // in this case action.open='open' 
 
             if (rasp.shape === 'open' && !this.mounted.length) {
-                var nextRASP = Object.assign({}, rasp, { shape: 'truncated', toParent: this.toMeFromChild.bind(this, 'open') });
                 this.mounted = _react2.default.createElement(
                     _reactProactiveAccordion2.default,
                     { active: !rasp.minlist },
-                    _react2.default.createElement(SubArticleList, { parent: id, rasp: nextRASP })
+                    _react2.default.createElement(SubArticleList, { parent: id, rasp: this.childRASP('truncated', 'open') })
                 );
             }
 
@@ -483,11 +482,10 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
                 'div',
                 { className: "articles" + " rasp-" + rasp.shape },
                 articles.map(function (a) {
-                    var nextRASP = Object.assign({}, rasp, { shape: 'truncated', toParent: _this8.toMeFromChild.bind(_this8, a.id) });
                     return _react2.default.createElement(
                         _reactProactiveAccordion2.default,
                         { active: rasp.shape !== 'open' || rasp.id === a.id, key: a.id, className: 'subarticle' },
-                        _react2.default.createElement(Article, _extends({}, a, { rasp: nextRASP }))
+                        _react2.default.createElement(Article, _extends({}, a, { rasp: _this8.childRASP('truncated', a.id) }))
                     );
                 })
             );

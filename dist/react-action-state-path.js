@@ -581,6 +581,11 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                 }
             } else console.error("ReactActionStatePathClient.toMeFromParent action type unknown not handled", action);
         }
+    }, {
+        key: 'childRASP',
+        value: function childRASP(shape, childKey) {
+            return Object.assign({}, this.props.rasp, { shape: shape, toParent: this.toMeFromChild.bind(this, childKey) });
+        }
     }]);
 
     return ReactActionStatePathClient;

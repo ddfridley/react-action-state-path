@@ -430,4 +430,10 @@ export class ReactActionStatePathClient extends React.Component {
       }
     } else console.error("ReactActionStatePathClient.toMeFromParent action type unknown not handled", action)
   }
+
+  childRASP(shape, childKey) {
+      return (
+          Object.assign({}, this.props.rasp, { shape, toParent: this.toMeFromChild.bind(this, childKey) })
+      );
+  }
 }
