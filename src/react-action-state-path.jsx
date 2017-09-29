@@ -80,7 +80,7 @@ export class ReactActionStatePath extends React.Component {
             if(this.id === (ReactActionStatePath.nextId -1)) ReactActionStatePath.nextId--;
         }else{
             ReactActionStatePath.thiss[0]=undefined;
-            ReactActionStatePath.thiss=[];
+            ReactActionStatePath.thiss=undefined;
             ReactActionStatePath.nextId=undefined;
         }
     }
