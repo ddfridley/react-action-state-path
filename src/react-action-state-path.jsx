@@ -74,6 +74,17 @@ export class ReactActionStatePath extends React.Component {
         ReactActionStatePath.thiss[this.id]={parent: this, client: null};
     }
 
+    componentWillUnmount(){
+        if(this.id!==0) {
+            ReactActionStatePath.thiss[this.id]=undefined;
+            if(this.id === (ReactActionStatePath.nextId -1)) ReactActionStatePath.nextId--;
+        }else{
+            ReactActionStatePath.thiss[0]=undefined;
+            ReactActionStatePath.thiss=[];
+            ReactActionStatePath.nextId=undefined;
+        }
+    }
+
     // consistently get the default state from multiple places
     getDefaultState(){
         return {rasp: Object.assign({},this.initialRASP)}
