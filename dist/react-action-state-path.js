@@ -128,7 +128,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 if (this.id === ReactActionStatePath.nextId - 1) ReactActionStatePath.nextId--;
             } else {
                 ReactActionStatePath.thiss[0] = undefined;
-                ReactActionStatePath.thiss = [];
+                ReactActionStatePath.thiss = undefined;
                 ReactActionStatePath.nextId = undefined;
             }
         }
@@ -272,10 +272,12 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 } else {
                     // this is the root, after changing shape, remind me so I can update the window.histor
                     if (equaly(this.state.rasp, nextRASP)) {
-                        if (this.debug) console.info("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action);this.updateHistory();
+                        if (this.debug) console.info("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action);
+                        this.updateHistory();
                     } // updateHistory now!
                     else this.setState({ rasp: nextRASP }, function () {
-                            if (_this3.debug) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action);_this3.updateHistory();
+                            if (_this3.debug) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action);
+                            setTimeout(_this3.updateHistory, 0); // update history after the queue of chanages from this state change is processed);
                         }); // otherwise, set the state and let history update on componentDidUpdate
                 }
             }
@@ -294,7 +296,8 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                             this.setState({ rasp: nextRASP });
                         } else // this is the root, change state and then update history
                             this.setState({ rasp: nextRASP }, function () {
-                                logger.trace("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");_this3.updateHistory();
+                                logger.trace("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");
+                                setTimeout(_this3.updateHistory, 0); // update history after changes from setstate have been processed
                             });
                     } // no change, nothing to do
                 } else if (action.type === "CHILD_SHAPE_CHANGED") {
@@ -358,7 +361,8 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                         this.setState({ rasp: nextRASP }); // inhibit CHILD_SHAPE_CHANGED
                     } else // no parent to tell of the change
                         this.setState({ rasp: nextRASP }, function () {
-                            logger.trace("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");_this4.updateHistory();
+                            logger.trace("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
+                            setTimeout(_this4.updateHistory, 0); // update history after statechage events are processed
                         });
                 } // no change, nothing to do
                 return null;

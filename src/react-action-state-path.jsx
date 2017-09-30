@@ -199,8 +199,14 @@ export class ReactActionStatePath extends React.Component {
             }else if(this.id!==0){
                 this.setState({rasp: nextRASP});
             } else { // this is the root, after changing shape, remind me so I can update the window.histor
-                if(equaly(this.state.rasp,nextRASP)) { if(this.debug) console.info("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action); this.updateHistory()} // updateHistory now!
-                else this.setState({rasp: nextRASP},()=>{ if(this.debug) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action); this.updateHistory()}); // otherwise, set the state and let history update on componentDidUpdate
+                if(equaly(this.state.rasp,nextRASP)) { 
+                    if(this.debug) console.info("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action); 
+                    this.updateHistory()
+                } // updateHistory now!
+                else this.setState({rasp: nextRASP},()=>{ 
+                    if(this.debug) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action); 
+                    setTimeout(()=>this.updateHistory(),0); // update history after the queue of chanages from this state change is processed);
+                }); // otherwise, set the state and let history update on componentDidUpdate
             }
         } 
         // these actions are overridden by the component's actonToState if either there is and it returns a new RASP to set (not null)
@@ -212,7 +218,10 @@ export class ReactActionStatePath extends React.Component {
                 }if(this.id!==0){ // don't propogate a change
                     this.setState({rasp: nextRASP});
                 }else // this is the root, change state and then update history
-                    this.setState({rasp: nextRASP}, ()=>{ logger.trace("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");this.updateHistory()});
+                    this.setState({rasp: nextRASP}, ()=>{ 
+                        logger.trace("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");
+                        setTimeout(()=>this.updateHistory,0);// update history after changes from setstate have been processed
+                    });
             } // no change, nothing to do
         } else if(action.type==="CHILD_SHAPE_CHANGED"){
             logger.trace("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState",this.id, this.props.rasp && this.props.rasp.depth);
@@ -261,7 +270,10 @@ export class ReactActionStatePath extends React.Component {
                 }if(this.id!==0){
                     this.setState({rasp: nextRASP}); // inhibit CHILD_SHAPE_CHANGED
                 }else // no parent to tell of the change
-                    this.setState({rasp: nextRASP}, ()=>{ logger.trace("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");this.updateHistory()});
+                    this.setState({rasp: nextRASP}, ()=>{ 
+                        logger.trace("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
+                        setTimeout(()=>this.updateHistory,0); // update history after statechage events are processed
+                    });
             } // no change, nothing to do
             return null;
         } else if(action.type==="CLEAR_PATH") {  // clear the path and reset the RASP state back to what the constructor would
