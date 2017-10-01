@@ -124,9 +124,12 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
     _createClass(ReactActionStatePath, [{
         key: 'componentWillUnmount',
         value: function componentWillUnmount() {
+            console.info("ReactActionStatePath.componentWillUnmount", this.id, this.childTitle);
             if (this.id !== 0) {
-                ReactActionStatePath.thiss[this.id] = undefined;
-                if (this.id === ReactActionStatePath.nextId - 1) ReactActionStatePath.nextId--;
+                if (ReactActionStatePath.thiss !== 'undefined') {
+                    ReactActionStatePath.thiss[this.id] = undefined;
+                    if (this.id === ReactActionStatePath.nextId - 1) ReactActionStatePath.nextId--;
+                }
             } else {
                 ReactActionStatePath.thiss[0] = undefined;
                 ReactActionStatePath.thiss = undefined;
@@ -278,7 +281,9 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     } // updateHistory now!
                     else this.setState({ rasp: nextRASP }, function () {
                             if (_this3.debug) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action);
-                            setTimeout(_this3.updateHistory, 0); // update history after the queue of chanages from this state change is processed);
+                            setTimeout(function () {
+                                return _this3.updateHistory();
+                            }, 0); // update history after the queue of chanages from this state change is processed);
                         }); // otherwise, set the state and let history update on componentDidUpdate
                 }
             }
@@ -298,7 +303,9 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                         } else // this is the root, change state and then update history
                             this.setState({ rasp: nextRASP }, function () {
                                 logger.trace("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");
-                                setTimeout(_this3.updateHistory, 0); // update history after changes from setstate have been processed
+                                setTimeout(function () {
+                                    return _this3.updateHistory;
+                                }, 0); // update history after changes from setstate have been processed
                             });
                     } // no change, nothing to do
                 } else if (action.type === "CHILD_SHAPE_CHANGED") {
@@ -363,7 +370,9 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     } else // no parent to tell of the change
                         this.setState({ rasp: nextRASP }, function () {
                             logger.trace("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
-                            setTimeout(_this4.updateHistory, 0); // update history after statechage events are processed
+                            setTimeout(function () {
+                                return _this4.updateHistory;
+                            }, 0); // update history after statechage events are processed
                         });
                 } // no change, nothing to do
                 return null;
