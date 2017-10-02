@@ -76,15 +76,12 @@ export class ReactActionStatePath extends React.Component {
 
     componentWillUnmount(){
         console.info("ReactActionStatePath.componentWillUnmount", this.id, this.childTitle);
-        if(this.id!==0) {
-            if(ReactActionStatePath.thiss !== 'undefined') {
-                ReactActionStatePath.thiss[this.id]=undefined;
-                if(this.id === (ReactActionStatePath.nextId -1)) ReactActionStatePath.nextId--;
-            }
-        }else{
-            ReactActionStatePath.thiss[0]=undefined;
-            ReactActionStatePath.thiss=undefined;
-            ReactActionStatePath.nextId=undefined;
+        ReactActionStatePath.thiss[this.id]=undefined;
+        let id=this.id;
+        if(id === (ReactActionStatePath.nextId -1)) {
+            while(id && typeof ReactActionStatePath.thiss[id] === 'undefined') id--;
+            if(!id && typeof ReactActionStatePath.thiss[id]==='undefined') ReactActionStatePath.nextId=undefined;
+            else ReactActionStatePath.nextId=id+1;
         }
     }
 
