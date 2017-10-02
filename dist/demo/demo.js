@@ -836,15 +836,27 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                             });
                     } // no change, nothing to do
                 } else if (action.type === "CHILD_SHAPE_CHANGED") {
-                    logger.trace("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState", this.id, this.props.rasp && this.props.rasp.depth);
+                    if (this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState", this.id, this.props.rasp && this.props.rasp.depth);
                     if (this.id !== 0) {
-                        logger.trace("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState not root", this.id, this.props.rasp && this.props.rasp.depth);
+                        if (this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState, not root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
                         this.props.rasp.toParent({ type: "CHILD_SHAPE_CHANGED", shape: action.shape, distance: action.distance + 1 }); // pass a new action, not a copy including internal properties like itemId. This shape hasn't changed
                     } else {
                         // this is the root RASP, update history.state
-                        logger.trace("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth);
+                        if (this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
                         setTimeout(function () {
-                            logger.trace("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED default updateHistory");_this3.updateHistory();
+                            if (_this3.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED default updateHistory");_this3.updateHistory();
+                        }, 0);
+                    }
+                } else if (action.type === "CHILD_STATE_CHANGED") {
+                    if (this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState", this.id, this.props.rasp && this.props.rasp.depth);
+                    if (this.id !== 0) {
+                        if (this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState, not root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
+                        this.props.rasp.toParent({ type: "CHILD_STATE_CHANGED", distance: action.distance + 1 }); // pass a new action, not a copy including internal properties like itemId. 
+                    } else {
+                        // this is the root RASP, update history.state
+                        if (this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
+                        setTimeout(function () {
+                            if (_this3.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED default updateHistory");_this3.updateHistory();
                         }, 0);
                     }
                 } else {
