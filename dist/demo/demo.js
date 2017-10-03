@@ -620,20 +620,28 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             ReactActionStatePath.nextId = 0;
             ReactActionStatePath.topState = null;
             if (_this.props.path && _this.props.path !== '/') {
-                ReactActionStatePath.pathSegments = _this.props.path.split('/');
-                var root = (_this.props.RASPRoot || '/h/').split('/');
-                while (!ReactActionStatePath.pathSegments[ReactActionStatePath.pathSegments.length - 1]) {
-                    ReactActionStatePath.pathSegments.pop();
+                var pathSegments = _this.props.path.split('/');
+                while (pathSegments.length && !pathSegments[0]) {
+                    pathSegments.shift();
+                } // an initial '/' turns into an empty element at the beginning
+                while (pathSegments.length && !pathSegments[pathSegments.length - 1]) {
+                    pop();
                 } // '/'s at the end translate to null elements, remove them
-                while (!root[root.length - 1]) {
+                var root = (_this.props.RASPRoot || '/h/').split('/');
+                while (root.length && !root[0]) {
+                    root.shift();
+                } // shift off leading empty's caused by leading '/'s
+                while (root.length && !root[root.length - 1]) {
                     root.pop();
                 } // '/'s at the end translate to null elements, remove them
                 if (root.some(function (segment) {
-                    return segment !== ReactActionStatePath.pathSegments.shift();
+                    return segment !== pathSegments.shift();
                 })) {
-                    console.error("ReactActionStatePath.componentDidMount path didn't match props", root, ReactActionStatePath.pathSegments);
+                    console.error("ReactActionStatePath.componentDidMount path didn't match props", root, pathSegments);
                 }
+                ReactActionStatePath.pathSegments = pathSegments;
             } else ReactActionStatePath.pathSegments = [];
+
             if (typeof window !== 'undefined') {
                 // if we are running on the browser
                 ReactActionStatePath.thiss = [];
@@ -721,8 +729,9 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 this.toChild = action.function;
                 if (action.name) this.childName = action.name;
                 if (action.actionToState) this.actionToState = action.actionToState;
-                if (action.clientThis && typeof windows !== 'undefined') ReactActionStatePath.thiss[this.id].client = action.clientThis;else console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD clientThis missing", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action);
-                if (typeof window !== 'undefined' && this.id === 0 && ReactActionStatePath.pathSegments.length) {
+                if (action.clientThis && typeof window !== 'undefined') ReactActionStatePath.thiss[this.id].client = action.clientThis;else {
+                    if (typeof window !== 'undefined') console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD clientThis missing on browser", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action);
+                }if (typeof window !== 'undefined' && this.id === 0 && ReactActionStatePath.pathSegments.length) {
                     // this is the root and we are on the browser and there is at least one pathSegment
                     logger.trace("ReactActionStatePath.toMeFromChild will SET_PATH to", ReactActionStatePath.pathSegments);
                     if (ReactActionStatePath.topState) console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD, expected topState null got:", ReactActionStatePath.topState);
