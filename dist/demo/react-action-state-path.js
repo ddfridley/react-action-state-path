@@ -1,4 +1,5 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function (global){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -88,7 +89,6 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             // this is the root ReactActionStatePath
             ReactActionStatePath.nextId = 0;
             ReactActionStatePath.topState = null;
-            ReactActionStatePath.thiss = [];
             if (_this.props.path && _this.props.path !== '/') {
                 ReactActionStatePath.pathSegments = _this.props.path.split('/');
                 var root = (_this.props.RASPRoot || '/h/').split('/');
@@ -106,31 +106,37 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             } else ReactActionStatePath.pathSegments = [];
             if (typeof window !== 'undefined') {
                 // if we are running on the browser
+                ReactActionStatePath.thiss = [];
                 window.onpopstate = _this.onpopstate.bind(_this);
                 window.ReactActionStatePath = { thiss: ReactActionStatePath.thiss };
                 if (ReactActionStatePath.pathSegments.length === 0) setTimeout(function () {
                     return _this.updateHistory();
                 }, 0); // aftr things have settled down, update history for the first time
+            } else {
+                global.ReactActionStatePath = ReactActionStatePath;
+                global.ReactActionStatePath.thisRoot = _this;
             }
             console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
         }
         _this.id = ReactActionStatePath.nextId++; // get the next id
 
         _this.state = _this.getDefaultState();
-        ReactActionStatePath.thiss[_this.id] = { parent: _this, client: null };
+        if (typeof window !== 'undefined') ReactActionStatePath.thiss[_this.id] = { parent: _this, client: null };
         return _this;
     }
 
     _createClass(ReactActionStatePath, [{
         key: 'componentWillUnmount',
         value: function componentWillUnmount() {
-            console.info("ReactActionStatePath.componentWillUnmount", this.id, this.childTitle);
-            ReactActionStatePath.thiss[this.id] = undefined;
-            var id = this.id;
-            if (id === ReactActionStatePath.nextId - 1) {
-                while (id && typeof ReactActionStatePath.thiss[id] === 'undefined') {
-                    id--;
-                }if (!id && typeof ReactActionStatePath.thiss[id] === 'undefined') ReactActionStatePath.nextId = undefined;else ReactActionStatePath.nextId = id + 1;
+            if (this.debug) console.info("ReactActionStatePath.componentWillUnmount", this.id, this.childTitle);
+            if (typeof window !== 'undefined') {
+                ReactActionStatePath.thiss[this.id] = undefined;
+                var id = this.id;
+                if (id === ReactActionStatePath.nextId - 1) {
+                    while (id && typeof ReactActionStatePath.thiss[id] === 'undefined') {
+                        id--;
+                    }if (!id && typeof ReactActionStatePath.thiss[id] === 'undefined') ReactActionStatePath.nextId = undefined;else ReactActionStatePath.nextId = id + 1;
+                }
             }
         }
 
@@ -185,7 +191,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 this.toChild = action.function;
                 if (action.name) this.childName = action.name;
                 if (action.actionToState) this.actionToState = action.actionToState;
-                if (action.clientThis) ReactActionStatePath.thiss[this.id].client = action.clientThis;else console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD clientThis missing", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action);
+                if (action.clientThis && typeof windows !== 'undefined') ReactActionStatePath.thiss[this.id].client = action.clientThis;else console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD clientThis missing", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action);
                 if (typeof window !== 'undefined' && this.id === 0 && ReactActionStatePath.pathSegments.length) {
                     // this is the root and we are on the browser and there is at least one pathSegment
                     logger.trace("ReactActionStatePath.toMeFromChild will SET_PATH to", ReactActionStatePath.pathSegments);
@@ -558,7 +564,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
         }
 
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        // this can handle a one to many pattern for the RASP, handle each action  appropriatly
+        // this can handle a one to many pattern for the RASP, handle each action appropriatly
         //
 
     }, {
@@ -616,6 +622,9 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                 }
             } else console.error("ReactActionStatePathClient.toMeFromParent action type unknown not handled", action);
         }
+
+        // a consistent way to set the rasp for children
+
     }, {
         key: 'childRASP',
         value: function childRASP(shape, childKey) {
@@ -625,6 +634,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
 
     return ReactActionStatePathClient;
 }(_react2.default.Component);
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"classnames":2,"lodash/union":99,"react":258,"react-dom":106,"shallowequal":259}],2:[function(require,module,exports){
 /*!
   Copyright (c) 2016 Jed Watson.

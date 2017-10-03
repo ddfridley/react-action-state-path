@@ -53,35 +53,43 @@ export class ReactActionStatePath extends React.Component {
         if(typeof ReactActionStatePath.nextId === 'undefined') { // this is the root ReactActionStatePath
              ReactActionStatePath.nextId= 0;
              ReactActionStatePath.topState=null;
-             ReactActionStatePath.thiss=[];
              if(this.props.path && this.props.path !== '/'){
                 ReactActionStatePath.pathSegments= this.props.path.split('/');
                 var root=(this.props.RASPRoot || '/h/').split('/');
                 while(!ReactActionStatePath.pathSegments[ReactActionStatePath.pathSegments.length-1]) ReactActionStatePath.pathSegments.pop(); // '/'s at the end translate to null elements, remove them
                 while(!root[root.length-1]) root.pop(); // '/'s at the end translate to null elements, remove them
                 if(root.some(segment=>segment!==ReactActionStatePath.pathSegments.shift())) {console.error("ReactActionStatePath.componentDidMount path didn't match props", root, ReactActionStatePath.pathSegments )}
-             }else ReactActionStatePath.pathSegments=[];
+             }else 
+                ReactActionStatePath.pathSegments=[];
+
              if(typeof window !== 'undefined'){ // if we are running on the browser
+                ReactActionStatePath.thiss=[];
                 window.onpopstate=this.onpopstate.bind(this);
                 window.ReactActionStatePath={thiss: ReactActionStatePath.thiss};
                 if(ReactActionStatePath.pathSegments.length===0) setTimeout(()=>this.updateHistory(),0); // aftr things have settled down, update history for the first time
+             }else{
+                 global.ReactActionStatePath=ReactActionStatePath;
+                 global.ReactActionStatePath.thisRoot=this;
              }
             console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
         }
         this.id=ReactActionStatePath.nextId++; // get the next id
 
         this.state=this.getDefaultState();
-        ReactActionStatePath.thiss[this.id]={parent: this, client: null};
+        if(typeof window !== 'undefined')
+            ReactActionStatePath.thiss[this.id]={parent: this, client: null};
     }
 
     componentWillUnmount(){
-        console.info("ReactActionStatePath.componentWillUnmount", this.id, this.childTitle);
-        ReactActionStatePath.thiss[this.id]=undefined;
-        let id=this.id;
-        if(id === (ReactActionStatePath.nextId -1)) {
-            while(id && typeof ReactActionStatePath.thiss[id] === 'undefined') id--;
-            if(!id && typeof ReactActionStatePath.thiss[id]==='undefined') ReactActionStatePath.nextId=undefined;
-            else ReactActionStatePath.nextId=id+1;
+        if(this.debug) console.info("ReactActionStatePath.componentWillUnmount", this.id, this.childTitle);
+        if(typeof window !== 'undefined'){
+            ReactActionStatePath.thiss[this.id]=undefined;
+            let id=this.id;
+            if(id === (ReactActionStatePath.nextId -1)) {
+                while(id && typeof ReactActionStatePath.thiss[id] === 'undefined') id--;
+                if(!id && typeof ReactActionStatePath.thiss[id]==='undefined') ReactActionStatePath.nextId=undefined;
+                else ReactActionStatePath.nextId=id+1;
+            }
         }
     }
 
@@ -122,7 +130,7 @@ export class ReactActionStatePath extends React.Component {
             this.toChild = action.function;
             if(action.name) this.childName=action.name;
             if(action.actionToState) this.actionToState=action.actionToState; 
-            if(action.clientThis) ReactActionStatePath.thiss[this.id].client=action.clientThis;
+            if(action.clientThis && (typeof windows !== 'undefined')) ReactActionStatePath.thiss[this.id].client=action.clientThis;
             else console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD clientThis missing", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action);
             if((typeof window !== 'undefined') && this.id===0 && ReactActionStatePath.pathSegments.length ){ // this is the root and we are on the browser and there is at least one pathSegment
                 logger.trace("ReactActionStatePath.toMeFromChild will SET_PATH to",ReactActionStatePath.pathSegments);
@@ -419,7 +427,7 @@ export class ReactActionStatePathClient extends React.Component {
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // this can handle a one to many pattern for the RASP, handle each action  appropriatly
+  // this can handle a one to many pattern for the RASP, handle each action appropriatly
   //
   toMeFromParent(action) {
     if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.depth, action);
@@ -463,6 +471,7 @@ export class ReactActionStatePathClient extends React.Component {
     } else console.error("ReactActionStatePathClient.toMeFromParent action type unknown not handled", action)
   }
 
+  // a consistent way to set the rasp for children
   childRASP(shape, childKey) {
       return (
           Object.assign({}, this.props.rasp, { shape, toParent: this.toMeFromChild.bind(this, childKey) })
