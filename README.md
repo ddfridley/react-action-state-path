@@ -135,7 +135,7 @@ component-name.jsx:
 These are the inherent actions:
 
 * RESET_STATE:  Reset the state of a component, can be sent to a child or a parent
-* CHILD_STATE_CHANGED: A child's state had changed (usually after more data has been added after an external event), propogate the event up, and update history.  The event may add info to the action, but if it is not processed by the immediate parent, the info will be removed from the action as it propogates up.
+* CHILD_STATE_CHANGED: A child's state had changed (usually after more data has been added after an external event), propogate the event up, and update history.  Info in the action should be preserved all the way up, unless it is consumed.
 * CHILD_SHAPE_CHANGED:  If a child's shape changes, this action is generated and propgated up, with distance increasing each time.  You would use this to reduce, or hide, or change components that are far from the action
 * CLEAR_PATH:    Reset the state of a component's children, and then the component. (order matters)
 * SET_PATH: Used when restoring state from a URL, SET_PATH is called for each component

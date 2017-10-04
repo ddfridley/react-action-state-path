@@ -44,10 +44,16 @@ export class ReactActionStatePath extends React.Component {
                     },
                     this.props.initialRASP
                 );
-        if(!(this.props.rasp && this.props.rasp.toParent)){
-            if(typeof ReactActionStatePath.nextId !== 'undefined') console.error("ReactActionStatePath.constructor no parent, but not root!");
-        }else{
-            this.props.rasp.toParent({type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: "ReactActionStatePath"});
+        if(typeof window !== 'undefined'){ // browser side, there should be no rasp
+            if(!(this.props.rasp && this.props.rasp.toParent)){
+                if(typeof ReactActionStatePath.nextId !== 'undefined') console.error("ReactActionStatePath.constructor no parent, but not root!");
+            }else{
+                this.props.rasp.toParent({type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: "ReactActionStatePath"});
+            }
+        } else { // server side, rasp is how we get the data out
+            if(this.props.rasp && this.props.rasp.toParent){
+                this.props.rasp.toParent({type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: "ReactActionStatePath"});
+            }
         }
         // not an else of above because of the possibility that one might want to put a rasp and toParent before the first component
         if(typeof ReactActionStatePath.nextId === 'undefined') { // this is the root ReactActionStatePath
@@ -248,11 +254,13 @@ export class ReactActionStatePath extends React.Component {
             }
         } else if(action.type==="CHILD_STATE_CHANGED"){
             if(this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState",this.id, this.props.rasp && this.props.rasp.depth);
+            action.distance+=1;
             if(this.id!==0) {   
                 if(this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState, not root",this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
-                this.props.rasp.toParent({type: "CHILD_STATE_CHANGED", distance: action.distance+1}); // pass a new action, not a copy including internal properties like itemId. 
+                this.props.rasp.toParent(action); // passs the original action, with incremented distance
             } else { // this is the root RASP, update history.state
                 if(this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState at root",this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
+                if((typeof window === 'undefined' && this.props.rasp && this.props.rasp.toParent)) setTimeout(()=>this.props.rasp.toParent(action),0); // on server, send action to server renderer
                 setTimeout(()=>{ if(this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED default updateHistory");this.updateHistory()},0);
             }
         } else { // the action was not understood, send it up
@@ -323,9 +331,14 @@ export class ReactActionStatePath extends React.Component {
 
     updateHistory() {
         if(this.debug) console.info("ReactActionStatePath.updateHistory",  this.id);
-        if(typeof window === 'undefined') { logger.trace("ReactActionStatePath.updateHistory called on servr side, ignoring"); return; }
         if(this.id!==0) console.error("ReactActionStatePath.updateHistory called but not from root", this.props.rasp);
         if(ReactActionStatePath.topState) console.error("ReactActionStatePath.updateHistory, expected topState null, got:", ReactActionStatePath.topState);
+        if(typeof window === 'undefined') { 
+            if(this.debug) console.info("ReactActionStatePath.updateHistory called on servr side"); 
+            if(this.props.rasp && this.props.rasp.toParent)
+                this.props.rasp.toParent({type: "UPDATE_HISTORY"});
+            return; 
+        }
         let completionCheck=setTimeout(()=>{
             if(ReactActionStatePath.topState==="GET_STATE"){
                 console.error("ReactActionStatePath.updateHistory GET_STATE did not complete.", this);

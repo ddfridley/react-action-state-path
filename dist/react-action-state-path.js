@@ -77,10 +77,18 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
         _this.initialRASP = Object.assign({}, { shape: _this.props.rasp && _this.props.rasp.shape ? _this.props.rasp.shape : 'truncated',
             depth: _this.props.rasp ? _this.props.rasp.depth : 0 // for debugging  - this is my depth to check
         }, _this.props.initialRASP);
-        if (!(_this.props.rasp && _this.props.rasp.toParent)) {
-            if (typeof ReactActionStatePath.nextId !== 'undefined') console.error("ReactActionStatePath.constructor no parent, but not root!");
+        if (typeof window !== 'undefined') {
+            // browser side, there should be no rasp
+            if (!(_this.props.rasp && _this.props.rasp.toParent)) {
+                if (typeof ReactActionStatePath.nextId !== 'undefined') console.error("ReactActionStatePath.constructor no parent, but not root!");
+            } else {
+                _this.props.rasp.toParent({ type: "SET_TO_CHILD", function: _this.toMeFromParent.bind(_this), name: "ReactActionStatePath" });
+            }
         } else {
-            _this.props.rasp.toParent({ type: "SET_TO_CHILD", function: _this.toMeFromParent.bind(_this), name: "ReactActionStatePath" });
+            // server side, rasp is how we get the data out
+            if (_this.props.rasp && _this.props.rasp.toParent) {
+                _this.props.rasp.toParent({ type: "SET_TO_CHILD", function: _this.toMeFromParent.bind(_this), name: "ReactActionStatePath" });
+            }
         }
         // not an else of above because of the possibility that one might want to put a rasp and toParent before the first component
         if (typeof ReactActionStatePath.nextId === 'undefined') {
@@ -332,12 +340,16 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     }
                 } else if (action.type === "CHILD_STATE_CHANGED") {
                     if (this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState", this.id, this.props.rasp && this.props.rasp.depth);
+                    action.distance += 1;
                     if (this.id !== 0) {
                         if (this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState, not root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
-                        this.props.rasp.toParent({ type: "CHILD_STATE_CHANGED", distance: action.distance + 1 }); // pass a new action, not a copy including internal properties like itemId. 
+                        this.props.rasp.toParent(action); // passs the original action, with incremented distance
                     } else {
                         // this is the root RASP, update history.state
                         if (this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
+                        if (typeof window === 'undefined' && this.props.rasp && this.props.rasp.toParent) setTimeout(function () {
+                            return _this3.props.rasp.toParent(action);
+                        }, 0); // on server, send action to server renderer
                         setTimeout(function () {
                             if (_this3.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED default updateHistory");_this3.updateHistory();
                         }, 0);
@@ -430,11 +442,13 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             var _this5 = this;
 
             if (this.debug) console.info("ReactActionStatePath.updateHistory", this.id);
-            if (typeof window === 'undefined') {
-                logger.trace("ReactActionStatePath.updateHistory called on servr side, ignoring");return;
-            }
             if (this.id !== 0) console.error("ReactActionStatePath.updateHistory called but not from root", this.props.rasp);
             if (ReactActionStatePath.topState) console.error("ReactActionStatePath.updateHistory, expected topState null, got:", ReactActionStatePath.topState);
+            if (typeof window === 'undefined') {
+                if (this.debug) console.info("ReactActionStatePath.updateHistory called on servr side");
+                if (this.props.rasp && this.props.rasp.toParent) this.props.rasp.toParent({ type: "UPDATE_HISTORY" });
+                return;
+            }
             var completionCheck = setTimeout(function () {
                 if (ReactActionStatePath.topState === "GET_STATE") {
                     console.error("ReactActionStatePath.updateHistory GET_STATE did not complete.", _this5);
