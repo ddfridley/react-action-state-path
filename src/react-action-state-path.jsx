@@ -53,7 +53,7 @@ export class ReactActionStatePath extends React.Component {
         } else { // server side, rasp is how we get the data out
             if(!this.props.rasp || (typeof this.props.rasp.depth === 'undefined')  || this.props.RASPRoot) {// this is this root
                 console.info("ReactActionStatePath.construction at root");
-                if(typeof ReactActionStatePath.nextId !== undefined) {
+                if(typeof ReactActionStatePath.nextId !== 'undefined') {
                     console.info("ReactActionStatePath.construction at root, but nextId was", ReactActionStatePath.nextId);
                     ReactActionStatePath.nextId=undefined;
                 }
@@ -388,6 +388,7 @@ export class ReactActionStatePath extends React.Component {
             );
             delete newProps.children;
             delete newProps.initialRASP; // don't let this propogate down to the next RASP with no initialization required
+            delete newProps.RASPRoot; // don't let this propogate down, it tags the root
             return React.cloneElement(child, newProps, child.props.children)
         });
     }

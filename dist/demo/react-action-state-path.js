@@ -90,7 +90,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             if (!_this.props.rasp || typeof _this.props.rasp.depth === 'undefined' || _this.props.RASPRoot) {
                 // this is this root
                 console.info("ReactActionStatePath.construction at root");
-                if (_typeof(ReactActionStatePath.nextId) !== undefined) {
+                if (typeof ReactActionStatePath.nextId !== 'undefined') {
                     console.info("ReactActionStatePath.construction at root, but nextId was", ReactActionStatePath.nextId);
                     ReactActionStatePath.nextId = undefined;
                 }
@@ -508,6 +508,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 });
                 delete newProps.children;
                 delete newProps.initialRASP; // don't let this propogate down to the next RASP with no initialization required
+                delete newProps.RASPRoot; // don't let this propogate down, it tags the root
                 return _react2.default.cloneElement(child, newProps, child.props.children);
             });
         }
