@@ -51,6 +51,13 @@ export class ReactActionStatePath extends React.Component {
                 this.props.rasp.toParent({type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: "ReactActionStatePath"});
             }
         } else { // server side, rasp is how we get the data out
+            if(!this.props.rasp || (typeof this.props.rasp.depth === 'undefined')  || this.props.RASPRoot) {// this is this root
+                console.info("ReactActionStatePath.construction at root");
+                if(typeof ReactActionStatePath.nextId !== undefined) {
+                    console.info("ReactActionStatePath.construction at root, but nextId was", ReactActionStatePath.nextId);
+                    ReactActionStatePath.nextId=undefined;
+                }
+            }
             if(this.props.rasp && this.props.rasp.toParent){
                 this.props.rasp.toParent({type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: "ReactActionStatePath"});
             }
@@ -62,7 +69,7 @@ export class ReactActionStatePath extends React.Component {
              if(this.props.path && this.props.path !== '/'){
                 let pathSegments= this.props.path.split('/');
                 while(pathSegments.length && !pathSegments[0]) pathSegments.shift(); // an initial '/' turns into an empty element at the beginning
-                while(pathSegments.length && !pathSegments[pathSegments.length-1]) pop(); // '/'s at the end translate to null elements, remove them
+                while(pathSegments.length && !pathSegments[pathSegments.length-1]) pathSegments.pop(); // '/'s at the end translate to null elements, remove them
                 let root=(this.props.RASPRoot || '/h/').split('/');
                 while(root.length && !root[0]) root.shift(); // shift off leading empty's caused by leading '/'s
                 while(root.length && !root[root.length-1]) root.pop(); // '/'s at the end translate to null elements, remove them
@@ -76,9 +83,6 @@ export class ReactActionStatePath extends React.Component {
                 window.onpopstate=this.onpopstate.bind(this);
                 window.ReactActionStatePath={thiss: ReactActionStatePath.thiss};
                 if(ReactActionStatePath.pathSegments.length===0) setTimeout(()=>this.updateHistory(),0); // aftr things have settled down, update history for the first time
-             }else{
-                 global.ReactActionStatePath=ReactActionStatePath;
-                 global.ReactActionStatePath.thisRoot=this;
              }
             console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
         }

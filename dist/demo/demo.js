@@ -529,7 +529,6 @@ var App = function (_React$Component4) {
 
 _reactDom2.default.render(_react2.default.createElement(App, null), document.getElementById('root'));
 },{"./react-action-state-path":2,"react":260,"react-dom":107,"react-proactive-accordion":234}],2:[function(require,module,exports){
-(function (global){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -618,6 +617,14 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             }
         } else {
             // server side, rasp is how we get the data out
+            if (!_this.props.rasp || typeof _this.props.rasp.depth === 'undefined' || _this.props.RASPRoot) {
+                // this is this root
+                console.info("ReactActionStatePath.construction at root");
+                if (_typeof(ReactActionStatePath.nextId) !== undefined) {
+                    console.info("ReactActionStatePath.construction at root, but nextId was", ReactActionStatePath.nextId);
+                    ReactActionStatePath.nextId = undefined;
+                }
+            }
             if (_this.props.rasp && _this.props.rasp.toParent) {
                 _this.props.rasp.toParent({ type: "SET_TO_CHILD", function: _this.toMeFromParent.bind(_this), name: "ReactActionStatePath" });
             }
@@ -633,7 +640,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     pathSegments.shift();
                 } // an initial '/' turns into an empty element at the beginning
                 while (pathSegments.length && !pathSegments[pathSegments.length - 1]) {
-                    pop();
+                    pathSegments.pop();
                 } // '/'s at the end translate to null elements, remove them
                 var root = (_this.props.RASPRoot || '/h/').split('/');
                 while (root.length && !root[0]) {
@@ -658,9 +665,6 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 if (ReactActionStatePath.pathSegments.length === 0) setTimeout(function () {
                     return _this.updateHistory();
                 }, 0); // aftr things have settled down, update history for the first time
-            } else {
-                global.ReactActionStatePath = ReactActionStatePath;
-                global.ReactActionStatePath.thisRoot = _this;
             }
             console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
         }
@@ -1187,7 +1191,6 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
 
     return ReactActionStatePathClient;
 }(_react2.default.Component);
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"classnames":3,"lodash/union":100,"react":260,"react-dom":107,"shallowequal":261}],3:[function(require,module,exports){
 /*!
   Copyright (c) 2016 Jed Watson.

@@ -1,5 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-(function (global){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -88,6 +87,14 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             }
         } else {
             // server side, rasp is how we get the data out
+            if (!_this.props.rasp || typeof _this.props.rasp.depth === 'undefined' || _this.props.RASPRoot) {
+                // this is this root
+                console.info("ReactActionStatePath.construction at root");
+                if (_typeof(ReactActionStatePath.nextId) !== undefined) {
+                    console.info("ReactActionStatePath.construction at root, but nextId was", ReactActionStatePath.nextId);
+                    ReactActionStatePath.nextId = undefined;
+                }
+            }
             if (_this.props.rasp && _this.props.rasp.toParent) {
                 _this.props.rasp.toParent({ type: "SET_TO_CHILD", function: _this.toMeFromParent.bind(_this), name: "ReactActionStatePath" });
             }
@@ -103,7 +110,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     pathSegments.shift();
                 } // an initial '/' turns into an empty element at the beginning
                 while (pathSegments.length && !pathSegments[pathSegments.length - 1]) {
-                    pop();
+                    pathSegments.pop();
                 } // '/'s at the end translate to null elements, remove them
                 var root = (_this.props.RASPRoot || '/h/').split('/');
                 while (root.length && !root[0]) {
@@ -128,9 +135,6 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 if (ReactActionStatePath.pathSegments.length === 0) setTimeout(function () {
                     return _this.updateHistory();
                 }, 0); // aftr things have settled down, update history for the first time
-            } else {
-                global.ReactActionStatePath = ReactActionStatePath;
-                global.ReactActionStatePath.thisRoot = _this;
             }
             console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
         }
@@ -657,7 +661,6 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
 
     return ReactActionStatePathClient;
 }(_react2.default.Component);
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"classnames":2,"lodash/union":99,"react":258,"react-dom":106,"shallowequal":259}],2:[function(require,module,exports){
 /*!
   Copyright (c) 2016 Jed Watson.
