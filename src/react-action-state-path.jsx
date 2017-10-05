@@ -167,7 +167,10 @@ export class ReactActionStatePath extends React.Component {
                 setTimeout(nextFunc,0);
                 return;
             }
-        } else if (action.type==="SET_STATE"){
+        }else if (action.type==="SET_DATA"){
+            logger.trace("ReactActionStatePath.toMeFromChild SET_DATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+            this.setState({rasp: Object.assign({},this.state.rasp, {data: action.data})});
+        }else if (action.type==="SET_STATE"){
             logger.trace("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
             this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)});
         }else if (action.type==="SET_TITLE"){
