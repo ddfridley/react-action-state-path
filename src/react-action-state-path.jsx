@@ -182,7 +182,8 @@ export class ReactActionStatePath extends React.Component {
             }
         }else if (action.type==="SET_XDATA"){
             if(this.debug) console.info("ReactActionStatePath.toMeFromChild SET_XDATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
-            this.setState({rasp: Object.assign({},this.state.rasp, {xdata: action.xdata})}); // only update history on the server side
+            //this.setState({rasp: Object.assign({},this.state.rasp, {xdata: action.xdata})}); // only update history on the server side
+            this.state.rasp.xdata=action.xdata; // on server render, setState is no good here.
             setTimeout(()=>{if(this.props.rasp.toParent) this.props.rasp.toParent({type: "UPDATE_HISTORY"})},0);
         }else if (action.type==="SET_STATE"){
             logger.trace("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
