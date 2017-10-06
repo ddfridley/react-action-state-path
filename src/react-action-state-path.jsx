@@ -91,11 +91,12 @@ export class ReactActionStatePath extends React.Component {
         if(this.props.rasp.stateStack) {
             // there is a stateStack
             if(this.props.rasp.stateStack.length) {
+                if(debug)console.info("ReactActionStatePath rasp.stateStack[0]",this.props.rasp.stateStack[0]);
                 this.state={rasp: this.props.rasp.stateStack.shift()};
                 if(this.state.rasp.pathSegment===ReactActionStatePath.pathSegments[0])
                     ReactActionStatePath.pathSegments.shift();
                 else
-                    console.error("ReactActionStatePath stateStack", this.state.rasp.pathSegment, "no equal to", ReactActionStatePath.pathSegments[0]);
+                    console.error("ReactActionStatePath stateStack", this.state.rasp.pathSegment, "not equal to", ReactActionStatePath.pathSegments[0]);
                 if(!this.props.rasp.stateStack.length && !ReactActionStatePath.pathSegments.length) 
                     if(this.props.rasp.toParent) setTimeout(()=>this.props.rasp.toParent({type: "SET_PATH_COMPLETE"}),0);
             }
