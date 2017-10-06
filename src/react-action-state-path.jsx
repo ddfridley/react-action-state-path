@@ -91,7 +91,7 @@ export class ReactActionStatePath extends React.Component {
         if(this.props.rasp.stateStack) {
             // there is a stateStack
             if(this.props.rasp.stateStack.length) {
-                if(debug)console.info("ReactActionStatePath rasp.stateStack[0]",this.props.rasp.stateStack[0]);
+                if(this.debug)console.info("ReactActionStatePath rasp.stateStack[0]",this.props.rasp.stateStack[0]);
                 this.state={rasp: this.props.rasp.stateStack.shift()};
                 if(this.state.rasp.pathSegment===ReactActionStatePath.pathSegments[0])
                     ReactActionStatePath.pathSegments.shift();
