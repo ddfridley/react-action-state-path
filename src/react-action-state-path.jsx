@@ -180,7 +180,7 @@ export class ReactActionStatePath extends React.Component {
                 return;
             }
         }else if (action.type==="SET_XDATA"){
-            logger.trace("ReactActionStatePath.toMeFromChild SET_XDATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+            if(debug) console.info("ReactActionStatePath.toMeFromChild SET_XDATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
             this.setState({rasp: Object.assign({},this.state.rasp, {xdata: action.xdata})},()=>{if(this.props.rasp.toParent) this.props.rasp.toParent({type: "UPDATE_HISTORY"})}); // only update history on the server side
         }else if (action.type==="SET_STATE"){
             logger.trace("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
