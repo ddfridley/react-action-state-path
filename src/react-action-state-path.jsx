@@ -172,7 +172,7 @@ export class ReactActionStatePath extends React.Component {
                 },10000);
                 setTimeout(()=>{
                     ReactActionStatePath.topState="SET_PATH";
-                    this.toChild({type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift()});
+                    this.toChild({type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift(), initialRASP: this.initialRASP });
                 },0); // this starts after the return toChild so it completes.
             } else if(this.waitingOn){
                 var nextFunc=this.waitingOn.nextFunc;

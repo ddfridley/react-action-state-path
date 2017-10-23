@@ -235,7 +235,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     }, 10000);
                     setTimeout(function () {
                         ReactActionStatePath.topState = "SET_PATH";
-                        _this3.toChild({ type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift() });
+                        _this3.toChild({ type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this3.initialRASP });
                     }, 0); // this starts after the return toChild so it completes.
                 } else if (this.waitingOn) {
                     var nextFunc = this.waitingOn.nextFunc;
