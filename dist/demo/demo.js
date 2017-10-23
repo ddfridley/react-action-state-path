@@ -790,7 +790,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 if (ReactActionStatePath.pathSegments.length) {
                     logger.trace("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                     setTimeout(function () {
-                        return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift() });
+                        return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this3.initialRASP });
                     }, 0);
                 } else {
                     logger.trace("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
@@ -806,7 +806,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 if (ReactActionStatePath.pathSegments.length) {
                     logger.trace("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                     if (action.function) this.setState({ rasp: Object.assign({}, this.state.rasp, action.nextRASP) }, function () {
-                        return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift() });
+                        return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this3.initialRASP });
                     });else {
                         console.error("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE pathSegments remain, but no next function", this.id, this.childTitle, action, ReactActionStatePath.pathSegments);
                         this.setState({ rasp: Object.assign({}, this.state.rasp, action.nextRASP) });
