@@ -244,8 +244,10 @@ export class ReactActionStatePath extends React.Component {
             }                 
             if(this.id!==0 && !ReactActionStatePath.topState && !action.toBeContinued ){ // if this is not the root and this is not a root driven state change
                 //if(equaly(this.state.rasp,nextRASP)) return null; // nothing has changed so don't kick off a CHILD_SHAPE_CHANGED chain
-                const distance= (action.type === "CHILD_SHAPE_CHANGED") ? action.distance+1 : 1; // 1 tells parent RASP it came from this RASP 
-                this.setState({rasp: nextRASP}, ()=>this.props.rasp.toParent({type: "CHILD_SHAPE_CHANGED", shape: nextRASP.shape, distance: distance}));
+                const passItOn=(action.type==="CHILD_SHAPE_CHANGED" || action.type==="DECENDANT_FOCUS");
+                const nextType= passItOn ? action.type : "CHILD_SHAPE_CHANGED";
+                const distance= passItOn ? action.distance+1 : 1; // 1 tells parent RASP it came from this RASP 
+                this.setState({rasp: nextRASP}, ()=>this.props.rasp.toParent({type: nextType, shape: nextRASP.shape, distance: distance}));
             }else if(this.id!==0){
                 this.setState({rasp: nextRASP});
             } else { // this is the root, after changing shape, remind me so I can update the window.histor
@@ -260,7 +262,10 @@ export class ReactActionStatePath extends React.Component {
             }
         } 
         // these actions are overridden by the component's actonToState if either there is and it returns a new RASP to set (not null)
-        else if(action.type ==="CHANGE_SHAPE"){  
+        else if(action.type === "DECENDANT_FOCUS"){
+            if(this.id) { action.distance+=1; action.shape=this.state.rasp.shape; return this.props.rasp.toParent(action); }
+            else return setTimeout(()=>{ if(this.debug) console.info("ReactActionStatePath.toMeFromChild DECENDANT_FOCUS updateHistory");this.updateHistory()},0);;
+        } else if(action.type ==="CHANGE_SHAPE"){  
             if(this.state.rasp.shape!==action.shape){ // really the shape changed
                 var nextRASP=Object.assign({}, this.state.rasp, {shape: action.shape});
                 if(this.id!==0 && !ReactActionStatePath.topState  && !action.toBeContinued ) {// if there's a parent to tell of the change and we are not inhibiting shape_changed
