@@ -224,7 +224,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     }, 10000);
                     setTimeout(function () {
                         ReactActionStatePath.topState = "SET_PATH";
-                        _this3.toChild({ type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift() });
+                        _this3.toChild({ type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this3.initialRASP });
                     }, 0); // this starts after the return toChild so it completes.
                 } else if (this.waitingOn) {
                     var nextFunc = this.waitingOn.nextFunc;
@@ -232,6 +232,9 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     setTimeout(nextFunc, 0);
                     return;
                 }
+            } else if (action.type === "SET_DATA") {
+                logger.trace("ReactActionStatePath.toMeFromChild SET_DATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+                this.setState({ rasp: Object.assign({}, this.state.rasp, { data: action.data }) });
             } else if (action.type === "SET_STATE") {
                 logger.trace("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                 this.setState({ rasp: Object.assign({}, this.state.rasp, action.nextRASP) });
@@ -242,7 +245,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 if (ReactActionStatePath.pathSegments.length) {
                     logger.trace("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                     setTimeout(function () {
-                        return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift() });
+                        return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this3.initialRASP });
                     }, 0);
                 } else {
                     logger.trace("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
@@ -254,7 +257,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 if (ReactActionStatePath.pathSegments.length) {
                     logger.trace("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                     if (action.function) this.setState({ rasp: Object.assign({}, this.state.rasp, action.nextRASP) }, function () {
-                        return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift() });
+                        return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this3.initialRASP });
                     });else {
                         console.error("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE pathSegments remain, but no next function", this.id, this.childTitle, action, ReactActionStatePath.pathSegments);
                         this.setState({ rasp: Object.assign({}, this.state.rasp, action.nextRASP) });
@@ -290,9 +293,11 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 if (this.id !== 0 && !ReactActionStatePath.topState && !action.toBeContinued) {
                     // if this is not the root and this is not a root driven state change
                     //if(equaly(this.state.rasp,nextRASP)) return null; // nothing has changed so don't kick off a CHILD_SHAPE_CHANGED chain
-                    var distance = action.type === "CHILD_SHAPE_CHANGED" ? action.distance + 1 : 1; // 1 tells parent RASP it came from this RASP 
+                    var passItOn = action.type === "CHILD_SHAPE_CHANGED" || action.type === "DECENDANT_FOCUS" || action.type === 'DECENDANT_UNFOCUS';
+                    var nextType = passItOn ? action.type : "CHILD_SHAPE_CHANGED";
+                    var distance = passItOn ? action.distance + 1 : 1; // 1 tells parent RASP it came from this RASP 
                     this.setState({ rasp: nextRASP }, function () {
-                        return _this3.props.rasp.toParent({ type: "CHILD_SHAPE_CHANGED", shape: nextRASP.shape, distance: distance });
+                        return _this3.props.rasp.toParent({ type: nextType, shape: nextRASP.shape, distance: distance });
                     });
                 } else if (this.id !== 0) {
                     this.setState({ rasp: nextRASP });
@@ -311,7 +316,13 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 }
             }
             // these actions are overridden by the component's actonToState if either there is and it returns a new RASP to set (not null)
-            else if (action.type === "CHANGE_SHAPE") {
+            else if (action.type === "DECENDANT_FOCUS" || action.type === "DECENDANT_UNFOCUS") {
+                    if (this.id) {
+                        action.distance += 1;action.shape = this.state.rasp.shape;return this.props.rasp.toParent(action);
+                    } else return setTimeout(function () {
+                        if (_this3.debug) console.info("ReactActionStatePath.toMeFromChild ", action.type, " updateHistory");_this3.updateHistory();
+                    }, 0);;
+                } else if (action.type === "CHANGE_SHAPE") {
                     if (this.state.rasp.shape !== action.shape) {
                         // really the shape changed
                         var nextRASP = Object.assign({}, this.state.rasp, { shape: action.shape });
