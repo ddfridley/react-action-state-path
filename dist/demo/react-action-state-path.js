@@ -61,6 +61,17 @@ var equaly = function equaly(a, b) {
 //     }
 //
 
+var qaction = function qaction(func, delay) {
+    ReactActionStatePath.queue += 1;
+    setTimeout(function () {
+        if ((exports.ReactActionStatePath = ReactActionStatePath -= 1) < 0) console.error("ReactActionStatePath.queue should not be negative, got", ReactActionStatePath.queue);func();
+    }, 0);
+};
+
+var qhistory = function qhistory(func, delay) {
+    if (!ReactActionStatePath.queue) setTimeout(func, delay);
+};
+
 var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Component) {
     _inherits(ReactActionStatePath, _React$Component);
 
@@ -103,6 +114,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
         if (typeof ReactActionStatePath.nextId === 'undefined') {
             // this is the root ReactActionStatePath
             ReactActionStatePath.nextId = 0;
+            ReactActionStatePath.queue = 0; // initialize the queue count
             ReactActionStatePath.topState = null;
             if (_this.props.path && _this.props.path !== '/') {
                 var pathSegments = _this.props.path.split('/');
@@ -132,7 +144,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 ReactActionStatePath.thiss = [];
                 window.onpopstate = _this.onpopstate.bind(_this);
                 window.ReactActionStatePath = { thiss: ReactActionStatePath.thiss };
-                if (ReactActionStatePath.pathSegments.length === 0) setTimeout(function () {
+                if (ReactActionStatePath.pathSegments.length === 0) qhistory(function () {
                     return _this.updateHistory();
                 }, 0); // aftr things have settled down, update history for the first time
             }
@@ -223,14 +235,14 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                             ReactActionStatePath.topState = null;
                         }
                     }, 10000);
-                    setTimeout(function () {
+                    qaction(function () {
                         ReactActionStatePath.topState = "SET_PATH";
                         _this3.toChild({ type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this3.initialRASP });
                     }, 0); // this starts after the return toChild so it completes.
                 } else if (this.waitingOn) {
                     var nextFunc = this.waitingOn.nextFunc;
                     this.waitingOn = null;
-                    setTimeout(nextFunc, 0);
+                    qaction(nextFunc, 0);
                     return;
                 }
             } else if (action.type === "SET_DATA") {
@@ -245,7 +257,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             } else if (action.type === "CONTINUE_SET_PATH") {
                 if (ReactActionStatePath.pathSegments.length) {
                     logger.trace("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
-                    setTimeout(function () {
+                    qaction(function () {
                         return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this3.initialRASP });
                     }, 0);
                 } else {
@@ -310,7 +322,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     } // updateHistory now!
                     else this.setState({ rasp: nextRASP }, function () {
                             if (_this3.debug) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action);
-                            setTimeout(function () {
+                            qhistory(function () {
                                 return _this3.updateHistory();
                             }, 0); // update history after the queue of chanages from this state change is processed);
                         }); // otherwise, set the state and let history update on componentDidUpdate
@@ -320,7 +332,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             else if (action.type === "DECENDANT_FOCUS" || action.type === "DECENDANT_UNFOCUS") {
                     if (this.id) {
                         action.distance += 1;action.shape = this.state.rasp.shape;return this.props.rasp.toParent(action);
-                    } else return setTimeout(function () {
+                    } else return qhistory(function () {
                         if (_this3.debug) console.info("ReactActionStatePath.toMeFromChild ", action.type, " updateHistory");_this3.updateHistory();
                     }, 0);;
                 } else if (action.type === "CHANGE_SHAPE") {
@@ -338,7 +350,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                         } else // this is the root, change state and then update history
                             this.setState({ rasp: nextRASP }, function () {
                                 logger.trace("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");
-                                setTimeout(function () {
+                                qhistory(function () {
                                     return _this3.updateHistory;
                                 }, 0); // update history after changes from setstate have been processed
                             });
@@ -351,7 +363,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     } else {
                         // this is the root RASP, update history.state
                         if (this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
-                        setTimeout(function () {
+                        qhistory(function () {
                             if (_this3.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED default updateHistory");_this3.updateHistory();
                         }, 0);
                     }
@@ -364,10 +376,10 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     } else {
                         // this is the root RASP, update history.state
                         if (this.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
-                        if (typeof window === 'undefined' && this.props.rasp && this.props.rasp.toParent) setTimeout(function () {
+                        if (typeof window === 'undefined' && this.props.rasp && this.props.rasp.toParent) qaction(function () {
                             return _this3.props.rasp.toParent(action);
                         }, 0); // on server, send action to server renderer
-                        setTimeout(function () {
+                        qhistory(function () {
                             if (_this3.debug) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED default updateHistory");_this3.updateHistory();
                         }, 0);
                     }
@@ -421,7 +433,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     } else // no parent to tell of the change
                         this.setState({ rasp: nextRASP }, function () {
                             logger.trace("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
-                            setTimeout(function () {
+                            qhistory(function () {
                                 return _this4.updateHistory;
                             }, 0); // update history after statechage events are processed
                         });
@@ -515,6 +527,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
 
             return _react2.default.Children.map(this.props.children, function (child) {
                 var newProps = Object.assign({}, _this6.props, { rasp: Object.assign({}, _this6.state.rasp, { depth: _this6.props.rasp && _this6.props.rasp.depth ? _this6.props.rasp.depth + 1 : 1,
+                        raspId: _this6.id,
                         toParent: _this6.toMeFromChild.bind(_this6) }) //rasp in state override rasp in props
                 });
                 delete newProps.children;
@@ -563,6 +576,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
         if (_this7.props.rasp.toParent) {
             _this7.props.rasp.toParent({ type: "SET_TO_CHILD", function: _this7.toMeFromParent.bind(_this7), name: _this7.constructor.name, actionToState: _this7.actionToState.bind(_this7), debug: debug, clientThis: _this7 });
         } else console.error("ReactActionStatePathClient no rasp.toParent", _this7.props);
+        _this7.qaction = qaction; // make the module specific funtion available
         return _this7;
     }
 
@@ -577,7 +591,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
         value: function toMeFromChild(key, action) {
             var _this8 = this;
 
-            if (this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.depth, key, action);
+            if (this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, action);
             if (action.type === "SET_TO_CHILD") {
                 // child is passing up her func
                 this.toChild[key] = action.function; // don't pass this to parent
@@ -588,7 +602,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                             logger.trace("ReactActionStatePathClient.toMeFromParent got waitingOn nextRASP", nextRASP);
                             var nextFunc = this.waitingOn.nextFunc;
                             this.waitingOn = null;
-                            if (nextFunc) setTimeout(nextFunc, 0);else setTimeout(function () {
+                            if (nextFunc) qaction(nextFunc, 0);else qaction(function () {
                                 return _this8.props.rasp.toParent({ type: "SET_STATE_AND_CONTINUE", nextRASP: nextRASP, function: _this8.toChild[key] });
                             }, 0);
                         }
@@ -611,7 +625,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
         value: function toMeFromParent(action) {
             var _this9 = this;
 
-            if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.depth, action);
+            if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, action);
             if (action.type === "ONPOPSTATE") {
                 var stateStack = action.stateStack,
                     stackDepth = action.stackDepth;
