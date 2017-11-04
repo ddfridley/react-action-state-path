@@ -31,7 +31,7 @@ var equaly=function(a,b){
 
 var qaction=(func,delay)=>{
     ReactActionStatePath.queue+=1;
-    setTimeout(()=>{if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); func()},0);
+    setTimeout(()=>{if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); func},0);
 }
 
 var qhistory=(func,delay)=>{
