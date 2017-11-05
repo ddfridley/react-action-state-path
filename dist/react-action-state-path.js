@@ -62,6 +62,7 @@ var equaly = function equaly(a, b) {
 
 var qaction = function qaction(func, delay) {
     ReactActionStatePath.queue += 1;
+    console.info("qaction", ReactActionStatePath.queue);
     setTimeout(function () {
         if ((exports.ReactActionStatePath = ReactActionStatePath -= 1) < 0) console.error("ReactActionStatePath.queue should not be negative, got", ReactActionStatePath.queue);
         func();
@@ -69,7 +70,8 @@ var qaction = function qaction(func, delay) {
 };
 
 var qhistory = function qhistory(func, delay) {
-    if (ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have put off");
+    console.info("qhistory", ReactActionStatePath.queue);
+    if (ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off");
     setTimeout(func, delay);
 };
 
@@ -528,7 +530,6 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
 
             return _react2.default.Children.map(this.props.children, function (child) {
                 var newProps = Object.assign({}, _this6.props, { rasp: Object.assign({}, _this6.state.rasp, { depth: _this6.props.rasp && _this6.props.rasp.depth ? _this6.props.rasp.depth + 1 : 1,
-                        raspId: _this6.id,
                         toParent: _this6.toMeFromChild.bind(_this6) }) //rasp in state override rasp in props
                 });
                 delete newProps.children;
@@ -592,7 +593,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
         value: function toMeFromChild(key, action) {
             var _this8 = this;
 
-            if (this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, action);
+            if (this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.depth, key, action);
             if (action.type === "SET_TO_CHILD") {
                 // child is passing up her func
                 this.toChild[key] = action.function; // don't pass this to parent
@@ -626,7 +627,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
         value: function toMeFromParent(action) {
             var _this9 = this;
 
-            if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, action);
+            if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.depth, action);
             if (action.type === "ONPOPSTATE") {
                 var stateStack = action.stateStack,
                     stackDepth = action.stackDepth;

@@ -31,6 +31,7 @@ var equaly=function(a,b){
 
 var qaction=(func,delay)=>{
     ReactActionStatePath.queue+=1;
+    console.info("qaction",ReactActionStatePath.queue);
     setTimeout(()=>{
         if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); 
         func();
@@ -38,7 +39,8 @@ var qaction=(func,delay)=>{
 }
 
 var qhistory=(func,delay)=>{
-    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have put off")
+    console.info("qhistory", ReactActionStatePath.queue);
+    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
     setTimeout(func,delay);
 }
 
@@ -406,7 +408,6 @@ export class ReactActionStatePath extends React.Component {
                 {rasp:  Object.assign({}, 
                         this.state.rasp, 
                         {depth: this.props.rasp && this.props.rasp.depth ? this.props.rasp.depth +1 : 1,
-                        raspId: this.id,
                         toParent: this.toMeFromChild.bind(this)})
                 }  //rasp in state override rasp in props
             );
@@ -452,7 +453,7 @@ export class ReactActionStatePathClient extends React.Component {
   // send all unhandled actions to the parent RASP
   //
   toMeFromChild(key, action) {
-    if(this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, action);
+    if(this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.depth, key, action);
     if (action.type === "SET_TO_CHILD") { // child is passing up her func
       this.toChild[key] = action.function; // don't pass this to parent
       if (this.waitingOn) {
@@ -479,7 +480,7 @@ export class ReactActionStatePathClient extends React.Component {
   // this can handle a one to many pattern for the RASP, handle each action appropriatly
   //
   toMeFromParent(action) {
-    if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, action);
+    if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.depth, action);
     if (action.type === "ONPOPSTATE") {
       let {stateStack, stackDepth} = action;
       var key = stateStack[stackDepth][this.keyField];
