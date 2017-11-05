@@ -29,18 +29,18 @@ var equaly=function(a,b){
 //     }
 //
 
-var qaction=(func,delay)=>{
-    ReactActionStatePath.queue+=1;
-    console.info("qaction",ReactActionStatePath.queue);
+var qaction=function(func,delay){
+    console.info("qaction");
+//    ReactActionStatePath.queue+=1;
     setTimeout(()=>{
-        if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); 
+//        if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); 
         func();
     },0);
 }
 
-var qhistory=(func,delay)=>{
-    console.info("qhistory", ReactActionStatePath.queue);
-    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
+var qhistory=function(func,delay){
+    console.info("qhistory");
+//    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
     setTimeout(func,delay);
 }
 
