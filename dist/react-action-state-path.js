@@ -63,12 +63,14 @@ var equaly = function equaly(a, b) {
 var qaction = function qaction(func, delay) {
     ReactActionStatePath.queue += 1;
     setTimeout(function () {
-        if ((exports.ReactActionStatePath = ReactActionStatePath -= 1) < 0) console.error("ReactActionStatePath.queue should not be negative, got", ReactActionStatePath.queue);func;
+        if ((exports.ReactActionStatePath = ReactActionStatePath -= 1) < 0) console.error("ReactActionStatePath.queue should not be negative, got", ReactActionStatePath.queue);
+        func();
     }, 0);
 };
 
 var qhistory = function qhistory(func, delay) {
-    if (!ReactActionStatePath.queue) setTimeout(func, delay);
+    if (ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have put off");
+    setTimeout(func, delay);
 };
 
 var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Component) {
