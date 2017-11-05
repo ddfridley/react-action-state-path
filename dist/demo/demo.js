@@ -594,8 +594,8 @@ var equaly = function equaly(a, b) {
 var queue = 0;
 
 var qaction = function qaction(func, delay) {
-    console.info("qaction");
     queue += 1;
+    console.info("qaction queueing", queue);
     setTimeout(function () {
         //        if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); 
         console.info("qaction continuing", --queue);
@@ -1010,8 +1010,12 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             if (this.debug) console.info("ReactActionStatePath.updateHistory", this.id);
             if (this.id !== 0) console.error("ReactActionStatePath.updateHistory called but not from root", this.props.rasp);
             if (ReactActionStatePath.topState) console.error("ReactActionStatePath.updateHistory, expected topState null, got:", ReactActionStatePath.topState);
+            if (queue) {
+                console.info("ReactActionStatePath.updateHistory waiting, queue is", queue);
+                return null;
+            }
             if (typeof window === 'undefined') {
-                if (this.debug) console.info("ReactActionStatePath.updateHistory called on servr side");
+                console.info("ReactActionStatePath.updateHistory called on servr side");
                 if (this.props.rasp && this.props.rasp.toParent) this.props.rasp.toParent({ type: "UPDATE_HISTORY" });
                 return;
             }
