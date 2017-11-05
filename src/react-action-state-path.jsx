@@ -29,19 +29,22 @@ var equaly=function(a,b){
 //     }
 //
 
+var queue=0;
+
 var qaction=function(func,delay){
     console.info("qaction");
-//    ReactActionStatePath.queue+=1;
+    queue+=1;
     setTimeout(()=>{
 //        if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); 
+        console.info("qaction continuing", --queue);
         func();
     },0);
 }
 
 var qhistory=function(func,delay){
-    console.info("qhistory");
+    console.info("qhistory", queue);
 //    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
-    setTimeout(func,delay);
+    setTimeout(func, delay);
 }
 
 export class ReactActionStatePath extends React.Component {

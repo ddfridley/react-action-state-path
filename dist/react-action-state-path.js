@@ -60,17 +60,20 @@ var equaly = function equaly(a, b) {
 //     }
 //
 
+var queue = 0;
+
 var qaction = function qaction(func, delay) {
     console.info("qaction");
-    //    ReactActionStatePath.queue+=1;
+    queue += 1;
     setTimeout(function () {
         //        if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); 
+        console.info("qaction continuing", --queue);
         func();
     }, 0);
 };
 
 var qhistory = function qhistory(func, delay) {
-    console.info("qhistory");
+    console.info("qhistory", queue);
     //    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
     setTimeout(func, delay);
 };
