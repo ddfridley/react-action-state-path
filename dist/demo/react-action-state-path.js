@@ -310,16 +310,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     // path being added
                     logger.trace("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment);
                 }
-                if (this.id !== 0 && !ReactActionStatePath.topState && !action.toBeContinued) {
-                    // if this is not the root and this is not a root driven state change
-                    //if(equaly(this.state.rasp,nextRASP)) return null; // nothing has changed so don't kick off a CHILD_SHAPE_CHANGED chain
-                    var passItOn = action.type === "CHILD_SHAPE_CHANGED" || action.type === "DECENDANT_FOCUS" || action.type === 'DECENDANT_UNFOCUS';
-                    var nextType = passItOn ? action.type : "CHILD_SHAPE_CHANGED";
-                    var distance = passItOn ? action.distance + 1 : 1; // 1 tells parent RASP it came from this RASP 
-                    this.setState({ rasp: nextRASP }, function () {
-                        return _this3.props.rasp.toParent({ type: nextType, shape: nextRASP.shape, distance: distance });
-                    });
-                } else if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DECENDANT_FOCUS" || action.type === "DECENDANT_UNFOCUS")) {
+                if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DECENDANT_FOCUS" || action.type === "DECENDANT_UNFOCUS")) {
                     this.setState({ rasp: nextRASP }, function () {
                         return _this3.props.rasp.toParent({ type: action.type, distance: action.distance + 1, shape: _this3.state.rasp.shape });
                     });
@@ -350,12 +341,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     if (this.state.rasp.shape !== action.shape) {
                         // really the shape changed
                         var nextRASP = Object.assign({}, this.state.rasp, { shape: action.shape });
-                        if (this.id !== 0 && !ReactActionStatePath.topState && !action.toBeContinued) {
-                            // if there's a parent to tell of the change and we are not inhibiting shape_changed
-                            this.setState({ rasp: nextRASP }, function () {
-                                return _this3.props.rasp.toParent({ type: "CHILD_SHAPE_CHANGED", shape: action.shape, distance: 1 });
-                            });
-                        }if (this.id !== 0) {
+                        if (this.id !== 0) {
                             // don't propogate a change
                             this.setState({ rasp: nextRASP });
                         } else // this is the root, change state and then update history
@@ -434,13 +420,8 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             } else if (this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp)) !== null) {
                 if (!equaly(this.state.rasp, nextRASP)) {
                     // really the shape changed
-                    if (this.id !== 0 && !action.toBeContinued) {
-                        // if there's a parent to tell of the change
-                        this.setState({ rasp: nextRASP }, function () {
-                            return _this4.props.rasp.toParent({ type: "CHILD_SHAPE_CHANGED", shape: nextRASP.shape, distance: 1 });
-                        });
-                    }if (this.id !== 0) {
-                        this.setState({ rasp: nextRASP }); // inhibit CHILD_SHAPE_CHANGED
+                    if (this.id !== 0) {
+                        this.setState({ rasp: nextRASP });
                     } else // no parent to tell of the change
                         this.setState({ rasp: nextRASP }, function () {
                             logger.trace("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");

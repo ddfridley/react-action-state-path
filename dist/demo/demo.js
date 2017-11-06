@@ -208,6 +208,8 @@ var RASPArticle = function (_ReactActionStatePath) {
     _createClass(RASPArticle, [{
         key: 'actionToState',
         value: function actionToState(action, rasp, source, initialRASP) {
+            var _this3 = this;
+
             var nextRASP = {},
                 delta = {}; // nextRASP will be the next state, delta is where all the changes to state are recorded. There may be other properties in the state, only change them deliberatly  
             if (action.type === "TOGGLE") {
@@ -220,14 +222,20 @@ var RASPArticle = function (_ReactActionStatePath) {
                     // 3) it fits many use cases that when something becomes visibile it consistently starts in the same state
                     delta.open = null; // closed
                     delta.minimize = null; // not minimized anymore
+                    this.qaction(function () {
+                        return _this3.props.rasp.toParent({ type: "DECENDANT_UNFOCUS" });
+                    });
                 } else {
                     delta.open = 'open'; // was closed, now open
                     delta.minimize = null; // not minimized
+                    this.qaction(function () {
+                        return _this3.props.rasp.toParent({ type: "DECENDANT_FOCUS" });
+                    });
                 }
-            } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance > 2 && action.shape === 'open' && !rasp.minimize) {
+            } else if (action.type === "DECENDANT_FOCUS" && action.distance > 2 && !rasp.minimize) {
                 // a 2+ distant sub child has chanaged to open, so minimize, but don't minimize if already minimized which will change the shape of the propogating message
                 delta.minimize = true;
-            } else if (action.type === "CHILD_SHAPE_CHANGED" && action.distance >= 2 && action.shape !== 'open' && rasp.minimize) {
+            } else if (action.type === "DECENDANT_UNFOCUS" && action.distance >= 2 && rasp.minimize) {
                 // a 2+ distant sub child has changed from open, and we are minimized, so unminimize
                 delta.minimize = false;
             } else return null; // if we don't understand the action, just pass it on
@@ -338,7 +346,7 @@ var ArticleStore = function (_React$Component2) {
     function ArticleStore() {
         var _ref;
 
-        var _temp, _this3, _ret;
+        var _temp, _this4, _ret;
 
         _classCallCheck(this, ArticleStore);
 
@@ -346,7 +354,7 @@ var ArticleStore = function (_React$Component2) {
             args[_key] = arguments[_key];
         }
 
-        return _ret = (_temp = (_this3 = _possibleConstructorReturn(this, (_ref = ArticleStore.__proto__ || Object.getPrototypeOf(ArticleStore)).call.apply(_ref, [this].concat(args))), _this3), _this3.state = { articles: [] }, _temp), _possibleConstructorReturn(_this3, _ret);
+        return _ret = (_temp = (_this4 = _possibleConstructorReturn(this, (_ref = ArticleStore.__proto__ || Object.getPrototypeOf(ArticleStore)).call.apply(_ref, [this].concat(args))), _this4), _this4.state = { articles: [] }, _temp), _possibleConstructorReturn(_this4, _ret);
     }
 
     _createClass(ArticleStore, [{
@@ -354,11 +362,11 @@ var ArticleStore = function (_React$Component2) {
         // retrived articles are stored here
 
         value: function renderChildren() {
-            var _this4 = this;
+            var _this5 = this;
 
             // this is how props and state are passed as props to children
             return _react2.default.Children.map(this.props.children, function (child) {
-                var newProps = Object.assign({}, _this4.props, _this4.state);
+                var newProps = Object.assign({}, _this5.props, _this5.state);
                 delete newProps.children; // be careful not to make the child it's child
                 return _react2.default.cloneElement(child, newProps, child.props.children);
             });
@@ -366,11 +374,11 @@ var ArticleStore = function (_React$Component2) {
     }, {
         key: 'componentDidMount',
         value: function componentDidMount() {
-            var _this5 = this;
+            var _this6 = this;
 
             // this simulates getting data from an external resouce/database by 
             var articles = demoData.reduce(function (acc, dat) {
-                if (dat.parent === _this5.props.parent) acc.push(dat);
+                if (dat.parent === _this6.props.parent) acc.push(dat);
                 return acc;
             }, []);
             this.setState({ articles: articles });
@@ -436,12 +444,14 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
             // if the immediate child of this list (an article) changes shape to open, 
             // close all the other articles in the list, to focus on just this one.
             // if the article changes out of open, then show the list again
-            if (action.type === "CHILD_SHAPE_CHANGED" && action.distance === 1) {
-                if (action.shape === 'open') {
-                    if (rasp.id && rasp.id !== action.id) this.toChild[rasp.id]({ type: "CLEAR_PATH" }); // if some other child is open, close it
-                    delta.id = action.id; // open a new one
-                } else {
+            if (action.type === "DECENDANT_FOCUS" && action.distance === 1) {
+                if (rasp.id && rasp.id !== action.id) this.toChild[rasp.id]({ type: "CLEAR_PATH" }); // if some other child is open, close it
+                delta.id = action.id; // open a new one
+                if (!rasp.id) action.distance = 0; // changed focus here
+            } else if (action.type === "DECENDANT_UNFOCUS") {
+                if (rasp.id) {
                     delta.id = null;
+                    action.distance = 0; // changed focus here
                 }
             } else return null;
             if (delta.id) delta.shape = 'open';else delta.shape = initialRASP.shape;
@@ -465,7 +475,7 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
     }, {
         key: 'render',
         value: function render() {
-            var _this8 = this;
+            var _this9 = this;
 
             var _props2 = this.props,
                 articles = _props2.articles,
@@ -486,7 +496,7 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
                     return _react2.default.createElement(
                         _reactProactiveAccordion2.default,
                         { active: rasp.shape !== 'open' || rasp.id === a.id, key: a.id, className: 'subarticle' },
-                        _react2.default.createElement(Article, _extends({}, a, { rasp: _this8.childRASP('truncated', a.id) }))
+                        _react2.default.createElement(Article, _extends({}, a, { rasp: _this9.childRASP('truncated', a.id) }))
                     );
                 })
             );
@@ -840,16 +850,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     // path being added
                     logger.trace("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment);
                 }
-                if (this.id !== 0 && !ReactActionStatePath.topState && !action.toBeContinued) {
-                    // if this is not the root and this is not a root driven state change
-                    //if(equaly(this.state.rasp,nextRASP)) return null; // nothing has changed so don't kick off a CHILD_SHAPE_CHANGED chain
-                    var passItOn = action.type === "CHILD_SHAPE_CHANGED" || action.type === "DECENDANT_FOCUS" || action.type === 'DECENDANT_UNFOCUS';
-                    var nextType = passItOn ? action.type : "CHILD_SHAPE_CHANGED";
-                    var distance = passItOn ? action.distance + 1 : 1; // 1 tells parent RASP it came from this RASP 
-                    this.setState({ rasp: nextRASP }, function () {
-                        return _this3.props.rasp.toParent({ type: nextType, shape: nextRASP.shape, distance: distance });
-                    });
-                } else if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DECENDANT_FOCUS" || action.type === "DECENDANT_UNFOCUS")) {
+                if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DECENDANT_FOCUS" || action.type === "DECENDANT_UNFOCUS")) {
                     this.setState({ rasp: nextRASP }, function () {
                         return _this3.props.rasp.toParent({ type: action.type, distance: action.distance + 1, shape: _this3.state.rasp.shape });
                     });
@@ -880,12 +881,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     if (this.state.rasp.shape !== action.shape) {
                         // really the shape changed
                         var nextRASP = Object.assign({}, this.state.rasp, { shape: action.shape });
-                        if (this.id !== 0 && !ReactActionStatePath.topState && !action.toBeContinued) {
-                            // if there's a parent to tell of the change and we are not inhibiting shape_changed
-                            this.setState({ rasp: nextRASP }, function () {
-                                return _this3.props.rasp.toParent({ type: "CHILD_SHAPE_CHANGED", shape: action.shape, distance: 1 });
-                            });
-                        }if (this.id !== 0) {
+                        if (this.id !== 0) {
                             // don't propogate a change
                             this.setState({ rasp: nextRASP });
                         } else // this is the root, change state and then update history
@@ -964,13 +960,8 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             } else if (this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp)) !== null) {
                 if (!equaly(this.state.rasp, nextRASP)) {
                     // really the shape changed
-                    if (this.id !== 0 && !action.toBeContinued) {
-                        // if there's a parent to tell of the change
-                        this.setState({ rasp: nextRASP }, function () {
-                            return _this4.props.rasp.toParent({ type: "CHILD_SHAPE_CHANGED", shape: nextRASP.shape, distance: 1 });
-                        });
-                    }if (this.id !== 0) {
-                        this.setState({ rasp: nextRASP }); // inhibit CHILD_SHAPE_CHANGED
+                    if (this.id !== 0) {
+                        this.setState({ rasp: nextRASP });
                     } else // no parent to tell of the change
                         this.setState({ rasp: nextRASP }, function () {
                             logger.trace("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
