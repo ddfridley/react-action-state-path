@@ -319,6 +319,10 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     this.setState({ rasp: nextRASP }, function () {
                         return _this3.props.rasp.toParent({ type: nextType, shape: nextRASP.shape, distance: distance });
                     });
+                } else if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DECENDANT_FOCUS" || action.type === "DECENDANT_UNFOCUS")) {
+                    this.setState({ rasp: nextRASP }, function () {
+                        return _this3.props.rasp.toParent({ type: action.type, distance: action.distance + 1, shape: _this3.state.rasp.shape });
+                    });
                 } else if (this.id !== 0) {
                     this.setState({ rasp: nextRASP });
                 } else {

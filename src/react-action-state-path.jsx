@@ -245,9 +245,11 @@ export class ReactActionStatePath extends React.Component {
                 const nextType= passItOn ? action.type : "CHILD_SHAPE_CHANGED";
                 const distance= passItOn ? action.distance+1 : 1; // 1 tells parent RASP it came from this RASP 
                 this.setState({rasp: nextRASP}, ()=>this.props.rasp.toParent({type: nextType, shape: nextRASP.shape, distance: distance}));
-            }else if(this.id!==0){
+            }else if(this.id!==0 && !ReactActionStatePath.topState && (action.type==="DECENDANT_FOCUS" || action.type==="DECENDANT_UNFOCUS") ){
+                this.setState({rasp: nextRASP}, ()=>this.props.rasp.toParent({type: action.type, distance: action.distance+1, shape: this.state.rasp.shape}));
+            } else if(this.id!==0){
                 this.setState({rasp: nextRASP});
-            } else { // this is the root, after changing shape, remind me so I can update the window.histor
+            }else { // this is the root, after changing shape, remind me so I can update the window.histor
                 if(equaly(this.state.rasp,nextRASP)) { 
                     if(this.debug) console.info("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action); 
                     this.updateHistory()
@@ -262,7 +264,7 @@ export class ReactActionStatePath extends React.Component {
         else if(action.type === "DECENDANT_FOCUS" || action.type ==="DECENDANT_UNFOCUS"){
             if(this.id) { action.distance+=1; action.shape=this.state.rasp.shape; return this.props.rasp.toParent(action); }
             else return qhistory(()=>{ if(this.debug) console.info("ReactActionStatePath.toMeFromChild ",action.type," updateHistory");this.updateHistory()},0);;
-        } else if(action.type ==="CHANGE_SHAPE"){  
+        } else if(action.type ==="CHANGE_SHAPE"){
             if(this.state.rasp.shape!==action.shape){ // really the shape changed
                 var nextRASP=Object.assign({}, this.state.rasp, {shape: action.shape});
                 if(this.id!==0 && !ReactActionStatePath.topState  && !action.toBeContinued ) {// if there's a parent to tell of the change and we are not inhibiting shape_changed
