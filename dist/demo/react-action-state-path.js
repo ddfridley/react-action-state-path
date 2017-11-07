@@ -70,6 +70,10 @@ var qaction = function qaction(func, delay) {
         //        if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); 
         console.info("qaction continuing", --queue);
         func();
+        if (queue === 0 && UpdateHistory) {
+            console.info("qaction updating history");
+            UpdateHistory();
+        } else console.info("qaction after continuing", queue);
     }, 0);
 };
 
@@ -78,6 +82,8 @@ var qhistory = function qhistory(func, delay) {
     //    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
     setTimeout(func, delay);
 };
+
+var UpdateHistory;
 
 var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Component) {
     _inherits(ReactActionStatePath, _React$Component);
@@ -151,6 +157,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 ReactActionStatePath.thiss = [];
                 window.onpopstate = _this.onpopstate.bind(_this);
                 window.ReactActionStatePath = { thiss: ReactActionStatePath.thiss };
+                UpdateHistory = _this.updateHistory.bind(_this);
                 if (ReactActionStatePath.pathSegments.length === 0) qhistory(function () {
                     return _this.updateHistory();
                 }, 0); // aftr things have settled down, update history for the first time
@@ -523,7 +530,9 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
 
             return _react2.default.Children.map(this.props.children, function (child) {
                 var newProps = Object.assign({}, _this6.props, { rasp: Object.assign({}, _this6.state.rasp, { depth: _this6.props.rasp && _this6.props.rasp.depth ? _this6.props.rasp.depth + 1 : 1,
-                        toParent: _this6.toMeFromChild.bind(_this6) }) //rasp in state override rasp in props
+                        raspId: _this6.id,
+                        toParent: _this6.toMeFromChild.bind(_this6)
+                    }) //rasp in state override rasp in props
                 });
                 delete newProps.children;
                 delete newProps.initialRASP; // don't let this propogate down to the next RASP with no initialization required
@@ -586,7 +595,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
         value: function toMeFromChild(key, action) {
             var _this8 = this;
 
-            if (this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.depth, key, action);
+            if (this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, action);
             if (action.type === "SET_TO_CHILD") {
                 // child is passing up her func
                 this.toChild[key] = action.function; // don't pass this to parent
@@ -620,7 +629,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
         value: function toMeFromParent(action) {
             var _this9 = this;
 
-            if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.depth, action);
+            if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, action);
             if (action.type === "ONPOPSTATE") {
                 var stateStack = action.stateStack,
                     stackDepth = action.stackDepth;
@@ -639,14 +648,14 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                 var key = this.props.rasp[this.keyField];
                 if (typeof key !== 'undefined' && key !== null) {
                     if (this.toChild[key]) return this.toChild[key](action); // pass the action to the child
-                    else console.error("ReactActionStatePathClien.toMeFromParent GET_STATE key set by child not there", this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp);
+                    else console.error("ReactActionStatePathClien.toMeFromParent GET_STATE key set by child not there", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp);
                 } else return null; // end of the line
             } else if (action.type === "CLEAR_PATH") {
                 // clear the path and reset the RASP state back to what the const
                 var key = this.props.rasp[this.keyField];
                 if (typeof key !== 'undefined' && key !== null) {
                     if (this.toChild[key]) return this.toChild[key](action); // pass the action to the child
-                    else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there", this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp);
+                    else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp);
                 } else return null; // end of the line
             } else if (action.type === "SET_PATH") {
                 var _segmentToState = this.segmentToState(action, action.initialRASP),

@@ -414,8 +414,10 @@ export class ReactActionStatePath extends React.Component {
                 this.props, 
                 {rasp:  Object.assign({}, 
                         this.state.rasp, 
-                        {depth: this.props.rasp && this.props.rasp.depth ? this.props.rasp.depth +1 : 1,
-                        toParent: this.toMeFromChild.bind(this)})
+                        { depth: this.props.rasp && this.props.rasp.depth ? this.props.rasp.depth +1 : 1,
+                          raspId: this.id,
+                          toParent: this.toMeFromChild.bind(this)
+                        })
                 }  //rasp in state override rasp in props
             );
             delete newProps.children;
@@ -460,7 +462,7 @@ export class ReactActionStatePathClient extends React.Component {
   // send all unhandled actions to the parent RASP
   //
   toMeFromChild(key, action) {
-    if(this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.depth, key, action);
+    if(this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, action);
     if (action.type === "SET_TO_CHILD") { // child is passing up her func
       this.toChild[key] = action.function; // don't pass this to parent
       if (this.waitingOn) {
@@ -487,7 +489,7 @@ export class ReactActionStatePathClient extends React.Component {
   // this can handle a one to many pattern for the RASP, handle each action appropriatly
   //
   toMeFromParent(action) {
-    if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.depth, action);
+    if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, action);
     if (action.type === "ONPOPSTATE") {
       let {stateStack, stackDepth} = action;
       var key = stateStack[stackDepth][this.keyField];
@@ -502,13 +504,13 @@ export class ReactActionStatePathClient extends React.Component {
       var key = this.props.rasp[this.keyField];
       if (typeof key !== 'undefined' && key !== null){
           if( this.toChild[key]) return this.toChild[key](action); // pass the action to the child
-          else console.error("ReactActionStatePathClien.toMeFromParent GET_STATE key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp)
+          else console.error("ReactActionStatePathClien.toMeFromParent GET_STATE key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp)
       } else return null; // end of the line
     } else if (action.type === "CLEAR_PATH") {  // clear the path and reset the RASP state back to what the const
         var key = this.props.rasp[this.keyField];
         if (typeof key !== 'undefined' && key !== null){
             if( this.toChild[key]) return this.toChild[key](action); // pass the action to the child
-            else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.depth, key, this.props.rasp)
+            else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp)
         } else return null; // end of the line
     } else if (action.type === "SET_PATH") {
       const { nextRASP, setBeforeWait } = this.segmentToState(action, action.initialRASP);
