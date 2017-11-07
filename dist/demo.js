@@ -446,11 +446,9 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
             if (action.type === "DECENDANT_FOCUS" && action.distance === 1) {
                 if (rasp.id && rasp.id !== action.id) this.toChild[rasp.id]({ type: "CLEAR_PATH" }); // if some other child is open, close it
                 delta.id = action.id; // open a new one
-                if (!rasp.id) action.distance = 0; // changed focus here
             } else if (action.type === "DECENDANT_UNFOCUS") {
                 if (rasp.id) {
                     delta.id = null;
-                    action.distance = 0; // changed focus here
                 }
             } else return null;
             if (delta.id) delta.shape = 'open';else delta.shape = initialRASP.shape;

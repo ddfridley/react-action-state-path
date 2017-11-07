@@ -38,6 +38,11 @@ var qaction=function(func,delay){
 //        if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); 
         console.info("qaction continuing", --queue);
         func();
+        if(queue===0 && UpdateHistory) {
+            console.info("qaction updating history");
+            UpdateHistory();
+        } else 
+            console.info("qaction after continuing", queue);
     },0);
 }
 
@@ -46,6 +51,8 @@ var qhistory=function(func,delay){
 //    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
     setTimeout(func, delay);
 }
+
+var UpdateHistory;
 
 export class ReactActionStatePath extends React.Component {
 
@@ -102,6 +109,7 @@ export class ReactActionStatePath extends React.Component {
                 ReactActionStatePath.thiss=[];
                 window.onpopstate=this.onpopstate.bind(this);
                 window.ReactActionStatePath={thiss: ReactActionStatePath.thiss};
+                UpdateHistory=this.updateHistory.bind(this);
                 if(ReactActionStatePath.pathSegments.length===0) qhistory(()=>this.updateHistory(),0); // aftr things have settled down, update history for the first time
              }
             console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
