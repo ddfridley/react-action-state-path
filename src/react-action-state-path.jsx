@@ -58,7 +58,7 @@ export class ReactActionStatePath extends React.Component {
 
     constructor(props) {
         super(props);
-        //logger.trace("ReactActionStatePath.constructor", this.constructor.name, this.props.rasp);
+        //if(this.debug) console.log("ReactActionStatePath.constructor", this.constructor.name, this.props.rasp);
         this.toChild=null;
         this.childName='';
         this.childTitle='';
@@ -154,7 +154,7 @@ export class ReactActionStatePath extends React.Component {
                 }
             },10000);
             this.toMeFromParent({type: "ONPOPSTATE", stateStack: event.state.stateStack, stackDepth: 0});
-            logger.trace("ReactActionStatePath.onpopsate: returned.")
+            if(this.debug) console.log("ReactActionStatePath.onpopsate: returned.")
             ReactActionStatePath.topState=null;
             clearTimeout(completionCheck);
         }
@@ -177,7 +177,7 @@ export class ReactActionStatePath extends React.Component {
                 if(typeof window !== 'undefined')
                     console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD clientThis missing on browser", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action);
             }if((typeof window !== 'undefined') && this.id===0 && ReactActionStatePath.pathSegments.length ){ // this is the root and we are on the browser and there is at least one pathSegment
-                logger.trace("ReactActionStatePath.toMeFromChild will SET_PATH to",ReactActionStatePath.pathSegments);
+                if(this.debug) console.log("ReactActionStatePath.toMeFromChild will SET_PATH to",ReactActionStatePath.pathSegments);
                 if(ReactActionStatePath.topState) console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD, expected topState null got:", ReactActionStatePath.topState);
                 this.completionCheck=setTimeout(()=>{
                     if(ReactActionStatePath.topState==="SET_PATH"){
@@ -196,25 +196,25 @@ export class ReactActionStatePath extends React.Component {
                 return;
             }
         }else if (action.type==="SET_DATA"){
-            logger.trace("ReactActionStatePath.toMeFromChild SET_DATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+            if(this.debug) console.log("ReactActionStatePath.toMeFromChild SET_DATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
             this.setState({rasp: Object.assign({},this.state.rasp, {data: action.data})});
         }else if (action.type==="SET_STATE"){
-            logger.trace("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+            if(this.debug) console.log("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
             this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)});
         }else if (action.type==="SET_TITLE"){
-            logger.trace("ReactActionStatePath.toMeFromChild SET_TITLE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+            if(this.debug) console.log("ReactActionStatePath.toMeFromChild SET_TITLE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
             this.childTitle=action.title; // this is only for pretty debugging
         }else if (action.type==="CONTINUE_SET_PATH"){
             if(ReactActionStatePath.pathSegments.length) {
-                logger.trace("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+                if(this.debug) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                 qaction(()=>action.function({type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: this.initialRASP}),0);
             } else {
-                logger.trace("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
-                if(this.id!==0) this.props.rasp.toParent({type: "SET_PATH_COMPLETE"}); else { logger.trace("ReactActionStatePath.toMeFromChild CONTINUE_SET_PATH updateHistory"); this.updateHistory()};
+                if(this.debug) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
+                if(this.id!==0) this.props.rasp.toParent({type: "SET_PATH_COMPLETE"}); else { if(this.debug) console.log("ReactActionStatePath.toMeFromChild CONTINUE_SET_PATH updateHistory"); this.updateHistory()};
             }
         }else if (action.type==="SET_STATE_AND_CONTINUE"){
             if(ReactActionStatePath.pathSegments.length) {
-                logger.trace("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+                if(this.debug) console.log("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                 if(action.function)
                     this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)},()=>action.function({type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: this.initialRASP}));
                 else {
@@ -222,11 +222,11 @@ export class ReactActionStatePath extends React.Component {
                     this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)});
                 }
             } else {
-                logger.trace("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp, action.nextRASP);
+                if(this.debug) console.log("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp, action.nextRASP);
                 this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)}, ()=>{ 
                     if(this.id!==0) this.props.rasp.toParent({type: "SET_PATH_COMPLETE"}); 
                     else { 
-                        logger.trace("ReactActionStatePath.toMeFromChild  SET_STATE_AND_CONTINUE last one updateHistory");
+                        if(this.debug) console.log("ReactActionStatePath.toMeFromChild  SET_STATE_AND_CONTINUE last one updateHistory");
                         ReactActionStatePath.topState=null;
                         clearTimeout(this.completionCheck);
                         this.updateHistory()} 
@@ -235,17 +235,17 @@ export class ReactActionStatePath extends React.Component {
         }else if(action.type==="SET_PATH_COMPLETE") {
             if(this.id!==0) return this.props.rasp.toParent({type: "SET_PATH_COMPLETE"});
             else {
-                logger.trace("ReactActionStatePath.toMeFromChild SET PATH COMPLETED, updateHistory");
+                if(this.debug) console.log("ReactActionStatePath.toMeFromChild SET PATH COMPLETED, updateHistory");
                 ReactActionStatePath.topState=null;
                 clearTimeout(this.completionCheck);
                 return this.updateHistory();
             }
         }else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp)))!==null) {
             if((this.state.rasp.pathSegment) && !(nextRASP.pathSegment)) {  // path has been removed
-                logger.trace("ReactActionStatePath.toChildFromParent child changed state and path being removed so reset children", this.id, this.state.rasp.pathSegment)
+                if(this.debug) console.log("ReactActionStatePath.toChildFromParent child changed state and path being removed so reset children", this.id, this.state.rasp.pathSegment)
                 //this.toChild({type:"CLEAR_PATH"}); // if toChild is not set let there be an error
             } else if(!(this.state.rasp.pathSegment) && (nextRASP.pathSegment)) { // path being added
-                logger.trace("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment)
+                if(this.debug) console.log("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment)
             }                 
             if(this.id!==0 && !ReactActionStatePath.topState && (action.type==="DECENDANT_FOCUS" || action.type==="DECENDANT_UNFOCUS") ){
                 this.setState({rasp: nextRASP}, ()=>this.props.rasp.toParent({type: action.type, distance: action.distance+1, shape: this.state.rasp.shape}));
@@ -273,7 +273,7 @@ export class ReactActionStatePath extends React.Component {
                     this.setState({rasp: nextRASP});
                 }else // this is the root, change state and then update history
                     this.setState({rasp: nextRASP}, ()=>{ 
-                        logger.trace("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");
+                        if(this.debug) console.log("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");
                         qhistory(()=>this.updateHistory,0);// update history after changes from setstate have been processed
                     });
             } // no change, nothing to do
@@ -334,7 +334,7 @@ export class ReactActionStatePath extends React.Component {
                     this.setState({rasp: nextRASP});
                 }else // no parent to tell of the change
                     this.setState({rasp: nextRASP}, ()=>{ 
-                        logger.trace("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
+                        if(this.debug) console.log("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
                         qhistory(()=>this.updateHistory,0); // update history after statechage events are processed
                     });
             } // no change, nothing to do
@@ -391,10 +391,10 @@ export class ReactActionStatePath extends React.Component {
         }, []);
         curPath = (this.props.RASPRoot || '/h/') + curPath.join('/');
         if (curPath !== window.location.pathname) { // push the new state and path onto history
-            logger.trace("ReactActionStatePath.toMeFromParent pushState", { stateStack }, { curPath });
+            if(this.debug) console.log("ReactActionStatePath.toMeFromParent pushState", { stateStack }, { curPath });
             window.history.pushState(stateStack, '', curPath);
         } else { // update the state of the current history
-            logger.trace("ReactActionStatePath.toMeFromParent replaceState", { stateStack }, { curPath });
+            if(this.debug) console.log("ReactActionStatePath.toMeFromParent replaceState", { stateStack }, { curPath });
             window.history.replaceState(stateStack, '', curPath); //update the history after changes have propogated among the children
         }
         return null;
@@ -402,9 +402,9 @@ export class ReactActionStatePath extends React.Component {
 
     /***  don't rerender if no change in state or props, use a logically equivalent check for state so that undefined and null are equivalent. Make it a deep compare in case apps want deep objects in their state ****/
     shouldComponentUpdate(newProps, newState) {
-        if(!equaly(this.state,newState)) {logger.trace("ReactActionStatePath.shouldComponentUpdate yes state", this.id, this.props.rasp && this.props.rasp.depth, this.childName,  this.state,newState); return true;}
-        if(!shallowequal(this.props, newProps)) {logger.trace("ReactActionStatePath.shouldComponentUpdate yes props", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps); return true;}
-        logger.trace("ReactActionStatePath.shouldComponentUpdate no", this.id, this.props.rasp && this.props.rasp.depth, this.childName,  this.props, newProps, this.state, newState);
+        if(!equaly(this.state,newState)) {if(this.debug) console.log("ReactActionStatePath.shouldComponentUpdate yes state", this.id, this.props.rasp && this.props.rasp.depth, this.childName,  this.state,newState); return true;}
+        if(!shallowequal(this.props, newProps)) {if(this.debug) console.log("ReactActionStatePath.shouldComponentUpdate yes props", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps); return true;}
+        if(this.debug) console.log("ReactActionStatePath.shouldComponentUpdate no", this.id, this.props.rasp && this.props.rasp.depth, this.childName,  this.props, newProps, this.state, newState);
         return false;
     }
 
@@ -469,7 +469,7 @@ export class ReactActionStatePathClient extends React.Component {
         if (this.waitingOn.nextRASP) {
           let nextRASP = this.waitingOn.nextRASP;
           if (key === nextRASP[this.keyField] && this.toChild[key]) {
-            logger.trace("ReactActionStatePathClient.toMeFromParent got waitingOn nextRASP", nextRASP);
+            if(this.debug) console.log("ReactActionStatePathClient.toMeFromParent got waitingOn nextRASP", nextRASP);
             var nextFunc=this.waitingOn.nextFunc;
             this.waitingOn = null;
             if(nextFunc) qaction(nextFunc,0);
@@ -480,7 +480,7 @@ export class ReactActionStatePathClient extends React.Component {
     } else {
         action[this.keyField] = key; // actionToState may need to know the child's id
         var result =this.props.rasp.toParent(action);
-        // logger.trace(this.constructor.name, this.title, action,'->', this.props.rasp);
+        // if(this.debug) console.log(this.constructor.name, this.title, action,'->', this.props.rasp);
         return result;
     }
   }
@@ -521,7 +521,7 @@ export class ReactActionStatePathClient extends React.Component {
             this.waitingOn={nextRASP, nextFunc: ()=>this.props.rasp.toParent({type: "CONTINUE_SET_PATH", function: this.toChild[key]})};
             this.props.rasp.toParent({type: "SET_STATE", nextRASP});       
         } else {
-          logger.trace("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
+          if(this.debug) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
           this.waitingOn = {nextRASP};
         }
       } else {
@@ -536,4 +536,92 @@ export class ReactActionStatePathClient extends React.Component {
           Object.assign({}, this.props.rasp, { shape, toParent: this.toMeFromChild.bind(this, childKey) })
       );
   }
+}
+
+export class ReactActionStatePathMulti extends ReactActionStatePathClient{
+    constructor(props,keyfield,debug){
+        super(props,keyfield,debug);
+        
+    }
+
+    toMeFromParent(action) {
+        if(this.debug) console.info("ReactActionStatePathMulti.toMeFromParent", this.props.rasp.depth, action);
+        if (action.type === "ONPOPSTATE") {
+          if(this.debug) console.log("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE", this.props.rasp.depth, action);
+          let { stackDepth, stateStack } = action;
+    
+          let keepChild = [];
+          Object.keys(this.toChild).forEach(child => keepChild[child] = false);
+    
+          stateStack[stackDepth+1].raspChildren.forEach(child => {
+            if (this.toChild[child.key]) {
+              this.toChild[child.key]({ type: "ONPOPSTATE", stateStack: child.stateStack, stackDepth: 0 });
+              keepChild[child.key] = true;
+            } else console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE no child:", child.key);
+          })
+    
+          keepChild.forEach((keep, child) => { // child id is the index
+            if (!keep) {
+              console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE child not kept", child);
+              this.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
+            }
+          })
+          return;// this was the end of the line
+        } else if (action.type === "GET_STATE") {
+          // get the state info from all the children and combind them into one Object
+          if(this.debug) console.log("ReactActionStatePathMulti.toMeFromParent GET_STATE", this.props.rasp.depth, action);
+          var raspChildren = Object.keys(this.toChild).map(child => {
+            return {
+              stateStack: this.toChild[child]({ type: "GET_STATE" }),
+              key: child
+            }
+          });
+          if(raspChildren.length===1 && !raspChildren[0].stateStack) return null; // if the only child doesn't really exist yet (because it returns null) just return null
+          var curPath = raspChildren.reduce((acc, cur, i) => { // parse the state to build the curreent path
+            if (cur.stateStack && cur.stateStack[i] && cur.stateStack[i].pathSegment) acc.push(cur.stateStack[i].pathSegment);
+            return acc;
+          }, []);
+          if (raspChildren.length) {
+            var result = { raspChildren: raspChildren, depth: this.props.rasp.depth + 1, shape: 'multichild' };
+            if (curPath.length) result.pathSegment = curPath.join(':');
+            if(this.debug) console.log("ReactActionStatePathMulti.toMeFromParent GET_STATE returns", result);
+            return [result];
+          } else
+            return null;
+        } else if (action.type === "CLEAR_PATH") {  // clear the path and reset the RASP state back to what the const
+          Object.keys(this.toChild).forEach(child => { // send the action to every child
+            this.toChild[child](action)
+          });
+        } else if (action.type === "SET_PATH") {
+          const { nextRASP, setBeforeWait } = this.segmentToState(action);
+          if(this.debug) console.info("ReactActionStatePathMulti.toMeFromParent SET_PATH", action)
+          if (nextRASP[this.keyField]) {
+            let key = nextRASP[this.keyField];
+            /*if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
+            else */ if (setBeforeWait) {
+              var that=this;
+              var setPredicessors=()=>{
+                let predicessors=that.toChild.length;
+                if(this.debug) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", key, predicessors);
+                if(predicessors < key) {
+                  var predicessorRASP=Object.assign({},nextRASP,{[that.keyField]: predicessors});
+                  that.waitingOnResults={ nextFunc: setPredicessors.bind(this)};
+                  that.props.rasp.toParent({ type: "SET_STATE", nextRASP: predicessorRASP });
+                }else {
+                  that.waitingOn={ nextRASP, nextFunc: () => that.props.rasp.toParent({ type: "CONTINUE_SET_PATH", function: that.toChild[key] }) };
+                  that.props.rasp.toParent({ type: "SET_STATE", nextRASP });
+                }
+              }
+              setPredicessors();
+            } else {
+                if(this.debug) console.log("ReactActionStatePathMulti.toMeFromParent SET_PATH waitingOn", nextRASP);
+                this.waitingOn = { nextRASP };
+            }
+          } else {
+            this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
+          }
+        } else 
+            console.error("ReactActionStatePathMulti.toMeFromParent action type unknown not handled", action)
+    }
+
 }
