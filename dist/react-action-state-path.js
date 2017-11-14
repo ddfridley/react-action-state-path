@@ -66,20 +66,22 @@ var queue = 0;
 
 var qaction = function qaction(func, delay) {
     queue += 1;
-    console.info("qaction queueing", queue);
+    //onsole.info("qaction queueing", queue);
     setTimeout(function () {
         //        if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); 
-        console.info("qaction continuing", --queue);
+        //onsole.info("qaction continuing", --queue);
         func();
         if (queue === 0 && UpdateHistory) {
-            console.info("qaction updating history");
+            //onsole.info("qaction updating history");
             UpdateHistory();
-        } else console.info("qaction after continuing", queue);
+        } else
+            //onsole.info("qaction after continuing", queue)
+            ;
     }, 0);
 };
 
 var qhistory = function qhistory(func, delay) {
-    console.info("qhistory", queue);
+    //onsole.info("qhistory", queue);
     //    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
     setTimeout(func, delay);
 };
@@ -114,9 +116,9 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             // server side, rasp is how we get the data out
             if (!_this.props.rasp || typeof _this.props.rasp.depth === 'undefined' || _this.props.RASPRoot) {
                 // this is this root
-                console.info("ReactActionStatePath.construction at root");
+                if (_this.debug) console.info("ReactActionStatePath.construction at root");
                 if (typeof ReactActionStatePath.nextId !== 'undefined') {
-                    console.info("ReactActionStatePath.construction at root, but nextId was", ReactActionStatePath.nextId);
+                    if (_this.debug) console.info("ReactActionStatePath.construction at root, but nextId was", ReactActionStatePath.nextId);
                     ReactActionStatePath.nextId = undefined;
                 }
             }
@@ -474,11 +476,11 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             if (this.id !== 0) console.error("ReactActionStatePath.updateHistory called but not from root", this.props.rasp);
             if (ReactActionStatePath.topState) console.error("ReactActionStatePath.updateHistory, expected topState null, got:", ReactActionStatePath.topState);
             if (queue) {
-                console.info("ReactActionStatePath.updateHistory waiting, queue is", queue);
+                if (this.debug) console.info("ReactActionStatePath.updateHistory waiting, queue is", queue);
                 return null;
             }
             if (typeof window === 'undefined') {
-                console.info("ReactActionStatePath.updateHistory called on servr side");
+                if (this.debug) console.info("ReactActionStatePath.updateHistory called on servr side");
                 if (this.props.rasp && this.props.rasp.toParent) this.props.rasp.toParent({ type: "UPDATE_HISTORY" });
                 return;
             }
