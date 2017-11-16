@@ -607,8 +607,8 @@ var qaction = function qaction(func, delay) {
     queue += 1;
     //onsole.info("qaction queueing", queue);
     setTimeout(function () {
-        //        if((--ReactActionStatePath)<0)console.error("ReactActionStatePath.queue should not be negative, got",ReactActionStatePath.queue); 
         //onsole.info("qaction continuing", --queue);
+        queue--;
         func();
         if (queue === 0 && UpdateHistory) {
             //onsole.info("qaction updating history");
@@ -622,7 +622,10 @@ var qaction = function qaction(func, delay) {
 var qhistory = function qhistory(func, delay) {
     //onsole.info("qhistory", queue);
     //    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
-    setTimeout(func, delay);
+    if (queue > 0) {
+        console.info("qhistory put off");
+        return;
+    } else setTimeout(func, delay);
 };
 
 var UpdateHistory;
