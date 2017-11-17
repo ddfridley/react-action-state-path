@@ -174,6 +174,7 @@ class RASPArticle extends ReactActionStatePathClient {
     constructor(props){
         super(props,'open',1) // the key is [open]. If a subcomponent is selected, this.child['open'] is the child to send actions to.  debug level is 1
         if (props.subject) { this.title = props.subject; this.props.rasp.toParent({ type: "SET_TITLE", title: this.title }); } // used in debug messages
+        this.createDefaults();
     }
 
     // called by the RASP source='PARENT' or form the RASP source='CHILD' to get the new state based on the current state (rasp) and the action. initialRASP is the rasp state to reset to.
@@ -310,6 +311,7 @@ class SubArticleList extends React.Component {
 class RASPSubArticleList extends ReactActionStatePathClient {
     constructor(props){
         super(props,'id',1); // the keyField for toChild is the 'id' of the article, debug level is 1 so we can see some actions travel between components
+        this.createDefaults();
     }
 
     actionToState(action,rasp,source,initialRASP){
@@ -377,7 +379,8 @@ class App extends React.Component {
         // if you are strictly serving from a server, the ? is not required
         return (
             <div className="rasp-demo">
-                <SubArticleList path={path} parent={null} RASPRoot={RASPRoot} />  
+                <SubArticleList path={path} parent={null} RASPRoot={RASPRoot} />
+                <button onClick={()=>ReactActionStatePath.thiss[0].parent.toMeFromChild({type: "RESET"})}>Reset</button>
             </div>
         );
     }

@@ -469,22 +469,22 @@ export class ReactActionStatePathClient extends React.Component {
       this.props.rasp.toParent({ type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: this.constructor.name, actionToState: this.actionToState.bind(this), debug, clientThis: this })
     }else console.error("ReactActionStatePathClient no rasp.toParent",this.props);
     this.qaction=qaction;  // make the module specific funtion available
-    var _staticKeys=Object.keys(this); // the react keys that we aren't going to touch when resetting
-    _staticKeys.concat(['state','_reactInternalInstance','_defaults','initialRASP']); // also don't touch these
     this.initialRASP=cloneDeep(this.props.rasp);
-    this._staticKeys=_staticKeys;
+    var _staticKeys=Object.keys(this); // the react keys that we aren't going to touch when resetting
+    this._staticKeys=_staticKeys.concat(['state','_reactInternalInstance','_defaults','_staticKeys']); // also don't touch these
   }
 
     createDefaults(){  // to be called at the end of the constructor extending this component
         var _defaults={this: {}};
-        Object.keys(this).forEach(key=>{if(this._staticKeys.indexOf(key)===-1) _defaults.this[key]=cloneDeep(this.key)});
+        Object.keys(this).forEach(key=>{if(this._staticKeys.indexOf(key)===-1) _defaults.this[key]=cloneDeep(this[key])});
         if(typeof this.state !== 'undefined') {
             _defaults.state=this.state; // because setState always makes a new copy of the state
-            this._defaults=_defaults;
         }
+        this._defaults=_defaults;
     }
 
     restoreDefaults(){
+        if(!this._defaults) return;
         let currentKeys=Object.keys(this);
         let defaultKeys=Object.keys(this._defaults.this);
         let undefinedKeys=[];
@@ -562,7 +562,7 @@ export class ReactActionStatePathClient extends React.Component {
             if( this.toChild[key]) this.toChild[key](action); // pass the action to the child
             else console.error("ReactActionStatePathClient.toMeFromParent RESET key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp)
         }
-        if(this.actionToState && this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP))
+        if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
         if(this._defaults) this.restoreDefaults(); 
         return null; // end of the line
     } else if (action.type === "SET_PATH") {

@@ -198,6 +198,7 @@ var RASPArticle = function (_ReactActionStatePath) {
         if (props.subject) {
             _this2.title = props.subject;_this2.props.rasp.toParent({ type: "SET_TITLE", title: _this2.title });
         } // used in debug messages
+        _this2.createDefaults();
         return _this2;
     }
 
@@ -432,7 +433,11 @@ var RASPSubArticleList = function (_ReactActionStatePath2) {
     function RASPSubArticleList(props) {
         _classCallCheck(this, RASPSubArticleList);
 
-        return _possibleConstructorReturn(this, (RASPSubArticleList.__proto__ || Object.getPrototypeOf(RASPSubArticleList)).call(this, props, 'id', 1)); // the keyField for toChild is the 'id' of the article, debug level is 1 so we can see some actions travel between components
+        // the keyField for toChild is the 'id' of the article, debug level is 1 so we can see some actions travel between components
+        var _this8 = _possibleConstructorReturn(this, (RASPSubArticleList.__proto__ || Object.getPrototypeOf(RASPSubArticleList)).call(this, props, 'id', 1));
+
+        _this8.createDefaults();
+        return _this8;
     }
 
     _createClass(RASPSubArticleList, [{
@@ -526,7 +531,14 @@ var App = function (_React$Component4) {
             return _react2.default.createElement(
                 'div',
                 { className: 'rasp-demo' },
-                _react2.default.createElement(SubArticleList, { path: path, parent: null, RASPRoot: RASPRoot })
+                _react2.default.createElement(SubArticleList, { path: path, parent: null, RASPRoot: RASPRoot }),
+                _react2.default.createElement(
+                    'button',
+                    { onClick: function onClick() {
+                            return _reactActionStatePath.ReactActionStatePath.thiss[0].parent.toMeFromChild({ type: "RESET" });
+                        } },
+                    'Reset'
+                )
             );
         }
     }]);
