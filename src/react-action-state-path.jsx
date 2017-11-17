@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom';
 import ClassNames from 'classnames';
 import union from 'lodash/union';
 import shallowequal from 'shallowequal';
+import cloneDeep from 'lodash/cloneDeep';
 
 
 // for comparing rasp states, we use equaly.  If a property in two objects is logically false in both, the property is equal.  This means that undefined, null, false, 0, and '' are all the same.
@@ -245,6 +246,10 @@ export class ReactActionStatePath extends React.Component {
                 clearTimeout(this.completionCheck);
                 return this.updateHistory();
             }
+        }else if(action.type==="RESET") {
+            if(this.toChild) this.toChild(action); // this needs to be processed by the child, before actionToState
+            this.setState(this.getDefaultState()); // after clearing thechildren clear this state
+            return null;
         }else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp)))!==null) {
             if((this.state.rasp.pathSegment) && !(nextRASP.pathSegment)) {  // path has been removed
                 if(this.debug) console.log("ReactActionStatePath.toChildFromParent child changed state and path being removed so reset children", this.id, this.state.rasp.pathSegment)
@@ -333,6 +338,10 @@ export class ReactActionStatePath extends React.Component {
             if(stack) stack.unshift(Object.assign({},this.state.rasp)); // if non-rasp child is at the end, it returns null
             else stack=[Object.assign({},this.state.rasp)];
             return stack;
+        } else if(action.type==="RESET") {
+            if(this.toChild) this.toChild(action); // this needs to be processed by the child, before actionToState
+            this.setState(this.getDefaultState()); // after clearing thechildren clear this state
+            return null;
         } else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp))!==null)){
             if(!equaly(this.state.rasp, nextRASP)) { // really the shape changed
                 if(this.id!==0){
@@ -460,7 +469,37 @@ export class ReactActionStatePathClient extends React.Component {
       this.props.rasp.toParent({ type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: this.constructor.name, actionToState: this.actionToState.bind(this), debug, clientThis: this })
     }else console.error("ReactActionStatePathClient no rasp.toParent",this.props);
     this.qaction=qaction;  // make the module specific funtion available
+    var _staticKeys=Object.keys(this); // the react keys that we aren't going to touch when resetting
+    _staticKeys.concat(['state','_reactInternalInstance','_defaults','initialRASP']); // also don't touch these
+    this.initialRASP=cloneDeep(this.props.rasp);
+    this._staticKeys=_staticKeys;
   }
+
+    createDefaults(){  // to be called at the end of the constructor extending this component
+        var _defaults={this: {}};
+        Object.keys(this).forEach(key=>{if(this._staticKeys.indexOf(key)===-1) _defaults.this[key]=cloneDeep(this.key)});
+        if(typeof this.state !== 'undefined') {
+            _defaults.state=this.state; // because setState always makes a new copy of the state
+            this._defaults=_defaults;
+        }
+    }
+
+    restoreDefaults(){
+        let currentKeys=Object.keys(this);
+        let defaultKeys=Object.keys(this._defaults.this);
+        let undefinedKeys=[];
+        currentKeys.forEach(key=>{
+            if(this._staticKeys.indexOf(key)!==-1) return;
+            if(defaultKeys.indexOf(key)!==-1) return;
+            undefinedKeys.push(key);
+        });
+        undefinedKeys.forEach(key=>this[key]=undefined);
+        Object.keys(this._defaults.this).forEach(key=>{this[key]=cloneDeep(this._defaults.this[key])});
+        if(this._defaults.state){
+            const state=this._defaults.state;
+            this.setState(state);
+        }
+    }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // this is a one to many pattern for the RASP, insert yourself between the RASP and each child
@@ -517,6 +556,15 @@ export class ReactActionStatePathClient extends React.Component {
             if( this.toChild[key]) return this.toChild[key](action); // pass the action to the child
             else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp)
         } else return null; // end of the line
+    } else if (action.type === "RESET") {  // clear the path and reset the RASP state back to what the const
+        var key = this.props.rasp[this.keyField];
+        if (typeof key !== 'undefined' && key !== null){
+            if( this.toChild[key]) this.toChild[key](action); // pass the action to the child
+            else console.error("ReactActionStatePathClient.toMeFromParent RESET key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp)
+        }
+        if(this.actionToState && this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP))
+        if(this._defaults) this.restoreDefaults(); 
+        return null; // end of the line
     } else if (action.type === "SET_PATH") {
       const { nextRASP, setBeforeWait } = this.segmentToState(action, action.initialRASP);
       var key = nextRASP[this.keyField];
@@ -597,6 +645,13 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
           Object.keys(this.toChild).forEach(child => { // send the action to every child
             this.toChild[child](action)
           });
+        } else if (action.type === "RESET") {  // clear the path and reset the RASP state back to what the const
+            Object.keys(this.toChild).forEach(child => { // send the action to every child
+                this.toChild[child](action)
+              });
+            if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
+            if(this._defaults) this.restoreDefaults(); 
+            return null; // end of the line
         } else if (action.type === "SET_PATH") {
           const { nextRASP, setBeforeWait } = this.segmentToState(action);
           if(this.debug) console.info("ReactActionStatePathMulti.toMeFromParent SET_PATH", action);
