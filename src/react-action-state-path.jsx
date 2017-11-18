@@ -5,7 +5,7 @@ import ReactDOM from 'react-dom';
 import ClassNames from 'classnames';
 import union from 'lodash/union';
 import shallowequal from 'shallowequal';
-import cloneDeep from 'lodash/cloneDeep';
+import clone from 'clone';
 
 
 // for comparing rasp states, we use equaly.  If a property in two objects is logically false in both, the property is equal.  This means that undefined, null, false, 0, and '' are all the same.
@@ -469,14 +469,14 @@ export class ReactActionStatePathClient extends React.Component {
       this.props.rasp.toParent({ type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: this.constructor.name, actionToState: this.actionToState.bind(this), debug, clientThis: this })
     }else console.error("ReactActionStatePathClient no rasp.toParent",this.props);
     this.qaction=qaction;  // make the module specific funtion available
-    this.initialRASP=cloneDeep(this.props.rasp);
+    this.initialRASP=clone(this.props.rasp);
     var _staticKeys=Object.keys(this); // the react keys that we aren't going to touch when resetting
     this._staticKeys=_staticKeys.concat(['state','_reactInternalInstance','_defaults','_staticKeys']); // also don't touch these
   }
 
     createDefaults(){  // to be called at the end of the constructor extending this component
         var _defaults={this: {}};
-        Object.keys(this).forEach(key=>{if(this._staticKeys.indexOf(key)===-1) _defaults.this[key]=cloneDeep(this[key])});
+        Object.keys(this).forEach(key=>{if(this._staticKeys.indexOf(key)===-1) _defaults.this[key]=clone(this[key])});
         if(typeof this.state !== 'undefined') {
             _defaults.state=this.state; // because setState always makes a new copy of the state
         }
@@ -494,7 +494,7 @@ export class ReactActionStatePathClient extends React.Component {
             undefinedKeys.push(key);
         });
         undefinedKeys.forEach(key=>this[key]=undefined);
-        Object.keys(this._defaults.this).forEach(key=>{this[key]=cloneDeep(this._defaults.this[key])});
+        Object.keys(this._defaults.this).forEach(key=>{this[key]=clone(this._defaults.this[key])});
         if(this._defaults.state){
             const state=this._defaults.state;
             this.setState(state);

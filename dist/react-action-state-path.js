@@ -29,9 +29,9 @@ var _shallowequal = require('shallowequal');
 
 var _shallowequal2 = _interopRequireDefault(_shallowequal);
 
-var _cloneDeep = require('lodash/cloneDeep');
+var _clone = require('clone');
 
-var _cloneDeep2 = _interopRequireDefault(_cloneDeep);
+var _clone2 = _interopRequireDefault(_clone);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -599,7 +599,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
             _this7.props.rasp.toParent({ type: "SET_TO_CHILD", function: _this7.toMeFromParent.bind(_this7), name: _this7.constructor.name, actionToState: _this7.actionToState.bind(_this7), debug: debug, clientThis: _this7 });
         } else console.error("ReactActionStatePathClient no rasp.toParent", _this7.props);
         _this7.qaction = qaction; // make the module specific funtion available
-        _this7.initialRASP = (0, _cloneDeep2.default)(_this7.props.rasp);
+        _this7.initialRASP = (0, _clone2.default)(_this7.props.rasp);
         var _staticKeys = Object.keys(_this7); // the react keys that we aren't going to touch when resetting
         _this7._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
         return _this7;
@@ -613,7 +613,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
             // to be called at the end of the constructor extending this component
             var _defaults = { this: {} };
             Object.keys(this).forEach(function (key) {
-                if (_this8._staticKeys.indexOf(key) === -1) _defaults.this[key] = (0, _cloneDeep2.default)(_this8[key]);
+                if (_this8._staticKeys.indexOf(key) === -1) _defaults.this[key] = (0, _clone2.default)(_this8[key]);
             });
             if (typeof this.state !== 'undefined') {
                 _defaults.state = this.state; // because setState always makes a new copy of the state
@@ -638,7 +638,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                 return _this9[key] = undefined;
             });
             Object.keys(this._defaults.this).forEach(function (key) {
-                _this9[key] = (0, _cloneDeep2.default)(_this9._defaults.this[key]);
+                _this9[key] = (0, _clone2.default)(_this9._defaults.this[key]);
             });
             if (this._defaults.state) {
                 var state = this._defaults.state;
