@@ -1272,11 +1272,10 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                 // clear the path and reset the RASP state back to what the const
                 if (this._defaults) this.restoreDefaults();
                 if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
-                var key = this.props.rasp[this.keyField];
-                if (typeof key !== 'undefined' && key !== null) {
-                    if (this.toChild[key]) this.toChild[key](action); // pass the action to the child
-                    else console.error("ReactActionStatePathClient.toMeFromParent RESET key set by child not there", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp);
-                }
+                Object.keys(this.toChild).forEach(function (child) {
+                    // send the action to every child
+                    _this11.toChild[child](action);
+                });
                 return null; // end of the line
             } else if (action.type === "SET_PATH") {
                 var _segmentToState = this.segmentToState(action, action.initialRASP),
