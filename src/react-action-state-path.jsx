@@ -247,7 +247,6 @@ export class ReactActionStatePath extends React.Component {
                 return this.updateHistory();
             }
         }else if(action.type==="RESET") {
-            if(this.toChild) this.toChild(action); // this needs to be processed by the child, before actionToState
             this.setState(this.getDefaultState()); // after clearing thechildren clear this state
             return null;
         }else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp)))!==null) {
@@ -339,8 +338,8 @@ export class ReactActionStatePath extends React.Component {
             else stack=[Object.assign({},this.state.rasp)];
             return stack;
         } else if(action.type==="RESET") {
-            if(this.toChild) this.toChild(action); // this needs to be processed by the child, before actionToState
-            this.setState(this.getDefaultState()); // after clearing thechildren clear this state
+            this.setState(this.getDefaultState()); // reset my state first, then send RESET to child, because it will effect which childs child gets the reset.
+            if(this.toChild) this.toChild(action); // this needs to be processed by the child, before actionToState is processed.
             return null;
         } else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp))!==null)){
             if(!equaly(this.state.rasp, nextRASP)) { // really the shape changed
@@ -557,13 +556,13 @@ export class ReactActionStatePathClient extends React.Component {
             else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp)
         } else return null; // end of the line
     } else if (action.type === "RESET") {  // clear the path and reset the RASP state back to what the const
+        if(this._defaults) this.restoreDefaults(); 
+        if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
         var key = this.props.rasp[this.keyField];
         if (typeof key !== 'undefined' && key !== null){
             if( this.toChild[key]) this.toChild[key](action); // pass the action to the child
             else console.error("ReactActionStatePathClient.toMeFromParent RESET key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp)
         }
-        if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
-        if(this._defaults) this.restoreDefaults(); 
         return null; // end of the line
     } else if (action.type === "SET_PATH") {
       const { nextRASP, setBeforeWait } = this.segmentToState(action, action.initialRASP);
@@ -646,11 +645,11 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
             this.toChild[child](action)
           });
         } else if (action.type === "RESET") {  // clear the path and reset the RASP state back to what the const
+            if(this._defaults) this.restoreDefaults(); 
+            if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
             Object.keys(this.toChild).forEach(child => { // send the action to every child
                 this.toChild[child](action)
               });
-            if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
-            if(this._defaults) this.restoreDefaults(); 
             return null; // end of the line
         } else if (action.type === "SET_PATH") {
           const { nextRASP, setBeforeWait } = this.segmentToState(action);
