@@ -378,9 +378,11 @@ class App extends React.Component {
         // but demo.html? works, and so does demo.html?/
         // if you are strictly serving from a server, the ? is not required
         return (
-            <div className="rasp-demo">
-                <SubArticleList path={path} parent={null} RASPRoot={RASPRoot} />
-                <button onClick={()=>ReactActionStatePath.thiss[0].parent.toMeFromChild({type: "RESET"})}>Reset</button>
+            <div>
+                <div className="rasp-demo">
+                    <SubArticleList path={path} parent={null} RASPRoot={RASPRoot} />
+                </div>
+                <button onClick={()=>ReactActionStatePath.thiss[0].parent.toMeFromParent({type: "RESET"})}>Reset</button>
             </div>
         );
     }

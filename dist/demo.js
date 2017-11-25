@@ -530,12 +530,16 @@ var App = function (_React$Component4) {
             // if you are strictly serving from a server, the ? is not required
             return _react2.default.createElement(
                 'div',
-                { className: 'rasp-demo' },
-                _react2.default.createElement(SubArticleList, { path: path, parent: null, RASPRoot: RASPRoot }),
+                null,
+                _react2.default.createElement(
+                    'div',
+                    { className: 'rasp-demo' },
+                    _react2.default.createElement(SubArticleList, { path: path, parent: null, RASPRoot: RASPRoot })
+                ),
                 _react2.default.createElement(
                     'button',
                     { onClick: function onClick() {
-                            return _reactActionStatePath.ReactActionStatePath.thiss[0].parent.toMeFromChild({ type: "RESET" });
+                            return _reactActionStatePath.ReactActionStatePath.thiss[0].parent.toMeFromParent({ type: "RESET" });
                         } },
                     'Reset'
                 )
