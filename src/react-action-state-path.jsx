@@ -171,6 +171,8 @@ export class ReactActionStatePath extends React.Component {
         var  nextRASP={};
         if(!action.distance) action.distance=0; // action was from component so add distance
         if(action.distance < 0) {action.distance +=1; if(this.id) return this.props.rasp.toParent(action); else return }
+        if(action.direction==="DESCEND") return this.toChild(action);
+        else action.direction="ASCEND";
         if(action.type==="SET_TO_CHILD") { // child is passing up her func
             this.debug=action.debug;
             if(this.debug) console.info("ReactActionStatePath.toMeFromChild debug set", this.debug, this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
@@ -315,6 +317,10 @@ export class ReactActionStatePath extends React.Component {
 
     toMeFromParent(action) {
         if(this.debug) console.info("ReactActionStatePath.toMeFromParent", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
+        if(typeof action.distance=== 'undefined') { 
+            action.distance=0;
+            action.destination="DESCEND";
+        }
         var nextRASP={};
         if (action.type==="ONPOPSTATE") {
             let {stackDepth, stateStack} = action;
