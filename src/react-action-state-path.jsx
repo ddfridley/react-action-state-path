@@ -584,10 +584,17 @@ export class ReactActionStatePathClient extends React.Component {
         this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
       }
     } else {
-        let key = this.props.rasp[this.keyField];
+        // if the key is in the action 
+        let key=action[this.keyField];
+        if(typeof key!=='undefined' && this.toChild[key]){
+            if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on action keyField", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, key);
+            return this.toChild[key](action);
+        }
+        // if there is an active child
+        key = this.props.rasp[this.keyField];
         if (typeof key !== 'undefined' && key !== null){
             if( this.toChild[key]) {
-                if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent passing action to child", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, key);
+                if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on active child of rasp", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, key);
                 return this.toChild[key](action); // pass the action to the child
             }
         } else {
@@ -694,6 +701,13 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
             this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
           }
         } else {
+            // is there a key in the action
+            let key=action[this.keyField];
+            if(typeof key!=='undefined' && this.toChild[key]){
+                if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on action keyField", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, key);
+                return this.toChild[key](action);
+            }
+            
             let keys=Object.keys(this.toChild);
             if(keys.length) {
                 var result;

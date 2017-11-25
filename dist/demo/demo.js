@@ -1307,10 +1307,17 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                     this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
                 }
             } else {
-                var _key = this.props.rasp[this.keyField];
+                // if the key is in the action 
+                var _key = action[this.keyField];
+                if (typeof _key !== 'undefined' && this.toChild[_key]) {
+                    if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on action keyField", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key);
+                    return this.toChild[_key](action);
+                }
+                // if there is an active child
+                _key = this.props.rasp[this.keyField];
                 if (typeof _key !== 'undefined' && _key !== null) {
                     if (this.toChild[_key]) {
-                        if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent passing action to child", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key);
+                        if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on active child of rasp", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key);
                         return this.toChild[_key](action); // pass the action to the child
                     }
                 } else {
@@ -1442,6 +1449,13 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
                     this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
                 }
             } else {
+                // is there a key in the action
+                var _key2 = action[this.keyField];
+                if (typeof _key2 !== 'undefined' && this.toChild[_key2]) {
+                    if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on action keyField", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key2);
+                    return this.toChild[_key2](action);
+                }
+
                 var keys = Object.keys(this.toChild);
                 if (keys.length) {
                     var result;
