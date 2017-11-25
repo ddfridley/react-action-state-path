@@ -369,7 +369,7 @@ export class ReactActionStatePath extends React.Component {
             else this.waitingOn={nextFunc: ()=>{this.toChild(action)}}
             return;
         }else {
-            console.error("ReactActionStatePath.toMeFromParent: Unknown Action",{action}, {state: this.state});
+            if(this.debug) console.info("ReactActionStatePath.toMeFromParent: passing action to child", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp );
             return this.toChild(action);
         }
     }
@@ -577,8 +577,18 @@ export class ReactActionStatePathClient extends React.Component {
       } else {
         this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
       }
-    } else console.error("ReactActionStatePathClient.toMeFromParent action type unknown not handled", action)
-  }
+    } else {
+        let key = this.props.rasp[this.keyField];
+        if (typeof key !== 'undefined' && key !== null){
+            if( this.toChild[key]) {
+                if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent passing action to child", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, key);
+                return this.toChild[key](action); // pass the action to the child
+            }
+        } else {
+            if(this.debug) console.info("ReactActionStatePathClient.toMeFromParent unknown action and not active child", this.constructor.name, this.childTitle, this.props.rasp.raspId, action);
+        }
+    }
+}
 
   // a consistent way to set the rasp for children
   childRASP(shape, childKey) {
@@ -677,8 +687,18 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
           } else {
             this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
           }
-        } else 
-            console.error("ReactActionStatePathMulti.toMeFromParent action type unknown not handled", action)
+        } else {
+            let keys=Object.keys(this.toChild);
+            if(keys.length) {
+                var result;
+                keys.forEach(key => { // send the action to every child
+                    if(this.debug) console.info("ReactActionStatePathMulti.toMeFromParent passing action to child", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, key);
+                    result=this.toChild[key](action);
+                });
+                return result;
+            } else {
+                if(this.debug) console.info("ReactActionStatePathMulti.toMeFromParent no children to pass action to", this.constructor.name, this.childTitle, this.props.rasp.raspId, action);
+            }
+        }
     }
-
 }

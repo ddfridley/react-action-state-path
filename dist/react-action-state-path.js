@@ -477,7 +477,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     } };
                 return;
             } else {
-                console.error("ReactActionStatePath.toMeFromParent: Unknown Action", { action: action }, { state: this.state });
+                if (this.debug) console.info("ReactActionStatePath.toMeFromParent: passing action to child", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
                 return this.toChild(action);
             }
         }
@@ -746,7 +746,17 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                 } else {
                     this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
                 }
-            } else console.error("ReactActionStatePathClient.toMeFromParent action type unknown not handled", action);
+            } else {
+                var _key = this.props.rasp[this.keyField];
+                if (typeof _key !== 'undefined' && _key !== null) {
+                    if (this.toChild[_key]) {
+                        if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent passing action to child", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key);
+                        return this.toChild[_key](action); // pass the action to the child
+                    }
+                } else {
+                    if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent unknown action and not active child", this.constructor.name, this.childTitle, this.props.rasp.raspId, action);
+                }
+            }
         }
 
         // a consistent way to set the rasp for children
@@ -871,7 +881,20 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
                 } else {
                     this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
                 }
-            } else console.error("ReactActionStatePathMulti.toMeFromParent action type unknown not handled", action);
+            } else {
+                var keys = Object.keys(this.toChild);
+                if (keys.length) {
+                    var result;
+                    keys.forEach(function (key) {
+                        // send the action to every child
+                        if (_this13.debug) console.info("ReactActionStatePathMulti.toMeFromParent passing action to child", _this13.constructor.name, _this13.childTitle, _this13.props.rasp.raspId, action, key);
+                        result = _this13.toChild[key](action);
+                    });
+                    return result;
+                } else {
+                    if (this.debug) console.info("ReactActionStatePathMulti.toMeFromParent no children to pass action to", this.constructor.name, this.childTitle, this.props.rasp.raspId, action);
+                }
+            }
         }
     }]);
 
