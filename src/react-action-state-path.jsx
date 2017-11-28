@@ -48,6 +48,10 @@ var qaction=function(func,delay){
     },0);
 }
 
+var queueAction=function(action){
+    qaction(()=>this.props.rasp.toParent(action),0)
+}
+
 var qhistory=function(func,delay){
     //onsole.info("qhistory", queue);
 //    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
@@ -474,6 +478,7 @@ export class ReactActionStatePathClient extends React.Component {
       this.props.rasp.toParent({ type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: this.constructor.name, actionToState: this.actionToState.bind(this), debug, clientThis: this })
     }else console.error("ReactActionStatePathClient no rasp.toParent",this.props);
     this.qaction=qaction;  // make the module specific funtion available
+    this.queueAction=queueAction.bind(this);
     this.initialRASP=clone(this.props.rasp);
     var _staticKeys=Object.keys(this); // the react keys that we aren't going to touch when resetting
     this._staticKeys=_staticKeys.concat(['state','_reactInternalInstance','_defaults','_staticKeys']); // also don't touch these
@@ -522,7 +527,7 @@ export class ReactActionStatePathClient extends React.Component {
             var nextFunc=this.waitingOn.nextFunc;
             this.waitingOn = null;
             if(nextFunc) qaction(nextFunc,0);
-            else qaction(() => this.props.rasp.toParent({ type: "SET_STATE_AND_CONTINUE", nextRASP: nextRASP, function: this.toChild[key] }), 0);
+            else this.queueAction({type: "SET_STATE_AND_CONTINUE", nextRASP: nextRASP, function: this.toChild[key] });
           }
         }
       }
