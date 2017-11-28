@@ -258,7 +258,7 @@ export class ReactActionStatePath extends React.Component {
             } else if(!(this.state.rasp.pathSegment) && (nextRASP.pathSegment)) { // path being added
                 if(this.debug) console.log("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment)
             }                 
-            if(this.id!==0 && !ReactActionStatePath.topState && (action.type==="DECENDANT_FOCUS" || action.type==="DECENDANT_UNFOCUS") ){
+            if(this.id!==0 && !ReactActionStatePath.topState && (action.type==="DESCENDANT_FOCUS" || action.type==="DESCENDANT_UNFOCUS") ){
                 this.setState({rasp: nextRASP}, ()=>this.props.rasp.toParent({type: action.type, distance: action.distance+1, shape: this.state.rasp.shape}));
             } else if(this.id!==0){
                 this.setState({rasp: nextRASP});
@@ -274,7 +274,7 @@ export class ReactActionStatePath extends React.Component {
             }
         } 
         // these actions are overridden by the component's actonToState if either there is and it returns a new RASP to set (not null)
-        else if(action.type === "DECENDANT_FOCUS" || action.type ==="DECENDANT_UNFOCUS"){
+        else if(action.type === "DESCENDANT_FOCUS" || action.type ==="DESCENDANT_UNFOCUS"){
             if(this.id) { action.distance+=1; action.shape=this.state.rasp.shape; return this.props.rasp.toParent(action); }
             else return qhistory(()=>{ if(this.debug) console.info("ReactActionStatePath.toMeFromChild ",action.type," updateHistory");this.updateHistory()},0);;
         } else if(action.type ==="CHANGE_SHAPE"){
@@ -319,7 +319,7 @@ export class ReactActionStatePath extends React.Component {
         if(this.debug) console.info("ReactActionStatePath.toMeFromParent", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
         if(typeof action.distance=== 'undefined') { 
             action.distance=0;
-            action.destination="DESCEND";
+            action.direction="DESCEND";
         }
         var nextRASP={};
         if (action.type==="ONPOPSTATE") {

@@ -188,16 +188,16 @@ class RASPArticle extends ReactActionStatePathClient {
                                                              // 3) it fits many use cases that when something becomes visibile it consistently starts in the same state
                  delta.open=null; // closed
                  delta.minimize=null; // not minimized anymore
-                 this.qaction(()=>this.props.rasp.toParent({type: "DECENDANT_UNFOCUS"}));
+                 this.qaction(()=>this.props.rasp.toParent({type: "DESCENDANT_UNFOCUS"}));
             } else { 
                 delta.open='open';  // was closed, now open
                 delta.minimize=null; // not minimized
-                this.qaction(()=>this.props.rasp.toParent({type: "DECENDANT_FOCUS"}))
+                this.qaction(()=>this.props.rasp.toParent({type: "DESCENDANT_FOCUS"}))
             }
-        } else if(action.type==="DECENDANT_FOCUS" && action.distance > 2 && !rasp.minimize ){
+        } else if(action.type==="DESCENDANT_FOCUS" && action.distance > 2 && !rasp.minimize ){
         // a 2+ distant sub child has chanaged to open, so minimize, but don't minimize if already minimized which will change the shape of the propogating message
             delta.minimize=true;
-        } else if(action.type==="DECENDANT_UNFOCUS" && action.distance >= 2 && rasp.minimize){
+        } else if(action.type==="DESCENDANT_UNFOCUS" && action.distance >= 2 && rasp.minimize){
         // a 2+ distant sub child has changed from open, and we are minimized, so unminimize
             delta.minimize=false;
         } else
@@ -319,10 +319,10 @@ class RASPSubArticleList extends ReactActionStatePathClient {
         // if the immediate child of this list (an article) changes shape to open, 
         // close all the other articles in the list, to focus on just this one.
         // if the article changes out of open, then show the list again
-        if(action.type==="DECENDANT_FOCUS" && action.distance===1) {
+        if(action.type==="DESCENDANT_FOCUS" && action.distance===1) {
             if(rasp.id && rasp.id !== action.id) this.toChild[rasp.id]({type: "CLEAR_PATH"}); // if some other child is open, close it
             delta.id=action.id; // open a new one
-        } else if(action.type==="DECENDANT_UNFOCUS"){
+        } else if(action.type==="DESCENDANT_UNFOCUS"){
             if(rasp.id) { 
                 delta.id=null;
             }
