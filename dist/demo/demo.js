@@ -1168,10 +1168,10 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
         _this8.qaction = qaction; // make the module specific funtion available
         _this8.queueAction = queueAction.bind(_this8);
         _this8.queueFocus = function (action) {
-            return queueAction(_defineProperty({ type: "DESCENDANT_FOCUS", wasType: action.type }, _this8.keyField, action[_this8.keyField]));
+            return queueAction.call(_this8, _defineProperty({ type: "DESCENDANT_FOCUS", wasType: action.type }, _this8.keyField, action[_this8.keyField]));
         };
         _this8.queueUnfocus = function (action) {
-            return queueAction(_defineProperty({ type: "DESCENDANT_UNFOCUS", wasType: action.type }, _this8.keyField, action[_this8.keyField]));
+            return queueAction.call(_this8, _defineProperty({ type: "DESCENDANT_UNFOCUS", wasType: action.type }, _this8.keyField, action[_this8.keyField]));
         };
         _this8.initialRASP = (0, _clone2.default)(_this8.props.rasp);
         var _staticKeys = Object.keys(_this8); // the react keys that we aren't going to touch when resetting
