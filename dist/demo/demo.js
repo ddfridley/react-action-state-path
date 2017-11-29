@@ -1222,6 +1222,8 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
     }, {
         key: 'toMeFromChild',
         value: function toMeFromChild(key, action) {
+            var _this11 = this;
+
             if (this.debug) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, action);
             if (action.type === "SET_TO_CHILD") {
                 // child is passing up her func
@@ -1233,7 +1235,9 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                             if (this.debug) console.log("ReactActionStatePathClient.toMeFromParent got waitingOn nextRASP", nextRASP);
                             var nextFunc = this.waitingOn.nextFunc;
                             this.waitingOn = null;
-                            if (nextFunc) qaction(nextFunc, 0);else this.queueAction({ type: "SET_STATE_AND_CONTINUE", nextRASP: nextRASP, function: this.toChild[key] });
+                            if (nextFunc) qaction(nextFunc, 0);else qaction(function () {
+                                return _this11.props.rasp.toParent({ type: "SET_STATE_AND_CONTINUE", nextRASP: nextRASP, function: _this11.toChild[key] });
+                            }, 0);
                         }
                     }
                 }
@@ -1252,7 +1256,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
     }, {
         key: 'toMeFromParent',
         value: function toMeFromParent(action) {
-            var _this11 = this;
+            var _this12 = this;
 
             if (this.debug) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, action);
             if (action.type === "ONPOPSTATE") {
@@ -1264,8 +1268,8 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                 Object.keys(this.toChild).forEach(function (child) {
                     // only child panels with RASP managers will have entries in this list. 
                     if (child === key) {
-                        sent = true;_this11.toChild[child]({ type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth + 1 });
-                    } else _this11.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
+                        sent = true;_this12.toChild[child]({ type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth + 1 });
+                    } else _this12.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
                 });
                 if (key && !sent) console.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action: action });
                 return; // this was the end of the lines
@@ -1288,7 +1292,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                 if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
                 Object.keys(this.toChild).forEach(function (child) {
                     // send the action to every child
-                    _this11.toChild[child](action);
+                    _this12.toChild[child](action);
                 });
                 return null; // end of the line
             } else if (action.type === "SET_PATH") {
@@ -1301,7 +1305,7 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                     if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
                     else if (setBeforeWait) {
                             this.waitingOn = { nextRASP: nextRASP, nextFunc: function nextFunc() {
-                                    return _this11.props.rasp.toParent({ type: "CONTINUE_SET_PATH", function: _this11.toChild[key] });
+                                    return _this12.props.rasp.toParent({ type: "CONTINUE_SET_PATH", function: _this12.toChild[key] });
                                 } };
                             this.props.rasp.toParent({ type: "SET_STATE", nextRASP: nextRASP });
                         } else {
@@ -1355,7 +1359,7 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
     _createClass(ReactActionStatePathMulti, [{
         key: 'toMeFromParent',
         value: function toMeFromParent(action) {
-            var _this13 = this;
+            var _this14 = this;
 
             if (this.debug) console.info("ReactActionStatePathMulti.toMeFromParent", this.props.rasp.depth, action);
             if (action.type === "ONPOPSTATE") {
@@ -1370,8 +1374,8 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
                 });
 
                 stateStack[stackDepth + 1].raspChildren.forEach(function (child) {
-                    if (_this13.toChild[child.key]) {
-                        _this13.toChild[child.key]({ type: "ONPOPSTATE", stateStack: child.stateStack, stackDepth: 0 });
+                    if (_this14.toChild[child.key]) {
+                        _this14.toChild[child.key]({ type: "ONPOPSTATE", stateStack: child.stateStack, stackDepth: 0 });
                         keepChild[child.key] = true;
                     } else console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE no child:", child.key);
                 });
@@ -1380,7 +1384,7 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
                     // child id is the index
                     if (!keep) {
                         console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE child not kept", child);
-                        _this13.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
+                        _this14.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
                     }
                 });
                 return; // this was the end of the line
@@ -1389,7 +1393,7 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
                 if (this.debug) console.log("ReactActionStatePathMulti.toMeFromParent GET_STATE", this.props.rasp.depth, action);
                 var raspChildren = Object.keys(this.toChild).map(function (child) {
                     return {
-                        stateStack: _this13.toChild[child]({ type: "GET_STATE" }),
+                        stateStack: _this14.toChild[child]({ type: "GET_STATE" }),
                         key: child
                     };
                 });
@@ -1409,7 +1413,7 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
                 // clear the path and reset the RASP state back to what the const
                 Object.keys(this.toChild).forEach(function (child) {
                     // send the action to every child
-                    _this13.toChild[child](action);
+                    _this14.toChild[child](action);
                 });
             } else if (action.type === "RESET") {
                 // clear the path and reset the RASP state back to what the const
@@ -1417,7 +1421,7 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
                 if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
                 Object.keys(this.toChild).forEach(function (child) {
                     // send the action to every child
-                    _this13.toChild[child](action);
+                    _this14.toChild[child](action);
                 });
                 return null; // end of the line
             } else if (action.type === "SET_PATH") {
@@ -1433,10 +1437,10 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
                         var that = this;
                         var setPredicessors = function setPredicessors() {
                             var predicessors = that.toChild.length;
-                            if (_this13.debug) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", key, predicessors);
+                            if (_this14.debug) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", key, predicessors);
                             if (predicessors < key) {
                                 var predicessorRASP = Object.assign({}, nextRASP, _defineProperty({}, that.keyField, predicessors));
-                                that.waitingOnResults = { nextFunc: setPredicessors.bind(_this13) };
+                                that.waitingOnResults = { nextFunc: setPredicessors.bind(_this14) };
                                 that.props.rasp.toParent({ type: "SET_STATE", nextRASP: predicessorRASP });
                             } else {
                                 that.waitingOn = { nextRASP: nextRASP, nextFunc: function nextFunc() {
@@ -1466,8 +1470,8 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
                     var result;
                     keys.forEach(function (key) {
                         // send the action to every child
-                        if (_this13.debug) console.info("ReactActionStatePathMulti.toMeFromParent passing action to child", _this13.constructor.name, _this13.childTitle, _this13.props.rasp.raspId, action, key);
-                        result = _this13.toChild[key](action);
+                        if (_this14.debug) console.info("ReactActionStatePathMulti.toMeFromParent passing action to child", _this14.constructor.name, _this14.childTitle, _this14.props.rasp.raspId, action, key);
+                        result = _this14.toChild[key](action);
                     });
                     return result;
                 } else {
