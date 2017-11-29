@@ -479,6 +479,8 @@ export class ReactActionStatePathClient extends React.Component {
     }else console.error("ReactActionStatePathClient no rasp.toParent",this.props);
     this.qaction=qaction;  // make the module specific funtion available
     this.queueAction=queueAction.bind(this);
+    this.queueFocus=(action)=>queueAction({type: "DESCENDANT_FOCUS", wasType: action.type, [this.keyField]: action[this.keyField]});
+    this.queueUnfocus=(action)=>queueAction({type: "DESCENDANT_UNFOCUS", wasType: action.type, [this.keyField]: action[this.keyField]});
     this.initialRASP=clone(this.props.rasp);
     var _staticKeys=Object.keys(this); // the react keys that we aren't going to touch when resetting
     this._staticKeys=_staticKeys.concat(['state','_reactInternalInstance','_defaults','_staticKeys']); // also don't touch these
