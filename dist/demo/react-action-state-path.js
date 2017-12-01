@@ -186,7 +186,9 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
         _this2.id = ReactActionStatePath.nextId++; // get the next id
 
         _this2.state = _this2.getDefaultState();
+        //below are variables not restored by RESET
         if (typeof window !== 'undefined') ReactActionStatePath.thiss[_this2.id] = { parent: _this2, client: null };
+        _this2.actionFilters = {};
         return _this2;
     }
 
@@ -244,7 +246,8 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             var _this4 = this;
 
             if (this.debug) console.info("ReactActionStatePath.toMeFromChild", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
-            var nextRASP = {};
+            var nextRASP = {},
+                delta = {};
             if (!action.distance) action.distance = 0; // action was from component so add distance
             if (action.distance < 0) {
                 action.distance += 1;if (this.id) return this.props.rasp.toParent(action);else return;
@@ -257,7 +260,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 if (!(this.toChild = action.function)) {
                     this.childName = undefined;
                     this.actionToState = undefined;
-                    if (typeof window !== 'undefined') ReactActionStatePath.thiss[this.id].client = undefined;
+                    if (typeof window !== 'undefined' && ReactActionStatePath.thiss[this.id] && ReactActionStatePath.thiss[this.id].client) ReactActionStatePath.thiss[this.id].client = undefined;
                     return;
                 }
                 if (action.name) this.childName = action.name;
@@ -285,6 +288,9 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     qaction(nextFunc, 0);
                     return;
                 }
+            } else if (action.type === "SET_ACTION_FILTER") {
+                if (this.actionFilters[action.filterType]) this.actionFilters[action.filterType].push({ name: action.name, function: action.function });else this.actionFilters[action.filterType] = { name: action.name, function: action.function };
+                return;
             } else if (action.type === "SET_DATA") {
                 if (this.debug) console.log("ReactActionStatePath.toMeFromChild SET_DATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                 this.setState({ rasp: Object.assign({}, this.state.rasp, { data: action.data }) });
@@ -336,37 +342,41 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             } else if (action.type === "RESET") {
                 this.setState(this.getDefaultState()); // after clearing thechildren clear this state
                 return null;
-            } else if (this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp)) !== null) {
-                if (this.state.rasp.pathSegment && !nextRASP.pathSegment) {
-                    // path has been removed
-                    if (this.debug) console.log("ReactActionStatePath.toChildFromParent child changed state and path being removed so reset children", this.id, this.state.rasp.pathSegment
-                    //this.toChild({type:"CLEAR_PATH"}); // if toChild is not set let there be an error
-                    );
-                } else if (!this.state.rasp.pathSegment && nextRASP.pathSegment) {
-                    // path being added
-                    if (this.debug) console.log("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment);
+            } else if ((this.actionFilters[action.type] && this.actionFilters[action.type].forEach(function (filter) {
+                return filter.function(action, delta);
+            }), true // process any action filters and always evaluate to true
+            ) && this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp, delta)) !== null // if no actionToState or actionToState returns NULL propogate the action on, otherwise the action ends here
+            ) {
+                    if (this.state.rasp.pathSegment && !nextRASP.pathSegment) {
+                        // path has been removed
+                        if (this.debug) console.log("ReactActionStatePath.toChildFromParent child changed state and path being removed so reset children", this.id, this.state.rasp.pathSegment
+                        //this.toChild({type:"CLEAR_PATH"}); // if toChild is not set let there be an error
+                        );
+                    } else if (!this.state.rasp.pathSegment && nextRASP.pathSegment) {
+                        // path being added
+                        if (this.debug) console.log("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment);
+                    }
+                    if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DESCENDANT_FOCUS" || action.type === "DESCENDANT_UNFOCUS")) {
+                        this.setState({ rasp: nextRASP }, function () {
+                            return _this4.props.rasp.toParent({ type: action.type, distance: action.distance + 1, shape: _this4.state.rasp.shape });
+                        });
+                    } else if (this.id !== 0) {
+                        this.setState({ rasp: nextRASP });
+                    } else {
+                        // this is the root, after changing shape, remind me so I can update the window.histor
+                        if (equaly(this.state.rasp, nextRASP)) {
+                            if (this.debug) console.info("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action);
+                            this.updateHistory();
+                        } // updateHistory now!
+                        else this.setState({ rasp: nextRASP }, function () {
+                                if (_this4.debug) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action);
+                                qhistory(function () {
+                                    return _this4.updateHistory();
+                                }, 0); // update history after the queue of chanages from this state change is processed);
+                            }); // otherwise, set the state and let history update on componentDidUpdate
+                    }
                 }
-                if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DESCENDANT_FOCUS" || action.type === "DESCENDANT_UNFOCUS")) {
-                    this.setState({ rasp: nextRASP }, function () {
-                        return _this4.props.rasp.toParent({ type: action.type, distance: action.distance + 1, shape: _this4.state.rasp.shape });
-                    });
-                } else if (this.id !== 0) {
-                    this.setState({ rasp: nextRASP });
-                } else {
-                    // this is the root, after changing shape, remind me so I can update the window.histor
-                    if (equaly(this.state.rasp, nextRASP)) {
-                        if (this.debug) console.info("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action);
-                        this.updateHistory();
-                    } // updateHistory now!
-                    else this.setState({ rasp: nextRASP }, function () {
-                            if (_this4.debug) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action);
-                            qhistory(function () {
-                                return _this4.updateHistory();
-                            }, 0); // update history after the queue of chanages from this state change is processed);
-                        }); // otherwise, set the state and let history update on componentDidUpdate
-                }
-            }
-            // these actions are overridden by the component's actonToState if either there is and it returns a new RASP to set (not null)
+                // these actions are overridden by the component's actonToState if either there is and it returns a new RASP to set (not null)
             else if (action.type === "DESCENDANT_FOCUS" || action.type === "DESCENDANT_UNFOCUS") {
                     if (this.id) {
                         action.distance += 1;action.shape = this.state.rasp.shape;return this.props.rasp.toParent(action);
@@ -434,7 +444,8 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 action.distance = 0;
                 action.direction = "DESCEND";
             }
-            var nextRASP = {};
+            var nextRASP = {},
+                delta = {};
             if (action.type === "ONPOPSTATE") {
                 var stackDepth = action.stackDepth,
                     stateStack = action.stateStack;
@@ -461,9 +472,12 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 this.setState(this.getDefaultState()); // reset my state first, then send RESET to child, because it will effect which childs child gets the reset.
                 if (this.toChild) this.toChild(action); // this needs to be processed by the child, before actionToState is processed.
                 return null;
-            } else if (this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp)) !== null) {
+            } else if ((this.actionFilters[action.type] && this.actionFilters[action.type].forEach(function (filter) {
+                return filter.function(action, delta);
+            }), true // process any action filters and always evaluate to true
+            ) && this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp, delta)) !== null) {
                 if (!equaly(this.state.rasp, nextRASP)) {
-                    // really the shape changed
+                    // really something changed
                     if (this.id !== 0) {
                         this.setState({ rasp: nextRASP });
                     } else // no parent to tell of the change

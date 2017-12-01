@@ -127,8 +127,10 @@ export class ReactActionStatePath extends React.Component {
         this.id=ReactActionStatePath.nextId++; // get the next id
 
         this.state=this.getDefaultState();
+        //below are variables not restored by RESET
         if(typeof window !== 'undefined')
             ReactActionStatePath.thiss[this.id]={parent: this, client: null};
+        this.actionFilters={};
     }
 
     componentWillUnmount(){
@@ -172,7 +174,7 @@ export class ReactActionStatePath extends React.Component {
 
     toMeFromChild(action) {
         if(this.debug) console.info("ReactActionStatePath.toMeFromChild", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
-        var  nextRASP={};
+        var  nextRASP={}, delta={};
         if(!action.distance) action.distance=0; // action was from component so add distance
         if(action.distance < 0) {action.distance +=1; if(this.id) return this.props.rasp.toParent(action); else return }
         if(action.direction==="DESCEND") return this.toChild(action);
@@ -213,7 +215,11 @@ export class ReactActionStatePath extends React.Component {
                 qaction(nextFunc,0);
                 return;
             }
-        }else if (action.type==="SET_DATA"){
+        }else if (action.type==="SET_ACTION_FILTER"){
+            if(this.actionFilters[action.filterType]) this.actionFilters[action.filterType].push({name: action.name, function: action.function});
+            else this.actionFilters[action.filterType]={name: action.name, function: action.function};
+            return;
+        } else if (action.type==="SET_DATA"){
             if(this.debug) console.log("ReactActionStatePath.toMeFromChild SET_DATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
             this.setState({rasp: Object.assign({},this.state.rasp, {data: action.data})});
         }else if (action.type==="SET_STATE"){
@@ -261,7 +267,12 @@ export class ReactActionStatePath extends React.Component {
         }else if(action.type==="RESET") {
             this.setState(this.getDefaultState()); // after clearing thechildren clear this state
             return null;
-        }else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp)))!==null) {
+        }
+        else if(
+                ((this.actionFilters[action.type] && this.actionFilters[action.type].forEach(filter=>filter.function(action, delta))), true) // process any action filters and always evaluate to true
+            &&  (this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp, delta)))!==null) // if no actionToState or actionToState returns NULL propogate the action on, otherwise the action ends here
+        )
+        {
             if((this.state.rasp.pathSegment) && !(nextRASP.pathSegment)) {  // path has been removed
                 if(this.debug) console.log("ReactActionStatePath.toChildFromParent child changed state and path being removed so reset children", this.id, this.state.rasp.pathSegment)
                 //this.toChild({type:"CLEAR_PATH"}); // if toChild is not set let there be an error
@@ -331,7 +342,7 @@ export class ReactActionStatePath extends React.Component {
             action.distance=0;
             action.direction="DESCEND";
         }
-        var nextRASP={};
+        var nextRASP={}, delta={};
         if (action.type==="ONPOPSTATE") {
             let {stackDepth, stateStack} = action;
             if(stateStack[stackDepth].depth !== (this.id ? this.props.rasp.depth : 0 )) console.error("ReactActionStatePath.toMeFromParent ONPOPSTATE state depth not equal to component depth",action.stateStack[stackDepth], this.props.rasp.depth); // debugging info
@@ -357,8 +368,13 @@ export class ReactActionStatePath extends React.Component {
             this.setState(this.getDefaultState()); // reset my state first, then send RESET to child, because it will effect which childs child gets the reset.
             if(this.toChild) this.toChild(action); // this needs to be processed by the child, before actionToState is processed.
             return null;
-        } else if(this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp))!==null)){
-            if(!equaly(this.state.rasp, nextRASP)) { // really the shape changed
+        } else if(
+                ((this.actionFilters[action.type] && this.actionFilters[action.type].forEach(filter=>filter.function(action, delta))), true) // process any action filters and always evaluate to true
+                && this.actionToState
+                && ((nextRASP=this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp, delta))!==null)
+        )
+        {
+            if(!equaly(this.state.rasp, nextRASP)) { // really something changed
                 if(this.id!==0){
                     this.setState({rasp: nextRASP});
                 }else // no parent to tell of the change
