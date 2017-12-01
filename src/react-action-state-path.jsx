@@ -183,7 +183,7 @@ export class ReactActionStatePath extends React.Component {
             if(!(this.toChild = action.function)){
                 this.childName=undefined;
                 this.actionToState=undefined;
-                if(typeof window!=='undefined') ReactActionStatePath.thiss[this.id].client=undefined;
+                if(typeof window!=='undefined' && ReactActionStatePath.thiss[this.id] && ReactActionStatePath.thiss[this.id].client) ReactActionStatePath.thiss[this.id].client=undefined;
                 return;
             }
             if(action.name) this.childName=action.name;

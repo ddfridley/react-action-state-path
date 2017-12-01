@@ -808,12 +808,18 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 // child is passing up her func
                 this.debug = action.debug;
                 if (this.debug) console.info("ReactActionStatePath.toMeFromChild debug set", this.debug, this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
-                this.toChild = action.function;
+                if (!(this.toChild = action.function)) {
+                    this.childName = undefined;
+                    this.actionToState = undefined;
+                    if (typeof window !== 'undefined') ReactActionStatePath.thiss[this.id].client = undefined;
+                    return;
+                }
                 if (action.name) this.childName = action.name;
                 if (action.actionToState) this.actionToState = action.actionToState;
                 if (action.clientThis && typeof window !== 'undefined') ReactActionStatePath.thiss[this.id].client = action.clientThis;else {
                     if (typeof window !== 'undefined') console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD clientThis missing on browser", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action);
-                }if (typeof window !== 'undefined' && this.id === 0 && ReactActionStatePath.pathSegments.length) {
+                }
+                if (typeof window !== 'undefined' && this.id === 0 && ReactActionStatePath.pathSegments.length) {
                     // this is the root and we are on the browser and there is at least one pathSegment
                     if (this.debug) console.log("ReactActionStatePath.toMeFromChild will SET_PATH to", ReactActionStatePath.pathSegments);
                     if (ReactActionStatePath.topState) console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD, expected topState null got:", ReactActionStatePath.topState);
@@ -1217,6 +1223,14 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
             if (this._defaults.state) {
                 var state = this._defaults.state;
                 this.setState(state);
+            }
+        }
+    }, {
+        key: 'componentWillUnmount',
+        value: function componentWillUnmount() {
+            console.info("ReactActionStatePathClient.componentWillUnmount", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth);
+            if (this.props.rasp.toParent) {
+                this.props.rasp.toParent({ type: "SET_TO_CHILD", function: undefined });
             }
         }
 
