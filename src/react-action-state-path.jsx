@@ -217,7 +217,10 @@ export class ReactActionStatePath extends React.Component {
             }
         }else if (action.type==="SET_ACTION_FILTER"){
             if(this.actionFilters[action.filterType]) this.actionFilters[action.filterType].push({name: action.name, function: action.function});
-            else this.actionFilters[action.filterType]={name: action.name, function: action.function};
+            else this.actionFilters[action.filterType]=[{name: action.name, function: action.function}];
+            return;
+        } else if (action.type==="RESET_ACTION_FILTER"){
+            this.actionFilters=this.actionFilters.filter(filter=>filter.name !== action.name); // remove all action filters from that constructor based on it's name
             return;
         } else if (action.type==="SET_DATA"){
             if(this.debug) console.log("ReactActionStatePath.toMeFromChild SET_DATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
@@ -269,7 +272,7 @@ export class ReactActionStatePath extends React.Component {
             return null;
         }
         else if(
-                ((this.actionFilters[action.type] && this.actionFilters[action.type].forEach(filter=>filter.function(action, delta))), true) // process any action filters and always evaluate to true
+                ((this.actionFilters[action.type] && this.actionFilters[action.type].every(filter=>filter.function(action, delta))), true) // process action filters until on returns false and always evaluate to true
             &&  (this.actionToState && ((nextRASP=this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp, delta)))!==null) // if no actionToState or actionToState returns NULL propogate the action on, otherwise the action ends here
         )
         {
@@ -487,6 +490,33 @@ export class ReactActionStatePath extends React.Component {
 
 export default ReactActionStatePath;
 
+var createDefaults=()=>{ // to be called at the end of the constructor extending this component
+    var _defaults={this: {}};
+    Object.keys(this).forEach(key=>{if(this._staticKeys.indexOf(key)===-1) _defaults.this[key]=clone(this[key])});
+    if(typeof this.state !== 'undefined') {
+        _defaults.state=this.state; // because setState always makes a new copy of the state
+    }
+    this._defaults=_defaults;
+}
+
+var restoreDefaults=()=>{
+    if(!this._defaults) return;
+    let currentKeys=Object.keys(this);
+    let defaultKeys=Object.keys(this._defaults.this);
+    let undefinedKeys=[];
+    currentKeys.forEach(key=>{
+        if(this._staticKeys.indexOf(key)!==-1) return;
+        if(defaultKeys.indexOf(key)!==-1) return;
+        undefinedKeys.push(key);
+    });
+    undefinedKeys.forEach(key=>this[key]=undefined);
+    Object.keys(this._defaults.this).forEach(key=>{this[key]=clone(this._defaults.this[key])});
+    if(this._defaults.state){
+        const state=this._defaults.state;
+        this.setState(state);
+    }
+}
+
 export class ReactActionStatePathClient extends React.Component {
 
   constructor(props, keyField='key', debug=0) {
@@ -506,34 +536,9 @@ export class ReactActionStatePathClient extends React.Component {
     this.initialRASP=clone(this.props.rasp);
     var _staticKeys=Object.keys(this); // the react keys that we aren't going to touch when resetting
     this._staticKeys=_staticKeys.concat(['state','_reactInternalInstance','_defaults','_staticKeys']); // also don't touch these
+    this.createDefaults=createDefaults.bind(this);
+    this.restoreDefaults=restoreDefaults.bind(this);
   }
-
-    createDefaults(){  // to be called at the end of the constructor extending this component
-        var _defaults={this: {}};
-        Object.keys(this).forEach(key=>{if(this._staticKeys.indexOf(key)===-1) _defaults.this[key]=clone(this[key])});
-        if(typeof this.state !== 'undefined') {
-            _defaults.state=this.state; // because setState always makes a new copy of the state
-        }
-        this._defaults=_defaults;
-    }
-
-    restoreDefaults(){
-        if(!this._defaults) return;
-        let currentKeys=Object.keys(this);
-        let defaultKeys=Object.keys(this._defaults.this);
-        let undefinedKeys=[];
-        currentKeys.forEach(key=>{
-            if(this._staticKeys.indexOf(key)!==-1) return;
-            if(defaultKeys.indexOf(key)!==-1) return;
-            undefinedKeys.push(key);
-        });
-        undefinedKeys.forEach(key=>this[key]=undefined);
-        Object.keys(this._defaults.this).forEach(key=>{this[key]=clone(this._defaults.this[key])});
-        if(this._defaults.state){
-            const state=this._defaults.state;
-            this.setState(state);
-        }
-    }
 
     componentWillUnmount(){
         console.info("ReactActionStatePathClient.componentWillUnmount", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth);
@@ -755,6 +760,34 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
             } else {
                 if(this.debug) console.info("ReactActionStatePathMulti.toMeFromParent no children to pass action to", this.constructor.name, this.childTitle, this.props.rasp.raspId, action);
             }
+        }
+    }
+}
+
+export class ReactActionStatePathFilter extends React.Component {
+
+    constructor(props, keyField, debug) {
+        super(props);
+        this.keyField=keyField;
+        this.debug=debug;
+        this.qaction = qaction;  // make the module specific funtion available
+        this.queueAction = queueAction.bind(this);
+        this.queueFocus = (action) => queueAction.call(this, { type: "DESCENDANT_FOCUS", wasType: action.type, [this.keyField]: action[this.keyField] });
+        this.queueUnfocus = (action) => queueAction.call(this, { type: "DESCENDANT_UNFOCUS", wasType: action.type, [this.keyField]: action[this.keyField] });
+        this.initialRASP = clone(this.props.rasp);
+        var _staticKeys = Object.keys(this); // the react keys that we aren't going to touch when resetting
+        this._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
+        this.createDefaults = createDefaults.bind(this);
+        this.restoreDefaults = restoreDefaults.bind(this);
+        if(this.actionFilters) Object.keys(this.actionFilters).forEach(filterType=>
+            this.props.rasp.toParent({type: "SET_ACTION_FILTER", filterType, name: this.constructor.name, function: this.actionFilter[filterType]}) 
+        );
+    }
+
+    componentWillUnmount() {
+        if(this.debug) console.info("ReactActionStatePathFilter.componentWillUnmount", this.constructor.name, this.props.rasp.raspId, this.props.rasp.depth);
+        if (this.props.rasp.toParent) { // parent might already be unmounted
+            this.props.rasp.toParent({ type: "RESET_ACTION_FILTER", name: this.constructor.name })
         }
     }
 }
