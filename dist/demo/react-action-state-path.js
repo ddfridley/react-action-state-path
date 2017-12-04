@@ -289,7 +289,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     return;
                 }
             } else if (action.type === "SET_ACTION_FILTER") {
-                if (this.actionFilters[action.filterType]) this.actionFilters[action.filterType].push({ name: action.name, function: action.function });else this.actionFilters[action.filterType] = { name: action.name, function: action.function };
+                if (this.actionFilters[action.filterType]) this.actionFilters[action.filterType].push({ name: action.name, function: action.function });else this.actionFilters[action.filterType] = [{ name: action.name, function: action.function }];
                 return;
             } else if (action.type === "RESET_ACTION_FILTER") {
                 this.actionFilters = this.actionFilters.filter(function (filter) {
@@ -347,9 +347,9 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             } else if (action.type === "RESET") {
                 this.setState(this.getDefaultState()); // after clearing thechildren clear this state
                 return null;
-            } else if ((this.actionFilters[action.type] && this.actionFilters[action.type].forEach(function (filter) {
+            } else if ((this.actionFilters[action.type] && this.actionFilters[action.type].every(function (filter) {
                 return filter.function(action, delta);
-            }), true // process any action filters and always evaluate to true
+            }), true // process action filters until on returns false and always evaluate to true
             ) && this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp, delta)) !== null // if no actionToState or actionToState returns NULL propogate the action on, otherwise the action ends here
             ) {
                     if (this.state.rasp.pathSegment && !nextRASP.pathSegment) {
@@ -989,6 +989,9 @@ var ReactActionStatePathFilter = exports.ReactActionStatePathFilter = function (
         _this13._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
         _this13.createDefaults = createDefaults.bind(_this13);
         _this13.restoreDefaults = restoreDefaults.bind(_this13);
+        if (_this13.actionFilters) Object.keys(_this13.actionFilters).forEach(function (filterType) {
+            return _this13.props.rasp.toParent({ type: "SET_ACTION_FILTER", filterType: filterType, name: _this13.constructor.name, function: _this13.actionFilter[filterType] });
+        });
         return _this13;
     }
 
