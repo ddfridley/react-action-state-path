@@ -779,6 +779,9 @@ export class ReactActionStatePathFilter extends React.Component {
         this._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
         this.createDefaults = createDefaults.bind(this);
         this.restoreDefaults = restoreDefaults.bind(this);
+    }
+
+    componentWillMount(){
         if(this.actionFilters) Object.keys(this.actionFilters).forEach(filterType=>
             this.props.rasp.toParent({type: "SET_ACTION_FILTER", filterType, name: this.constructor.name, function: this.actionFilter[filterType]}) 
         );

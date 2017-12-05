@@ -992,13 +992,19 @@ var ReactActionStatePathFilter = exports.ReactActionStatePathFilter = function (
         _this15._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
         _this15.createDefaults = createDefaults.bind(_this15);
         _this15.restoreDefaults = restoreDefaults.bind(_this15);
-        if (_this15.actionFilters) Object.keys(_this15.actionFilters).forEach(function (filterType) {
-            return _this15.props.rasp.toParent({ type: "SET_ACTION_FILTER", filterType: filterType, name: _this15.constructor.name, function: _this15.actionFilter[filterType] });
-        });
         return _this15;
     }
 
     _createClass(ReactActionStatePathFilter, [{
+        key: 'componentWillMount',
+        value: function componentWillMount() {
+            var _this16 = this;
+
+            if (this.actionFilters) Object.keys(this.actionFilters).forEach(function (filterType) {
+                return _this16.props.rasp.toParent({ type: "SET_ACTION_FILTER", filterType: filterType, name: _this16.constructor.name, function: _this16.actionFilter[filterType] });
+            });
+        }
+    }, {
         key: 'componentWillUnmount',
         value: function componentWillUnmount() {
             if (this.debug) console.info("ReactActionStatePathFilter.componentWillUnmount", this.constructor.name, this.props.rasp.raspId, this.props.rasp.depth);
