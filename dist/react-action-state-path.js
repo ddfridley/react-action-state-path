@@ -1001,7 +1001,7 @@ var ReactActionStatePathFilter = exports.ReactActionStatePathFilter = function (
             var _this16 = this;
 
             if (this.actionFilters) Object.keys(this.actionFilters).forEach(function (filterType) {
-                return _this16.props.rasp.toParent({ type: "SET_ACTION_FILTER", filterType: filterType, name: _this16.constructor.name, function: _this16.actionFilters[filterType] });
+                return _this16.props.rasp.toParent({ type: "SET_ACTION_FILTER", filterType: filterType, name: _this16.constructor.name, function: _this16.actionFilters[filterType].bind(_this16) });
             });
         }
     }, {

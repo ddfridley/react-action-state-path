@@ -783,7 +783,7 @@ export class ReactActionStatePathFilter extends React.Component {
 
     componentWillMount(){
         if(this.actionFilters) Object.keys(this.actionFilters).forEach(filterType=>
-            this.props.rasp.toParent({type: "SET_ACTION_FILTER", filterType, name: this.constructor.name, function: this.actionFilters[filterType]}) 
+            this.props.rasp.toParent({type: "SET_ACTION_FILTER", filterType, name: this.constructor.name, function: this.actionFilters[filterType].bind(this)}) 
         );
     }
 
