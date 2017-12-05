@@ -490,7 +490,7 @@ export class ReactActionStatePath extends React.Component {
 
 export default ReactActionStatePath;
 
-var createDefaults=()=>{ // to be called at the end of the constructor extending this component
+function createDefaults () { // to be called at the end of the constructor extending this component
     var _defaults={that: {}};
     Object.keys(this).forEach(key=>{if(this._staticKeys.indexOf(key)===-1) _defaults.that[key]=clone(this[key])});
     if(typeof this.state !== 'undefined') {
@@ -499,7 +499,7 @@ var createDefaults=()=>{ // to be called at the end of the constructor extending
     this._defaults=_defaults;
 }
 
-var restoreDefaults=()=>{
+function restoreDefaults() {
     if(!this._defaults) return;
     let currentKeys=Object.keys(this);
     let defaultKeys=Object.keys(this._defaults.that);
