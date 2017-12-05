@@ -1174,9 +1174,9 @@ exports.default = ReactActionStatePath;
 
 var createDefaults = function createDefaults() {
     // to be called at the end of the constructor extending this component
-    var _defaults = { this: {} };
+    var _defaults = { that: {} };
     Object.keys(undefined).forEach(function (key) {
-        if (undefined._staticKeys.indexOf(key) === -1) _defaults.this[key] = (0, _clone2.default)(undefined[key]);
+        if (undefined._staticKeys.indexOf(key) === -1) _defaults.that[key] = (0, _clone2.default)(undefined[key]);
     });
     if (typeof undefined.state !== 'undefined') {
         _defaults.state = undefined.state; // because setState always makes a new copy of the state
@@ -1187,7 +1187,7 @@ var createDefaults = function createDefaults() {
 var restoreDefaults = function restoreDefaults() {
     if (!undefined._defaults) return;
     var currentKeys = Object.keys(undefined);
-    var defaultKeys = Object.keys(undefined._defaults.this);
+    var defaultKeys = Object.keys(undefined._defaults.that);
     var undefinedKeys = [];
     currentKeys.forEach(function (key) {
         if (undefined._staticKeys.indexOf(key) !== -1) return;
@@ -1197,8 +1197,8 @@ var restoreDefaults = function restoreDefaults() {
     undefinedKeys.forEach(function (key) {
         return undefined[key] = undefined;
     });
-    Object.keys(undefined._defaults.this).forEach(function (key) {
-        undefined[key] = (0, _clone2.default)(undefined._defaults.this[key]);
+    Object.keys(undefined._defaults.that).forEach(function (key) {
+        undefined[key] = (0, _clone2.default)(undefined._defaults.that[key]);
     });
     if (undefined._defaults.state) {
         var state = undefined._defaults.state;
