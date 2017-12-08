@@ -220,7 +220,10 @@ export class ReactActionStatePath extends React.Component {
             else this.actionFilters[action.filterType]=[{name: action.name, function: action.function}];
             return;
         } else if (action.type==="RESET_ACTION_FILTER"){
-            this.actionFilters=this.actionFilters.filter(filter=>filter.name !== action.name); // remove all action filters from that constructor based on it's name
+            Object.keys(this.actionFilters).forEach(key=>{
+                this.actionFilters[key]=this.actionFilters[key].filter(filter=>filter.name !== action.name); // remove all action filters from that constructor based on it's name
+                if(!this.actionFilters[key].length) delete this.actionFilters[key];
+            })
             return;
         } else if (action.type==="SET_DATA"){
             if(this.debug) console.log("ReactActionStatePath.toMeFromChild SET_DATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);

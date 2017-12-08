@@ -292,9 +292,12 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 if (this.actionFilters[action.filterType]) this.actionFilters[action.filterType].push({ name: action.name, function: action.function });else this.actionFilters[action.filterType] = [{ name: action.name, function: action.function }];
                 return;
             } else if (action.type === "RESET_ACTION_FILTER") {
-                this.actionFilters = this.actionFilters.filter(function (filter) {
-                    return filter.name !== action.name;
-                }); // remove all action filters from that constructor based on it's name
+                Object.keys(this.actionFilters).forEach(function (key) {
+                    _this4.actionFilters[key] = _this4.actionFilters[key].filter(function (filter) {
+                        return filter.name !== action.name;
+                    }); // remove all action filters from that constructor based on it's name
+                    if (!_this4.actionFilters[key].length) delete _this4.actionFilters[key];
+                });
                 return;
             } else if (action.type === "SET_DATA") {
                 if (this.debug) console.log("ReactActionStatePath.toMeFromChild SET_DATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
