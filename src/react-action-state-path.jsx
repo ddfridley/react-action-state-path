@@ -606,8 +606,9 @@ export class ReactActionStatePathClient extends React.Component {
             else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp)
         } else return null; // end of the line
     } else if (action.type === "RESET") {  // clear the path and reset the RASP state back to what the const
+        var delta={};
         if(this._defaults) this.restoreDefaults(); 
-        if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
+        if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
         Object.keys(this.toChild).forEach(child => { // send the action to every child
             this.toChild[child](action)
           });
@@ -710,8 +711,9 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
             this.toChild[child](action)
           });
         } else if (action.type === "RESET") {  // clear the path and reset the RASP state back to what the const
+            var delta={};
             if(this._defaults) this.restoreDefaults(); 
-            if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
+            if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
             Object.keys(this.toChild).forEach(child => { // send the action to every child
                 this.toChild[child](action)
               });
