@@ -364,9 +364,12 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                         // path being added
                         if (this.debug) console.log("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment);
                     }
-                    if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DESCENDANT_FOCUS" || action.type === "DESCENDANT_UNFOCUS")) {
+
+                    if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DESCENDANT_FOCUS" || action.type === "DESCENDANT_UNFOCUS" || action.duration)) {
+                        if (typeof action.duration === 'number') action.duration -= 1;
+                        action.distance += 1;
                         this.setState({ rasp: nextRASP }, function () {
-                            return _this4.props.rasp.toParent({ type: action.type, distance: action.distance + 1, shape: _this4.state.rasp.shape });
+                            return action.direction === 'ASCEND' ? _this4.props.rasp.toParent(action) : action.direction === 'DESCEND' ? _this4.toChild(action) : console.error("ReactActionStatePath direction unknown", action, _this4.id, _this4.childName, _this4.childTitle);
                         });
                     } else if (this.id !== 0) {
                         this.setState({ rasp: nextRASP });
@@ -777,8 +780,9 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                 } else return null; // end of the line
             } else if (action.type === "RESET") {
                 // clear the path and reset the RASP state back to what the const
+                var delta = {};
                 if (this._defaults) this.restoreDefaults();
-                if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
+                if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
                 Object.keys(this.toChild).forEach(function (child) {
                     // send the action to every child
                     _this12.toChild[child](action);
@@ -906,8 +910,9 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
                 });
             } else if (action.type === "RESET") {
                 // clear the path and reset the RASP state back to what the const
+                var delta = {};
                 if (this._defaults) this.restoreDefaults();
-                if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP);
+                if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
                 Object.keys(this.toChild).forEach(function (child) {
                     // send the action to every child
                     _this14.toChild[child](action);

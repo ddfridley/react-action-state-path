@@ -284,9 +284,12 @@ export class ReactActionStatePath extends React.Component {
                 //this.toChild({type:"CLEAR_PATH"}); // if toChild is not set let there be an error
             } else if(!(this.state.rasp.pathSegment) && (nextRASP.pathSegment)) { // path being added
                 if(this.debug) console.log("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment)
-            }                 
-            if(this.id!==0 && !ReactActionStatePath.topState && (action.type==="DESCENDANT_FOCUS" || action.type==="DESCENDANT_UNFOCUS") ){
-                this.setState({rasp: nextRASP}, ()=>this.props.rasp.toParent({type: action.type, distance: action.distance+1, shape: this.state.rasp.shape}));
+            }             
+
+            if(this.id!==0 && !ReactActionStatePath.topState && (action.type==="DESCENDANT_FOCUS" || action.type==="DESCENDANT_UNFOCUS" || action.duration) ){
+                if(typeof action.duration==='number') action.duration-=1;
+                action.distance+=1;
+                this.setState({rasp: nextRASP}, ()=>action.direction==='ASCEND' ? this.props.rasp.toParent(action) : (action.direction==='DESCEND' ? this.toChild(action) : console.error("ReactActionStatePath direction unknown", action, this.id, this.childName, this.childTitle)));
             } else if(this.id!==0){
                 this.setState({rasp: nextRASP});
             }else { // this is the root, after changing shape, remind me so I can update the window.histor
