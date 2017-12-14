@@ -71,31 +71,31 @@ var queue = 0;
 
 var qaction = function qaction(func, delay) {
     queue += 1;
-    //onsole.info("qaction queueing", queue);
+    console.info("qaction queueing", queue);
     setTimeout(function () {
-        //onsole.info("qaction continuing", --queue);
+        console.info("qaction continuing", queue);
         queue--;
         func();
         if (queue === 0 && UpdateHistory) {
-            //onsole.info("qaction updating history");
+            console.info("qaction updating history");
             UpdateHistory();
-        } else
-            //onsole.info("qaction after continuing", queue)
-            ;
+        } else console.info("qaction after continuing", queue);
     }, 0);
 };
 
 var queueAction = function queueAction(action) {
     var _this = this;
 
+    // called by a client, with it's this
+    console.info("queueAction", this.props.raspId, this.constructor.name, this.childName, this.childTitle, action);
     qaction(function () {
         return _this.props.rasp.toParent(action);
     }, 0);
 };
 
 var qhistory = function qhistory(func, delay) {
-    //onsole.info("qhistory", queue);
-    //    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
+    console.info("qhistory", queue);
+    if (ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off");
     if (queue > 0) {
         console.info("qhistory put off");
         return;
