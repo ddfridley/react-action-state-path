@@ -530,12 +530,13 @@ function restoreDefaults() {
 
 export class ReactActionStatePathClient extends React.Component {
 
-  constructor(props, keyField='key', debug={}) {
+  constructor(props, keyField='key', debug={noop: false}) {
     super(props);
     this.toChild = [];
     this.waitingOn=null;
     this.keyField=keyField;
-    this.debug.noop=debug;
+    if(typeof debug==='object') this.debug=debug;
+    else this.debug={noop: debug};
     if(!this.props.rasp) console.error("ReactActionStatePathClient no rasp",this.constructor.name, this.props);
     if (this.props.rasp.toParent) {
       this.props.rasp.toParent({ type: "SET_TO_CHILD", function: this.toMeFromParent.bind(this), name: this.constructor.name, actionToState: this.actionToState.bind(this), debug, clientThis: this })
@@ -667,6 +668,8 @@ export class ReactActionStatePathClient extends React.Component {
 export class ReactActionStatePathMulti extends ReactActionStatePathClient{
     constructor(props,keyfield,debug){
         super(props,keyfield,debug);
+        if(typeof debug==='object') this.debug=debug;
+        else this.debug={noop: debug};
         
     }
 
@@ -779,10 +782,11 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
 
 export class ReactActionStatePathFilter extends React.Component {
 
-    constructor(props, keyField, debug={}) {
+    constructor(props, keyField, debug) {
         super(props);
         this.keyField=keyField;
-        this.debug.noop=debug;
+        if(typeof debug==='object') this.debug=debug;
+        else this.debug={noop: debug};
         this.qaction = qaction;  // make the module specific funtion available
         this.queueAction = queueAction.bind(this);
         this.queueFocus = (action) => queueAction.call(this, { type: "DESCENDANT_FOCUS", wasType: action.type, [this.keyField]: action[this.keyField] });
