@@ -121,7 +121,7 @@ export class ReactActionStatePath extends React.Component {
                 window.onpopstate=this.onpopstate.bind(this);
                 window.ReactActionStatePath={thiss: ReactActionStatePath.thiss};
                 UpdateHistory=this.updateHistory.bind(this);
-                if(ReactActionStatePath.pathSegments.length===0) qhistory(()=>this.updateHistory(),0); // aftr things have settled down, update history for the first time
+                if(ReactActionStatePath.pathSegments.length===0) qhistory.call(this,()=>this.updateHistory(),0); // aftr things have settled down, update history for the first time
              }
             console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
         }
@@ -303,14 +303,14 @@ export class ReactActionStatePath extends React.Component {
                 } // updateHistory now!
                 else this.setState({rasp: nextRASP},()=>{ 
                     if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action); 
-                    qhistory(()=>this.updateHistory(),0); // update history after the queue of chanages from this state change is processed);
+                    qhistory.call(this,()=>this.updateHistory(),0); // update history after the queue of chanages from this state change is processed);
                 }); // otherwise, set the state and let history update on componentDidUpdate
             }
         } 
         // these actions are overridden by the component's actonToState if either there is and it returns a new RASP to set (not null)
         else if(action.type === "DESCENDANT_FOCUS" || action.type ==="DESCENDANT_UNFOCUS"){
             if(this.id) { action.distance+=1; action.shape=this.state.rasp.shape; return this.props.rasp.toParent(action); }
-            else return qhistory(()=>{ if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild ",action.type," updateHistory");this.updateHistory()},0);;
+            else return qhistory.call(this,()=>{ if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild ",action.type," updateHistory");this.updateHistory()},0);;
         } else if(action.type ==="CHANGE_SHAPE"){
             if(this.state.rasp.shape!==action.shape){ // really the shape changed
                 var nextRASP=Object.assign({}, this.state.rasp, {shape: action.shape});
@@ -319,7 +319,7 @@ export class ReactActionStatePath extends React.Component {
                 }else // this is the root, change state and then update history
                     this.setState({rasp: nextRASP}, ()=>{ 
                         if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");
-                        qhistory(()=>this.updateHistory,0);// update history after changes from setstate have been processed
+                        qhistory.call(this,()=>this.updateHistory,0);// update history after changes from setstate have been processed
                     });
             } // no change, nothing to do
         } else if(action.type==="CHILD_SHAPE_CHANGED"){
@@ -329,7 +329,7 @@ export class ReactActionStatePath extends React.Component {
                 this.props.rasp.toParent({type: "CHILD_SHAPE_CHANGED", shape: action.shape, distance: action.distance+1}); // pass a new action, not a copy including internal properties like itemId. This shape hasn't changed
             } else { // this is the root RASP, update history.state
                 if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
-                qhistory(()=>{ if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED default updateHistory");this.updateHistory()},0);
+                qhistory.call(this,()=>{ if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED default updateHistory");this.updateHistory()},0);
             }
         } else if(action.type==="CHILD_STATE_CHANGED"){
             if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState",this.id, this.props.rasp && this.props.rasp.depth);
@@ -340,7 +340,7 @@ export class ReactActionStatePath extends React.Component {
             } else { // this is the root RASP, update history.state
                 if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState at root",this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
                 if((typeof window === 'undefined' && this.props.rasp && this.props.rasp.toParent)) qaction(()=>this.props.rasp.toParent(action),0); // on server, send action to server renderer
-                qhistory(()=>{ if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED default updateHistory");this.updateHistory()},0);
+                qhistory.call(this,()=>{ if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED default updateHistory");this.updateHistory()},0);
             }
         } else { // the action was not understood, send it up
             if(this.id) { action.distance+=1; return this.props.rasp.toParent(action); }
@@ -394,7 +394,7 @@ export class ReactActionStatePath extends React.Component {
                 }else // no parent to tell of the change
                     this.setState({rasp: nextRASP}, ()=>{ 
                         if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
-                        qhistory(()=>this.updateHistory,0); // update history after statechage events are processed
+                        qhistory.call(this,()=>this.updateHistory,0); // update history after statechage events are processed
                     });
             } // no change, nothing to do
             return null;
