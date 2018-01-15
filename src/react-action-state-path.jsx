@@ -49,12 +49,12 @@ var qaction=function(func,delay){
 }
 
 var queueAction=function(action){ // called by a client, with it's this
-    console.info("queueAction", this.props.raspId, this.constructor.name, this.childName, this.childTitle, action)
+    console.info("queueAction", this.props.rasp.raspId, this.props.rasp.depth, this.constructor.name, action)
     qaction(()=>this.props.rasp.toParent(action),0)
 }
 
 var qhistory=function(func,delay){
-    console.info("qhistory", queue);
+    console.info("qhistory", queue, this.id, this.childName, this.childTitle);
     if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
     if(queue>0) {
         console.info("qhistory put off"); 
