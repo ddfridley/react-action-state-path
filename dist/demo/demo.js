@@ -592,6 +592,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
+function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
@@ -731,7 +733,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 window.onpopstate = _this2.onpopstate.bind(_this2);
                 window.ReactActionStatePath = { thiss: ReactActionStatePath.thiss };
                 UpdateHistory = _this2.updateHistory.bind(_this2);
-                if (ReactActionStatePath.pathSegments.length === 0) qhistory(function () {
+                if (ReactActionStatePath.pathSegments.length === 0) qhistory.call(_this2, function () {
                     return _this2.updateHistory();
                 }, 0); // aftr things have settled down, update history for the first time
             }
@@ -936,7 +938,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                         } // updateHistory now!
                         else this.setState({ rasp: nextRASP }, function () {
                                 if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action);
-                                qhistory(function () {
+                                qhistory.call(_this4, function () {
                                     return _this4.updateHistory();
                                 }, 0); // update history after the queue of chanages from this state change is processed);
                             }); // otherwise, set the state and let history update on componentDidUpdate
@@ -946,7 +948,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             else if (action.type === "DESCENDANT_FOCUS" || action.type === "DESCENDANT_UNFOCUS") {
                     if (this.id) {
                         action.distance += 1;action.shape = this.state.rasp.shape;return this.props.rasp.toParent(action);
-                    } else return qhistory(function () {
+                    } else return qhistory.call(this, function () {
                         if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild ", action.type, " updateHistory");_this4.updateHistory();
                     }, 0);;
                 } else if (action.type === "CHANGE_SHAPE") {
@@ -959,7 +961,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                         } else // this is the root, change state and then update history
                             this.setState({ rasp: nextRASP }, function () {
                                 if (_this4.debug.noop) console.log("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");
-                                qhistory(function () {
+                                qhistory.call(_this4, function () {
                                     return _this4.updateHistory;
                                 }, 0); // update history after changes from setstate have been processed
                             });
@@ -972,7 +974,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     } else {
                         // this is the root RASP, update history.state
                         if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
-                        qhistory(function () {
+                        qhistory.call(this, function () {
                             if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED default updateHistory");_this4.updateHistory();
                         }, 0);
                     }
@@ -988,7 +990,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                         if (typeof window === 'undefined' && this.props.rasp && this.props.rasp.toParent) qaction(function () {
                             return _this4.props.rasp.toParent(action);
                         }, 0); // on server, send action to server renderer
-                        qhistory(function () {
+                        qhistory.call(this, function () {
                             if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED default updateHistory");_this4.updateHistory();
                         }, 0);
                     }
@@ -1050,7 +1052,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     } else // no parent to tell of the change
                         this.setState({ rasp: nextRASP }, function () {
                             if (_this5.debug.noop) console.log("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
-                            qhistory(function () {
+                            qhistory.call(_this5, function () {
                                 return _this5.updateHistory;
                             }, 0); // update history after statechage events are processed
                         });
@@ -1146,15 +1148,21 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
         value: function renderChildren() {
             var _this7 = this;
 
-            return _react2.default.Children.map(this.props.children, function (child) {
-                var newProps = Object.assign({}, _this7.props, { rasp: Object.assign({}, _this7.state.rasp, { depth: _this7.props.rasp && _this7.props.rasp.depth ? _this7.props.rasp.depth + 1 : 1,
-                        raspId: _this7.id,
-                        toParent: _this7.toMeFromChild.bind(_this7)
-                    }) //rasp in state override rasp in props
+            var _props = this.props,
+                children = _props.children,
+                initialRASP = _props.initialRASP,
+                RASPRoot = _props.RASPRoot,
+                newProps = _objectWithoutProperties(_props, ['children', 'initialRASP', 'RASPRoot']); // don't propogate initialRASP or RASPRoot
+
+
+            return _react2.default.Children.map(_react2.default.Children.only(children), function (child) {
+                newProps.rasp = Object.assign({}, _this7.state.rasp, { depth: _this7.props.rasp && _this7.props.rasp.depth ? _this7.props.rasp.depth + 1 : 1,
+                    raspId: _this7.id,
+                    toParent: _this7.toMeFromChild.bind(_this7)
                 });
-                delete newProps.children;
-                delete newProps.initialRASP; // don't let this propogate down to the next RASP with no initialization required
-                delete newProps.RASPRoot; // don't let this propogate down, it tags the root
+                Object.keys(child.props).forEach(function (childProp) {
+                    return delete newProps[childProp];
+                }); // allow child props to overwrite parent props
                 return _react2.default.cloneElement(child, newProps, child.props.children);
             });
         }

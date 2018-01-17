@@ -468,20 +468,15 @@ export class ReactActionStatePath extends React.Component {
     }
 
     renderChildren() {
-        return React.Children.map(this.props.children, child =>{
-            var newProps= Object.assign({}, 
-                this.props, 
-                {rasp:  Object.assign({}, 
-                        this.state.rasp, 
-                        { depth: this.props.rasp && this.props.rasp.depth ? this.props.rasp.depth +1 : 1,
-                          raspId: this.id,
-                          toParent: this.toMeFromChild.bind(this)
-                        })
-                }  //rasp in state override rasp in props
-            );
-            delete newProps.children;
-            delete newProps.initialRASP; // don't let this propogate down to the next RASP with no initialization required
-            delete newProps.RASPRoot; // don't let this propogate down, it tags the root
+        var {children, initialRASP, RASPRoot, ...newProps}=this.props; // don't propogate initialRASP or RASPRoot
+        return React.Children.map(React.Children.only(children), child =>{
+            newProps.rasp=Object.assign({},
+                this.state.rasp, 
+                { depth: this.props.rasp && this.props.rasp.depth ? this.props.rasp.depth +1 : 1,
+                  raspId: this.id,
+                  toParent: this.toMeFromChild.bind(this)
+                });
+            Object.keys(child.props).forEach(childProp=>delete newProps[childProp]); // allow child props to overwrite parent props
             return React.cloneElement(child, newProps, child.props.children)
         });
     }
