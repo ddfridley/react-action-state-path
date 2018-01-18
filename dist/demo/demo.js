@@ -812,7 +812,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             if (action.direction === "DESCEND") return this.toChild(action);else action.direction = "ASCEND";
             if (action.type === "SET_TO_CHILD") {
                 // child is passing up her func
-                if (typeof action.debug === 'number') this.debug.noop = action.debug;else if (_typeof(action.debug) === 'object') Object.assign(this.debug, action.debug);else console.error("ReactActionStatePath.toMeFromChild unexpected debug in action", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
+                if (typeof action.debug === 'number') this.debug.noop = action.debug;else if (_typeof(action.debug) === 'object') Object.assign(this.debug, action.debug);else if (action.debug) console.error("ReactActionStatePath.toMeFromChild unexpected debug in action", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
                 if (this.debug.SET_TO_CHILD) console.info("ReactActionStatePath.toMeFromChild debug set", this.debug.noop, this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
                 if (!(this.toChild = action.function)) {
                     this.childName = undefined;
