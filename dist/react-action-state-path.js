@@ -117,7 +117,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
         _this2.toChild = null;
         _this2.childName = '';
         _this2.childTitle = '';
-        _this2.debug = _this2.props.debugObject || { noop: false, near: true };
+        _this2.debug = _this2.props.debugObject || { noop: false, near: false };
         _this2.waitingOn = false;
         _this2.initialRASP = Object.assign({}, { shape: _this2.props.rasp && _this2.props.rasp.shape ? _this2.props.rasp.shape : 'truncated',
             depth: _this2.props.rasp ? _this2.props.rasp.depth : 0 // for debugging  - this is my depth to check

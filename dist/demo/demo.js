@@ -672,7 +672,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
         _this2.toChild = null;
         _this2.childName = '';
         _this2.childTitle = '';
-        _this2.debug = _this2.props.debugObject || { noop: false, near: true };
+        _this2.debug = _this2.props.debugObject || { noop: false, near: false };
         _this2.waitingOn = false;
         _this2.initialRASP = Object.assign({}, { shape: _this2.props.rasp && _this2.props.rasp.shape ? _this2.props.rasp.shape : 'truncated',
             depth: _this2.props.rasp ? _this2.props.rasp.depth : 0 // for debugging  - this is my depth to check
@@ -24582,7 +24582,7 @@ var Accordion = function (_React$Component) {
     _this.state = {
       attr: 'collapsed'
     };
-    _this.stepSize = 7;
+    _this.stepSize = 1;
     _this.stepPeriod = 10;
     _this.inOpen = 'inactive';
     _this.openStart = null;
@@ -24628,41 +24628,47 @@ var Accordion = function (_React$Component) {
       }
     }
   }, {
+    key: 'componentWillUnmount',
+    value: function componentWillUnmount() {
+      if (this.inOpen !== 'inactive') this.inOpen = 'abort';
+      if (this.inClose !== 'inactive') this.inClose = 'abort';
+    }
+  }, {
     key: 'smoothOpen',
     value: function smoothOpen() {
-      if (!this.openStart) this.openStart = new Date().getTime();else return; // don't stutter start
-      if (this.inOpen === 'active') {
+      if (this.inOpen === 'active' || this.inOpen === 'abort') {
         return;
       } // dont't stutter start.
       this.inOpen = 'active';
       if (this.inClose !== "inactive") {
         this.inClose = 'abort';
       }
-      var duration = this.props.duration || 500;
+      var duration = this.props.duration || 500; // performance time is in miliseconds
       var accordion = this.refs.accordion;
 
-      var timerMax = 1000; //just in case
-
-      var maxHeight = parseInt(accordion.style.maxHeight, 10) || 0;
+      var maxHeight = parseFloat(accordion.style.maxHeight) || 0;
       var height = accordion.clientHeight;
       if (maxHeight < height) {
         //minHeight may not be 0
         accordion.style.maxHeight = height + 'px';
       }
-
+      var start = null;
+      var last = null;
       this.setState({ attr: 'expanding' });
-
-      var stepPeriod = this.stepPeriod;
       var that = this;
-      var stepper = function stepper() {
-        if (that.inOpen === 'abort') {
-          that.openStart = null;that.inOpen = 'inactive';return;
+      function stepper(now) {
+        if (!start) {
+          start = now;
+          last = now;
+          window.requestAnimationFrame(stepper);
+          return;
         }
-        var now = new Date().getTime();
-        if (now - that.openStart > duration) {
+        if (that.inOpen === 'abort') {
+          that.inOpen = 'inactive';return;
+        }
+        if (now - start > duration) {
           // time is up
           that.inOpen = 'inactive';
-          that.openStart = null;
           var nextFunc = that.props.onComplete ? function () {
             return that.props.onComplete(true);
           } : null;
@@ -24670,39 +24676,34 @@ var Accordion = function (_React$Component) {
           accordion.style.maxHeight = null;
           return;
         }
-        var lmaxHeight = parseInt(accordion.style.maxHeight, 10) || 0;
+        var lmaxHeight = parseFloat(accordion.style.maxHeight) || 0;
         var lheight = accordion.clientHeight;
         var wheight = that.refs.accordionWrapper ? that.refs.accordionWrapper.clientHeight : 0;
 
         if (wheight) {
           // wrapper has a significant height
-          var timeRemaining = duration - (now - that.openStart);
-          var stepsRemaining = Math.max(1, Math.round(timeRemaining / stepPeriod)); // less than one step is one step
+          var timeRemaining = duration - (now - start);
+          var stepsRemaining = Math.max(1, Math.round(timeRemaining / (now - last))); // less than one step is one step
           var distanceRemaining = Math.max(wheight - lheight, 0); // distance to go, but not negative
           var nextStepDistance = distanceRemaining / stepsRemaining;
-          if (nextStepDistance < 1 && nextStepDistance > 0) {
-            // steps are less than 1 pixel at this rate
-            stepPeriod = Math.ceil(timeRemaining / distanceRemaining); // time between pixels
-            var shortStepPeriod = stepPeriod;
-            if (nextStepDistance < 0.5) {
-              shortStepPeriod = Math.max(that.stepPeriod, Math.ceil((1 - nextStepDistance) * stepPeriod)); // time to the next pixel but at least something
-              setTimeout(stepper, shortStepPeriod); // come back later and less often
-              return;
-            }
+          if (nextStepDistance > -1 && nextStepDistance < 1) {
+            // steps are less than 1 pixel at this rate don't set last
+            requestAnimationFrame(stepper);
+            return;
           }
-          var newMax = Math.ceil(lheight + nextStepDistance); // top of the next step
+          var newMax = lheight + nextStepDistance; // top of the next step
           accordion.style.maxHeight = newMax + 'px';
         } else {
           // we don't know the height of the wrapper, the data is not populated yet
-
           if (lmaxHeight <= lheight) {
             // if maxheight is equal to (or somehow less) increment the maxHeight another step
             accordion.style.maxHeight = Math.max(lmaxHeight + that.stepSize, lheight + 1) + 'px';
           }
         }
-        setTimeout(stepper, stepPeriod); // continue the steps
-      };
-      setTimeout(stepper, stepPeriod); // start the stepper
+        last = now;
+        window.requestAnimationFrame(stepper); // continue the steps
+      }
+      window.requestAnimationFrame(stepper);
     }
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -24711,13 +24712,11 @@ var Accordion = function (_React$Component) {
   }, {
     key: 'smoothClose',
     value: function smoothClose() {
-      // set an interval to update scrollTop attribute every 25 ms
-      if (!this.closeStart) this.closeStart = new Date().getTime();else return; // don't stutter close
-      if (this.inClose == 'active') {
+      if (this.inClose === 'active' || this.inClose === 'abort') {
         return;
       } //don't stutter the close
       this.inClose = 'active';
-      if (this.inOpen != 'inactive') {
+      if (this.inOpen !== 'inactive') {
         this.inOpen = 'abort';
       } //override the open with a close
       var duration = this.props.duration || 500;
@@ -24726,21 +24725,26 @@ var Accordion = function (_React$Component) {
       var height = accordion.clientHeight;
       accordion.style.maxHeight = Math.floor(height) + 'px';
 
-      var minHeight = parseInt(accordion.style.minHeight, 10) || 0;
-      if (this.refs.accordionWrapper.children[0]) minHeight = Math.max(minHeight, parseInt(this.refs.accordionWrapper.children[0].style.minHeight, 10) || 0); // wrapper is a div which wraps around the innards may have a min-height set
+      var minHeight = parseFloat(accordion.style.minHeight) || 0;
+      if (this.refs.accordionWrapper.children[0]) minHeight = Math.max(minHeight, parseFloat(this.refs.accordionWrapper.children[0].style.minHeight) || 0); // wrapper is a div which wraps around the innards may have a min-height set
 
       this.setState({ attr: 'collapsing' });
 
-      var stepPeriod = this.stepPeriod;
       var that = this;
-      var stepper = function stepper() {
-        if (that.inClose === 'abort') {
-          that.closeStart = null;that.inClose = 'inactive';return;
+      var start = null;
+      var last = null;
+      function stepper(now) {
+        if (!start) {
+          start = now;
+          last = now;
+          window.requestAnimationFrame(stepper);
+          return;
         }
-        var now = new Date().getTime();
-        if (now - that.closeStart > duration || lmaxHeight < lheight || lheight <= minHeight) {
+        if (that.inClose === 'abort') {
+          that.inClose = 'inactive';return;
+        }
+        if (now - start > duration || lmaxHeight < lheight || lheight <= minHeight) {
           that.inClose = 'inactive';
-          that.closeStart = null;
           var nextFunc = that.props.onComplete ? function () {
             return that.props.onComplete(false);
           } : null;
@@ -24748,29 +24752,24 @@ var Accordion = function (_React$Component) {
           accordion.style.maxHeight = null;
           return;
         }
-        var lmaxHeight = parseInt(accordion.style.maxHeight, 10) || 0;
-        var lheight = Math.floor(accordion.clientHeight);
+        var lmaxHeight = parseFloat(accordion.style.maxHeight) || 0;
+        var lheight = /*Math.floor*/accordion.clientHeight;
 
-        var timeRemaining = duration - (now - that.closeStart);
-        var stepsRemaining = Math.max(1, Math.round(timeRemaining / stepPeriod)); // less than one step is one step
+        var timeRemaining = duration - (now - start);
+        var stepsRemaining = Math.max(1, Math.round(timeRemaining / (now - last))); // less than one step is one step
         var distanceRemaining = Math.max(lheight - minHeight, 1); // distance to go, but not negative
         var nextStepDistance = distanceRemaining / stepsRemaining;
-        if (nextStepDistance < 1 && nextStepDistance > 0) {
+        if (nextStepDistance > -1 && nextStepDistance < 1) {
           // steps are less than 1 pixel at this rate
-          stepPeriod = Math.ceil(timeRemaining / distanceRemaining); // time between pixels
-          var shortStepPeriod = stepPeriod;
-          if (nextStepDistance < 0.5) {
-            shortStepPeriod = Math.max(that.stepPeriod, Math.ceil((1 - nextStepDistance) * stepPeriod)); // time to the next pixel but at least something
-            setTimeout(stepper, shortStepPeriod); // come back later and less often
-            return;
-          }
+          window.requestAnimationFrame(stepper);
+          return;
         }
-        var newMax = Math.floor(lheight - nextStepDistance); // top of the next step
+        var newMax = /*Math.floor*/lheight - nextStepDistance; // top of the next step
         accordion.style.maxHeight = newMax + 'px'; // set the new height
-        setTimeout(stepper, stepPeriod);
-      };
-      setTimeout(stepper, stepPeriod // kick off the stepper
-      );
+        last = now;
+        window.requestAnimationFrame(stepper);
+      }
+      window.requestAnimationFrame(stepper); // kick off the stepper
     }
   }, {
     key: 'render',

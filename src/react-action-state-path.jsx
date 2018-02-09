@@ -73,7 +73,7 @@ export class ReactActionStatePath extends React.Component {
         this.toChild=null;
         this.childName='';
         this.childTitle='';
-        this.debug=this.props.debugObject || {noop: false, near: true};
+        this.debug=this.props.debugObject || {noop: false, near: false};
         this.waitingOn=false;
         this.initialRASP=Object.assign({},
                     {   shape: this.props.rasp && this.props.rasp.shape ? this.props.rasp.shape : 'truncated',
