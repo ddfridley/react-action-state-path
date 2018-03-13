@@ -72,15 +72,17 @@ var queue = 0;
 
 var qaction = function qaction(func, delay) {
     queue += 1;
-    console.info("qaction queueing", queue);
+    //console.info("qaction queueing", queue);
     setTimeout(function () {
-        console.info("qaction continuing", queue);
+        //console.info("qaction continuing", queue);
         queue--;
         func();
         if (queue === 0 && UpdateHistory) {
-            console.info("qaction updating history");
+            //console.info("qaction updating history");
             UpdateHistory();
-        } else console.info("qaction after continuing", queue);
+        } else
+            //console.info("qaction after continuing", queue)
+            ;
     }, 0);
 };
 
@@ -88,7 +90,7 @@ var queueAction = function queueAction(action) {
     var _this = this;
 
     // called by a client, with it's this
-    console.info("queueAction", this.props.rasp.raspId, this.props.rasp.depth, this.constructor.name, action);
+    //console.info("queueAction", this.props.rasp.raspId, this.props.rasp.depth, this.constructor.name, action)
     qaction(function () {
         return _this.props.rasp.toParent(action);
     }, 0);
@@ -98,7 +100,7 @@ var qhistory = function qhistory(func, delay) {
     console.info("qhistory", queue, this.id, this.childName, this.childTitle);
     if (ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off");
     if (queue > 0) {
-        console.info("qhistory put off");
+        //console.info("qhistory put off"); 
         return;
     } else setTimeout(func, delay);
 };
@@ -310,9 +312,20 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
             } else if (action.type === "SET_TITLE") {
                 if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_TITLE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                 this.childTitle = action.title; // this is only for pretty debugging
+            } else if (action.type === "SET_PATH_SKIP") {
+                // this child will not consume the path segment, so pass the path segment to the next child, but reset the state if it isn't
+                if ((0, _shallowequal2.default)(this.state.rasp, this.initialRASP)) {
+                    if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
+                    action.function({ type: 'SET_PATH', segment: action.segment, initialRASP: this.initialRASP }); // if the child is this child's parent RASP, then it will reset initialRASP
+                } else {
+                    if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP setState first", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+                    this.setState({ rasp: this.initialRASP }, function () {
+                        return action.function({ type: 'SET_PATH', segment: action.segment, initialRASP: _this4.initialRASP });
+                    }); // if the child is this child's parent RASP, then it will reset initialRASP)
+                }
             } else if (action.type === "CONTINUE_SET_PATH") {
                 if (ReactActionStatePath.pathSegments.length) {
-                    if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+                    if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
                     qaction(function () {
                         return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this4.initialRASP });
                     }, 0);
@@ -798,24 +811,40 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                 });
                 return null; // end of the line
             } else if (action.type === "SET_PATH") {
-                var _segmentToState = this.segmentToState(action, action.initialRASP),
-                    nextRASP = _segmentToState.nextRASP,
-                    setBeforeWait = _segmentToState.setBeforeWait;
+                var _ref = this.segmentToState && this.segmentToState(action, action.initialRASP),
+                    nextRASP = _ref.nextRASP,
+                    setBeforeWait = _ref.setBeforeWait;
 
-                var key = nextRASP[this.keyField];
-                if (typeof key !== 'undefined' && key !== null) {
-                    if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
-                    else if (setBeforeWait) {
-                            this.waitingOn = { nextRASP: nextRASP, nextFunc: function nextFunc() {
-                                    return _this12.props.rasp.toParent({ type: "CONTINUE_SET_PATH", function: _this12.toChild[key] });
-                                } };
-                            this.props.rasp.toParent({ type: "SET_STATE", nextRASP: nextRASP });
-                        } else {
-                            if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
-                            this.waitingOn = { nextRASP: nextRASP };
-                        }
+                if ((typeof nextRASP === 'undefined' ? 'undefined' : _typeof(nextRASP)) === 'object') {
+                    var key = nextRASP[this.keyField];
+                    if (typeof key !== 'undefined' && key !== null) {
+                        if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
+                        else if (setBeforeWait) {
+                                this.waitingOn = { nextRASP: nextRASP, nextFunc: function nextFunc() {
+                                        return _this12.props.rasp.toParent({ type: "CONTINUE_SET_PATH", function: _this12.toChild[key] });
+                                    } };
+                                this.props.rasp.toParent({ type: "SET_STATE", nextRASP: nextRASP });
+                            } else {
+                                if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
+                                this.waitingOn = { nextRASP: nextRASP };
+                            }
+                    } else {
+                        this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
+                    }
                 } else {
-                    this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
+                    var key = action.initialRASP[this.keyField];
+                    if (typeof key !== 'undefined' && key !== null && this.toChild[key]) {
+                        this.props.rasp.toParent({ type: 'SET_PATH_SKIP', segment: action.segment, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
+                    } else {
+                        var keys = Object.keys(this.toChild);
+                        if (keys.length) this.props.rasp.toParent({ type: 'SET_PATH_SKIP', segment: action.segment, function: this.toChild[keys[0]] }); // we assume there is only 1, if there are others they are ignored
+                        else {
+                                if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH_SKIP waitingOn", action.initialRASP);
+                                this.waitingOn = { nextRASP: action.initialRASP, function: function _function() {
+                                        return _this12.props.rasp.toParent({ type: "SET_PATH_SKIP", segment: action.segment, function: _this12.toChild[Object.keys(_this12.toChild)[0]] });
+                                    } };
+                            }
+                    }
                 }
             } else {
                 // if the key is in the action 
@@ -932,9 +961,9 @@ var ReactActionStatePathMulti = exports.ReactActionStatePathMulti = function (_R
                 });
                 return null; // end of the line
             } else if (action.type === "SET_PATH") {
-                var _segmentToState2 = this.segmentToState(action),
-                    nextRASP = _segmentToState2.nextRASP,
-                    setBeforeWait = _segmentToState2.setBeforeWait;
+                var _segmentToState = this.segmentToState(action),
+                    nextRASP = _segmentToState.nextRASP,
+                    setBeforeWait = _segmentToState.setBeforeWait;
 
                 if (this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent SET_PATH", action);
                 if (nextRASP[this.keyField]) {

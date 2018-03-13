@@ -238,9 +238,17 @@ export class ReactActionStatePath extends React.Component {
         }else if (action.type==="SET_TITLE"){
             if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_TITLE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
             this.childTitle=action.title; // this is only for pretty debugging
+        }else if (action.type==="SET_PATH_SKIP"){ // this child will not consume the path segment, so pass the path segment to the next child, but reset the state if it isn't
+            if(shallowequal(this.state.rasp, this.initialRASP)) {
+                if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
+                action.function({type: 'SET_PATH', segment: action.segment, initialRASP: this.initialRASP});  // if the child is this child's parent RASP, then it will reset initialRASP
+            } else {
+                if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP setState first", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+                this.setState({rasp: this.initialRASP}, ()=>action.function({type: 'SET_PATH', segment: action.segment, initialRASP: this.initialRASP}));  // if the child is this child's parent RASP, then it will reset initialRASP)
+            }
         }else if (action.type==="CONTINUE_SET_PATH"){
             if(ReactActionStatePath.pathSegments.length) {
-                if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+                if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
                 qaction(()=>action.function({type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: this.initialRASP}),0);
             } else {
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
@@ -618,20 +626,35 @@ export class ReactActionStatePathClient extends React.Component {
           });
         return null; // end of the line
     } else if (action.type === "SET_PATH") {
-      const { nextRASP, setBeforeWait } = this.segmentToState(action, action.initialRASP);
-      var key = nextRASP[this.keyField];
-      if (typeof key !== 'undefined' && key !== null) {
-        if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
-        else if (setBeforeWait) {
-            this.waitingOn={nextRASP, nextFunc: ()=>this.props.rasp.toParent({type: "CONTINUE_SET_PATH", function: this.toChild[key]})};
-            this.props.rasp.toParent({type: "SET_STATE", nextRASP});       
+        const { nextRASP, setBeforeWait } = this.segmentToState && this.segmentToState(action, action.initialRASP);
+        if(typeof nextRASP === 'object') {
+            var key = nextRASP[this.keyField];
+            if (typeof key !== 'undefined' && key !== null) {
+                if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
+                else if (setBeforeWait) {
+                    this.waitingOn={nextRASP, nextFunc: ()=>this.props.rasp.toParent({type: "CONTINUE_SET_PATH", function: this.toChild[key]})};
+                    this.props.rasp.toParent({type: "SET_STATE", nextRASP});       
+                } else {
+                if(this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
+                this.waitingOn = {nextRASP};
+                }
+            } else {
+                this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
+            }
         } else {
-          if(this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
-          this.waitingOn = {nextRASP};
+            var key = action.initialRASP[this.keyField];
+            if (typeof key !== 'undefined' && key !== null && this.toChild[key]) {
+                this.props.rasp.toParent({ type: 'SET_PATH_SKIP', segment: action.segment, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
+            } else {
+                let keys=Object.keys(this.toChild);
+                if(keys.length)
+                    this.props.rasp.toParent({ type: 'SET_PATH_SKIP', segment: action.segment, function: this.toChild[keys[0]] }); // we assume there is only 1, if there are others they are ignored
+                else {
+                    if(this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH_SKIP waitingOn", action.initialRASP);
+                    this.waitingOn = {nextRASP: action.initialRASP, function: ()=>this.props.rasp.toParent({type: "SET_PATH_SKIP", segment: action.segment, function: this.toChild[Object.keys(this.toChild)[0]]})};
+                }
+            }
         }
-      } else {
-        this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
-      }
     } else {
         // if the key is in the action 
         let key=action[this.keyField];
