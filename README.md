@@ -23,6 +23,7 @@ This component should be used when there will only be one 'active' child at a ti
 1. `this.toChild[key]({type: "RESET_SHAPE"})` an array of all the child RASP components of this component. 
 2. `this.raspChild(shape, key)` used to get the rasp object with the initial `shape`, and toChild[] table index `key` to pass to a child, 
 3. `this.toMeFromChild()` to send actions to change component state. eg: `onClick={()=>this.toMeFromChild({type: "TOGGLE})}`
+Note: key should be a string and not a numbers (because Object.keys will return a string for this.child[1] )
 
 Within a client component, to send actions to a parent or ancestor use `this.props.rasp.toParent({type: "ACTION"})`
 
@@ -146,6 +147,7 @@ These are the inherent actions:
 * component children that are not in the active path will get their rasp state reset to initialRASP on user navigation (there is a new parent class coming for components that want to retain state of all children)
 * when sending an action to a parent use setTimeout(()=>this.props.rasp.toParent({type: "ACTION_NAME", distance: -1, ...})) so that the action will take place after the children and the current component have rendered. distance: -2 will skip the immediate parent and go to the grandparent, etc.
 * make sure you set the React key of children, or react will do funny things with them.
+* when the shape of the last state in the stack is 'redirect' the state will replace, rather than push on the history.  This is so that when you can go back across the state without automatically going forward to the previous state again.
 
 # Debugging
 
