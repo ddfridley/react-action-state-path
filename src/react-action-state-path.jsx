@@ -649,11 +649,13 @@ export class ReactActionStatePathClient extends React.Component {
           });
         return null; // end of the line
     } else if (action.type === "SET_PATH") {
-        const { nextRASP, setBeforeWait } = this.segmentToState && this.segmentToState(action, action.initialRASP);
+        var nextRASP, setBeforeWait;
+        let obj = this.segmentToState && this.segmentToState(action, action.initialRASP);
+        if (typeof obj === 'object') { nextRASP=obj.nextRASP; setBeforeWait=obj.setBeforeWait};
         if(typeof nextRASP === 'object') {
             var key = nextRASP[this.keyField];
             if (typeof key !== 'undefined' && key !== null) {
-                if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
+                if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
                 else if (setBeforeWait) {
                     this.waitingOn={nextRASP, nextFunc: ()=>this.props.rasp.toParent({type: "CONTINUE_SET_PATH", function: this.toChild[key]})};
                     this.props.rasp.toParent({type: "SET_STATE", nextRASP});       
@@ -662,7 +664,7 @@ export class ReactActionStatePathClient extends React.Component {
                 this.waitingOn = {nextRASP};
                 }
             } else {
-                this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: null });
+                this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: null });
             }
         } else {
             var key = action.initialRASP[this.keyField];

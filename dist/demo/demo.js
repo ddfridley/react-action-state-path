@@ -1392,10 +1392,11 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                 });
                 return null; // end of the line
             } else if (action.type === "SET_PATH") {
-                var _ref = this.segmentToState && this.segmentToState(action, action.initialRASP),
-                    nextRASP = _ref.nextRASP,
-                    setBeforeWait = _ref.setBeforeWait;
-
+                var nextRASP, setBeforeWait;
+                var obj = this.segmentToState && this.segmentToState(action, action.initialRASP);
+                if ((typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) === 'object') {
+                    nextRASP = obj.nextRASP;setBeforeWait = obj.setBeforeWait;
+                };
                 if ((typeof nextRASP === 'undefined' ? 'undefined' : _typeof(nextRASP)) === 'object') {
                     var key = nextRASP[this.keyField];
                     if (typeof key !== 'undefined' && key !== null) {
