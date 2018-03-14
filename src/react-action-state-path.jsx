@@ -28,11 +28,11 @@ var equaly=function(a,b){
 //     toParent: the function to call to send 'actions' to the parent function
 //     each child component can add more properties to it's state, through the actionToState function
 //     }
-//
+//q
 
 var queue=0;
 
-var qaction=function(func,delay){
+var qaction=function(func){
     queue+=1;
     //console.info("qaction queueing", queue);
     setTimeout(()=>{
@@ -50,17 +50,40 @@ var qaction=function(func,delay){
 
 var queueAction=function(action){ // called by a client, with it's this
     //console.info("queueAction", this.props.rasp.raspId, this.props.rasp.depth, this.constructor.name, action)
-    qaction(()=>this.props.rasp.toParent(action),0)
+    qaction(()=>this.props.rasp.toParent(action))
 }
 
 var qhistory=function(func,delay){
     console.info("qhistory", queue, this.id, this.childName, this.childTitle);
-    if(ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off")
     if(queue>0) {
         //console.info("qhistory put off"); 
         return;
     } else 
         setTimeout(func, delay);
+}
+
+// not being used yet
+var qfuncPair=(updateHistory)=>{
+    var queue=0;
+    var qaction=(func)=>{
+        queue+=1;
+        setTimeout(()=>{
+            queue--;
+            func();
+            if(queue===0 && updateHistory)
+                updateHistory();
+        },0)
+    }
+    var qhistory=(func,delay)=>{
+        console.info("qhistory", queue);
+        if(queue>0) {
+            //console.info("qhistory put off"); 
+            return;
+        } else 
+            setTimeout(func, delay);
+
+    }
+    return({qaction, qhistory});
 }
 
 var UpdateHistory;
@@ -212,11 +235,11 @@ export class ReactActionStatePath extends React.Component {
                 qaction(()=>{
                     ReactActionStatePath.topState="SET_PATH";
                     this.toChild({type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift(), initialRASP: this.initialRASP });
-                },0); // this starts after the return toChild so it completes.
+                }); // this starts after the return toChild so it completes.
             } else if(this.waitingOn){
                 var nextFunc=this.waitingOn.nextFunc;
                 this.waitingOn=null;
-                qaction(nextFunc,0);
+                qaction(nextFunc);
                 return;
             }
         }else if (action.type==="SET_ACTION_FILTER"){
@@ -241,15 +264,15 @@ export class ReactActionStatePath extends React.Component {
         }else if (action.type==="SET_PATH_SKIP"){ // this child will not consume the path segment, so pass the path segment to the next child, but reset the state if it isn't
             if(shallowequal(this.state.rasp, this.initialRASP)) {
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
-                action.function({type: 'SET_PATH', segment: action.segment, initialRASP: this.initialRASP});  // if the child is this child's parent RASP, then it will reset initialRASP
+                qaction(()=>action.function({type: 'SET_PATH', segment: action.segment, initialRASP: this.initialRASP}));  // if the child is this child's parent RASP, then it will reset initialRASP
             } else {
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP setState first", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
-                this.setState({rasp: this.initialRASP}, ()=>action.function({type: 'SET_PATH', segment: action.segment, initialRASP: this.initialRASP}));  // if the child is this child's parent RASP, then it will reset initialRASP)
+                this.setState({rasp: this.initialRASP}, ()=>qaction(()=>action.function({type: 'SET_PATH', segment: action.segment, initialRASP: this.initialRASP})));  // if the child is this child's parent RASP, then it will reset initialRASP)
             }
         }else if (action.type==="CONTINUE_SET_PATH"){
             if(ReactActionStatePath.pathSegments.length) {
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
-                qaction(()=>action.function({type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: this.initialRASP}),0);
+                qaction(()=>action.function({type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: this.initialRASP}));
             } else {
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
                 if(this.id!==0) this.props.rasp.toParent({type: "SET_PATH_COMPLETE"}); else { if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE_SET_PATH updateHistory"); this.updateHistory()};
@@ -258,7 +281,7 @@ export class ReactActionStatePath extends React.Component {
             if(ReactActionStatePath.pathSegments.length) {
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                 if(action.function)
-                    this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)},()=>action.function({type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: this.initialRASP}));
+                    this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)},()=>qaction(()=>action.function({type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: this.initialRASP})));
                 else {
                     console.error("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE pathSegments remain, but no next function", this.id, this.childTitle, action, ReactActionStatePath.pathSegments);
                     this.setState({rasp: Object.assign({},this.state.rasp, action.nextRASP)});
@@ -347,7 +370,7 @@ export class ReactActionStatePath extends React.Component {
                 this.props.rasp.toParent(action); // passs the original action, with incremented distance
             } else { // this is the root RASP, update history.state
                 if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState at root",this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
-                if((typeof window === 'undefined' && this.props.rasp && this.props.rasp.toParent)) qaction(()=>this.props.rasp.toParent(action),0); // on server, send action to server renderer
+                if((typeof window === 'undefined' && this.props.rasp && this.props.rasp.toParent)) qaction(()=>this.props.rasp.toParent(action)); // on server, send action to server renderer
                 qhistory.call(this,()=>{ if(this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED default updateHistory");this.updateHistory()},0);
             }
         } else { // the action was not understood, send it up
@@ -577,8 +600,8 @@ export class ReactActionStatePathClient extends React.Component {
             if(this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent got waitingOn nextRASP", nextRASP);
             var nextFunc=this.waitingOn.nextFunc;
             this.waitingOn = null;
-            if(nextFunc) qaction(nextFunc,0);
-            else qaction(() => this.props.rasp.toParent({ type: "SET_STATE_AND_CONTINUE", nextRASP: nextRASP, function: this.toChild[key] }), 0);
+            if(nextFunc) qaction(nextFunc);
+            else qaction(() => this.props.rasp.toParent({ type: "SET_STATE_AND_CONTINUE", nextRASP: nextRASP, function: this.toChild[key] }));
           }
         }
       }

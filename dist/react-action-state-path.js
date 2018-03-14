@@ -66,11 +66,11 @@ var equaly = function equaly(a, b) {
 //     toParent: the function to call to send 'actions' to the parent function
 //     each child component can add more properties to it's state, through the actionToState function
 //     }
-//
+//q
 
 var queue = 0;
 
-var qaction = function qaction(func, delay) {
+var qaction = function qaction(func) {
     queue += 1;
     //console.info("qaction queueing", queue);
     setTimeout(function () {
@@ -93,16 +93,36 @@ var queueAction = function queueAction(action) {
     //console.info("queueAction", this.props.rasp.raspId, this.props.rasp.depth, this.constructor.name, action)
     qaction(function () {
         return _this.props.rasp.toParent(action);
-    }, 0);
+    });
 };
 
 var qhistory = function qhistory(func, delay) {
     console.info("qhistory", queue, this.id, this.childName, this.childTitle);
-    if (ReactActionStatePath.queue) console.info("ReactActionStatePath queue - would have been put off");
     if (queue > 0) {
         //console.info("qhistory put off"); 
         return;
     } else setTimeout(func, delay);
+};
+
+// not being used yet
+var qfuncPair = function qfuncPair(updateHistory) {
+    var queue = 0;
+    var qaction = function qaction(func) {
+        queue += 1;
+        setTimeout(function () {
+            queue--;
+            func();
+            if (queue === 0 && updateHistory) updateHistory();
+        }, 0);
+    };
+    var qhistory = function qhistory(func, delay) {
+        console.info("qhistory", queue);
+        if (queue > 0) {
+            //console.info("qhistory put off"); 
+            return;
+        } else setTimeout(func, delay);
+    };
+    return { qaction: qaction, qhistory: qhistory };
 };
 
 var UpdateHistory;
@@ -285,11 +305,11 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     qaction(function () {
                         ReactActionStatePath.topState = "SET_PATH";
                         _this4.toChild({ type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this4.initialRASP });
-                    }, 0); // this starts after the return toChild so it completes.
+                    }); // this starts after the return toChild so it completes.
                 } else if (this.waitingOn) {
                     var nextFunc = this.waitingOn.nextFunc;
                     this.waitingOn = null;
-                    qaction(nextFunc, 0);
+                    qaction(nextFunc);
                     return;
                 }
             } else if (action.type === "SET_ACTION_FILTER") {
@@ -316,11 +336,15 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 // this child will not consume the path segment, so pass the path segment to the next child, but reset the state if it isn't
                 if ((0, _shallowequal2.default)(this.state.rasp, this.initialRASP)) {
                     if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
-                    action.function({ type: 'SET_PATH', segment: action.segment, initialRASP: this.initialRASP }); // if the child is this child's parent RASP, then it will reset initialRASP
+                    qaction(function () {
+                        return action.function({ type: 'SET_PATH', segment: action.segment, initialRASP: _this4.initialRASP });
+                    }); // if the child is this child's parent RASP, then it will reset initialRASP
                 } else {
                     if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP setState first", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                     this.setState({ rasp: this.initialRASP }, function () {
-                        return action.function({ type: 'SET_PATH', segment: action.segment, initialRASP: _this4.initialRASP });
+                        return qaction(function () {
+                            return action.function({ type: 'SET_PATH', segment: action.segment, initialRASP: _this4.initialRASP });
+                        });
                     }); // if the child is this child's parent RASP, then it will reset initialRASP)
                 }
             } else if (action.type === "CONTINUE_SET_PATH") {
@@ -328,7 +352,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                     if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
                     qaction(function () {
                         return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this4.initialRASP });
-                    }, 0);
+                    });
                 } else {
                     if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
                     if (this.id !== 0) this.props.rasp.toParent({ type: "SET_PATH_COMPLETE" });else {
@@ -339,7 +363,9 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 if (ReactActionStatePath.pathSegments.length) {
                     if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
                     if (action.function) this.setState({ rasp: Object.assign({}, this.state.rasp, action.nextRASP) }, function () {
-                        return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this4.initialRASP });
+                        return qaction(function () {
+                            return action.function({ type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: _this4.initialRASP });
+                        });
                     });else {
                         console.error("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE pathSegments remain, but no next function", this.id, this.childTitle, action, ReactActionStatePath.pathSegments);
                         this.setState({ rasp: Object.assign({}, this.state.rasp, action.nextRASP) });
@@ -447,7 +473,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                         if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
                         if (typeof window === 'undefined' && this.props.rasp && this.props.rasp.toParent) qaction(function () {
                             return _this4.props.rasp.toParent(action);
-                        }, 0); // on server, send action to server renderer
+                        }); // on server, send action to server renderer
                         qhistory.call(this, function () {
                             if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED default updateHistory");_this4.updateHistory();
                         }, 0);
@@ -749,9 +775,9 @@ var ReactActionStatePathClient = exports.ReactActionStatePathClient = function (
                             if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent got waitingOn nextRASP", nextRASP);
                             var nextFunc = this.waitingOn.nextFunc;
                             this.waitingOn = null;
-                            if (nextFunc) qaction(nextFunc, 0);else qaction(function () {
+                            if (nextFunc) qaction(nextFunc);else qaction(function () {
                                 return _this11.props.rasp.toParent({ type: "SET_STATE_AND_CONTINUE", nextRASP: nextRASP, function: _this11.toChild[key] });
-                            }, 0);
+                            });
                         }
                     }
                 }
