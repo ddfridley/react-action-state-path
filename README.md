@@ -73,6 +73,7 @@ component-name.jsx:
             super(props, 'key' [, debugLevel]);    // the 'key' is the name of the property name used to identify the children. left out it will be 'key'
         }
 
+        // If a component does not contribute to the url path, segmentToState should not defined, don't add anything to delta.pathSegment and this component will not be part of the URL path
         segmentToState(action) {  // return the state for the component based on it's action.segment part of the url when starting from a specific URL
             var nextRASP= // calculate the RASP state based on action.segment for this component
             nextRASP.shape=// calculate the shape
@@ -168,4 +169,3 @@ I am sharing it on github in case its useful for anyone else, and I welcome any 
 
 * updateHistory should be a direct call to the root rather than a peer to peer call up to the root.
 
-* fold segmentToState into actionToPath it may not need to be separate

@@ -480,7 +480,7 @@ export class ReactActionStatePath extends React.Component {
             return acc;
         }, []);
         curPath = (this.props.RASPRoot || '/h/') + curPath.join('/');
-        if (curPath !== window.location.pathname && stateStack[stateStack.length-1].shape !== 'redirect') { // push the new state and path onto history
+        if (curPath !== window.location.pathname && stateStack.stateStack[stateStack.stateStack.length-1].shape !== 'redirect') { // push the new state and path onto history
             if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", { stateStack }, { curPath });
             window.history.pushState(stateStack, '', curPath);
         } else { // update the state of the current historys

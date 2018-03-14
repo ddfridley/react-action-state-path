@@ -1156,7 +1156,7 @@ var ReactActionStatePath = exports.ReactActionStatePath = function (_React$Compo
                 return acc;
             }, []);
             curPath = (this.props.RASPRoot || '/h/') + curPath.join('/');
-            if (curPath !== window.location.pathname && stateStack[stateStack.length - 1].shape !== 'redirect') {
+            if (curPath !== window.location.pathname && stateStack.stateStack[stateStack.stateStack.length - 1].shape !== 'redirect') {
                 // push the new state and path onto history
                 if (this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", { stateStack: stateStack }, { curPath: curPath });
                 window.history.pushState(stateStack, '', curPath);
