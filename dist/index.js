@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.default = void 0;
 
 var _require = require('./react-action-state-path'),
     ReactActionStatePath = _require.ReactActionStatePath,
@@ -10,5 +11,5 @@ var _require = require('./react-action-state-path'),
 
 module.exports.ReactActionStatePath = ReactActionStatePath;
 module.exports.ReactActionStatePathClient = ReactActionStatePathClient;
-
-exports.default = ReactActionStatePath;
+var _default = ReactActionStatePath;
+exports.default = _default;

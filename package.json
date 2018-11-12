@@ -1,11 +1,12 @@
 {
   "name": "react-action-state-path",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "An alternative to redux for use when components choose children dynamically based on user input and where simplified state needs to be recorded in the URL path so that users can navigate.",
   "main": "dist/react-action-state-path.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "bash postinstall.sh"
+    "postinstall": "bash postinstall.sh",
+    "start": "node dist/server.js"
   },
   "repository": {
     "type": "git",
@@ -18,19 +19,36 @@
   },
   "homepage": "https://github.com/ddfridley/react-action-state-path#readme",
   "devDependencies": {
-    "babel-cli": "^6.24.0",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-preset-react": "^6.24.1",
-    "babel-preset-stage-0": "^6.24.1",
-    "browserify": "^14.4.0"
+    "@babel/cli": "^7.0.0",
+    "@babel/core": "^7.0.0",
+    "@babel/plugin-proposal-class-properties": "^7.0.0",
+    "@babel/plugin-proposal-decorators": "^7.0.0",
+    "@babel/plugin-proposal-do-expressions": "^7.0.0",
+    "@babel/plugin-proposal-export-default-from": "^7.0.0",
+    "@babel/plugin-proposal-export-namespace-from": "^7.0.0",
+    "@babel/plugin-proposal-function-bind": "^7.0.0",
+    "@babel/plugin-proposal-function-sent": "^7.0.0",
+    "@babel/plugin-proposal-json-strings": "^7.0.0",
+    "@babel/plugin-proposal-logical-assignment-operators": "^7.0.0",
+    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.0.0",
+    "@babel/plugin-proposal-numeric-separator": "^7.0.0",
+    "@babel/plugin-proposal-optional-chaining": "^7.0.0",
+    "@babel/plugin-proposal-pipeline-operator": "^7.0.0",
+    "@babel/plugin-proposal-throw-expressions": "^7.0.0",
+    "@babel/plugin-syntax-dynamic-import": "^7.0.0",
+    "@babel/plugin-syntax-import-meta": "^7.0.0",
+    "@babel/preset-env": "^7.0.0",
+    "@babel/preset-react": "^7.0.0",
+    "browserify": "^16.2.3"
   },
   "dependencies": {
     "classnames": "^2.2.5",
     "clone": "^2.1.1",
     "express": "^4.15.4",
-    "react": "^15.6.1",
-    "react-dom": "^15.6.1",
-    "react-proactive-accordion": "github:ddfridley/react-proactive-accordion",
+    "lodash": "^4.17.11",
+    "react": "^16.6.1",
+    "react-dom": "^16.6.1",
+    "react-proactive-accordion": "github:ddfridley/react-proactive-accordion#react16",
     "shallowequal": "^1.0.2"
   },
   "engines": {
