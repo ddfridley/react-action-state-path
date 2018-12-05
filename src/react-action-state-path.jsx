@@ -1,8 +1,6 @@
 'use strict';
 
 import React from 'react';
-import ReactDOM from 'react-dom';
-import ClassNames from 'classnames';
 import union from 'lodash/union';
 import shallowequal from 'shallowequal';
 import clone from 'clone';
@@ -39,7 +37,7 @@ var qaction=function(func){
         //console.info("qaction continuing", queue);
         queue--;
         func();
-        if(queue===0 && UpdateHistory) {
+        if(queue===0 && UpdateHistory && !ReactActionStatePath.topState) {
             //console.info("qaction updating history");
             UpdateHistory();
         } else 
@@ -126,6 +124,10 @@ export class ReactActionStatePath extends React.Component {
         if(typeof ReactActionStatePath.nextId === 'undefined') { // this is the root ReactActionStatePath
              ReactActionStatePath.nextId= 0;
              ReactActionStatePath.queue=0;  // initialize the queue count
+             if(queue!==0) {
+                 console.error("ReactActionStatePath module scope queue was not 0, was:", queue, "resetting.")
+                 queue=0;
+             }
              ReactActionStatePath.topState=null;
              if(this.props.path && this.props.path !== '/'){
                 let pathSegments= this.props.path.split('/');
@@ -190,7 +192,7 @@ export class ReactActionStatePath extends React.Component {
                 }
             },10000);
             this.toMeFromParent({type: "ONPOPSTATE", stateStack: event.state.stateStack, stackDepth: 0});
-            if(this.debug.onpopstate) console.log("ReactActionStatePath.onpopsate: returned.")
+            if(this.debug.onpopstate) console.log("ReactActionStatePath.onpopstate: returned.")
             ReactActionStatePath.topState=null;
             clearTimeout(completionCheck);
         }
@@ -275,7 +277,13 @@ export class ReactActionStatePath extends React.Component {
                 qaction(()=>action.function({type: 'SET_PATH', segment: ReactActionStatePath.pathSegments.shift(), initialRASP: this.initialRASP}));
             } else {
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
-                if(this.id!==0) this.props.rasp.toParent({type: "SET_PATH_COMPLETE"}); else { if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE_SET_PATH updateHistory"); this.updateHistory()};
+                if(this.id!==0) this.props.rasp.toParent({type: "SET_PATH_COMPLETE"}); 
+                else { 
+                    if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE_SET_PATH updateHistory"); 
+                    ReactActionStatePath.topState=null;
+                    clearTimeout(this.completionCheck);
+                    this.updateHistory()
+                }
             }
         }else if (action.type==="SET_STATE_AND_CONTINUE"){
             if(ReactActionStatePath.pathSegments.length) {
@@ -460,10 +468,9 @@ export class ReactActionStatePath extends React.Component {
             return null;
         }
         if(typeof window === 'undefined') { 
-            if(this.debug.noop) console.info("ReactActionStatePath.updateHistory called on servr side"); 
-            if(this.props.rasp && this.props.rasp.toParent)
-                this.props.rasp.toParent({type: "UPDATE_HISTORY"});
-            return; 
+            if(this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side"); 
+            if(!(this.props.rasp && this.props.rasp.toParent)) // don't get history on server side if no toParent to send it to
+                return;
         }
         let completionCheck=setTimeout(()=>{
             if(ReactActionStatePath.topState==="GET_STATE"){
@@ -475,17 +482,24 @@ export class ReactActionStatePath extends React.Component {
         var stateStack = { stateStack: this.toMeFromParent({ type: "GET_STATE" }) };  // recursively call me to get my state stack
         ReactActionStatePath.topState=null;
         clearTimeout(completionCheck);
-        var curPath = stateStack.stateStack.reduce((acc, cur) => { // parse the state to build the curreent path
+        var curPath = stateStack.stateStack.reduce((acc, cur) => { // parse the state to build the current path
             if (cur.pathSegment) acc.push(cur.pathSegment);
             return acc;
         }, []);
         curPath = (this.props.RASPRoot || '/h/') + curPath.join('/');
-        if (curPath !== window.location.pathname && stateStack.stateStack[stateStack.stateStack.length-1].shape !== 'redirect') { // push the new state and path onto history
-            if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", { stateStack }, { curPath });
-            window.history.pushState(stateStack, '', curPath);
-        } else { // update the state of the current historys
-            if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent replaceState", { stateStack }, { curPath });
-            window.history.replaceState(stateStack, '', curPath); //update the history after changes have propogated among the children
+        if(typeof window !== 'undefined'){
+            if (curPath !== window.location.pathname && stateStack.stateStack[stateStack.stateStack.length-1].shape !== 'redirect') { // push the new state and path onto history
+                if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", { stateStack }, { curPath });
+                window.history.pushState(stateStack, '', curPath);
+            } else { // update the state of the current historys
+                if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent replaceState", { stateStack }, { curPath });
+                window.history.replaceState(stateStack, '', curPath); //update the history after changes have propagated among the children
+            }
+        } else {
+            if(this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side"); 
+            if(this.props.rasp && this.props.rasp.toParent)
+                this.props.rasp.toParent({type: "UPDATE_HISTORY", stateStack, curPath });
+            return;             
         }
         return null;
     }

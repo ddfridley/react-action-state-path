@@ -7,10 +7,6 @@ exports.ReactActionStatePathFilter = exports.ReactActionStatePathMulti = exports
 
 var _react = _interopRequireDefault(require("react"));
 
-var _reactDom = _interopRequireDefault(require("react-dom"));
-
-var _classnames = _interopRequireDefault(require("classnames"));
-
 var _union = _interopRequireDefault(require("lodash/union"));
 
 var _shallowequal = _interopRequireDefault(require("shallowequal"));
@@ -81,7 +77,7 @@ var qaction = function qaction(func) {
     queue--;
     func();
 
-    if (queue === 0 && UpdateHistory) {
+    if (queue === 0 && UpdateHistory && !ReactActionStatePath.topState) {
       //console.info("qaction updating history");
       UpdateHistory();
     } else //console.info("qaction after continuing", queue)
@@ -202,6 +198,11 @@ function (_React$Component) {
       ReactActionStatePath.nextId = 0;
       ReactActionStatePath.queue = 0; // initialize the queue count
 
+      if (queue !== 0) {
+        console.error("ReactActionStatePath module scope queue was not 0, was:", queue, "resetting.");
+        queue = 0;
+      }
+
       ReactActionStatePath.topState = null;
 
       if (_this2.props.path && _this2.props.path !== '/') {
@@ -318,7 +319,7 @@ function (_React$Component) {
           stateStack: event.state.stateStack,
           stackDepth: 0
         });
-        if (this.debug.onpopstate) console.log("ReactActionStatePath.onpopsate: returned.");
+        if (this.debug.onpopstate) console.log("ReactActionStatePath.onpopstate: returned.");
         ReactActionStatePath.topState = null;
         clearTimeout(completionCheck);
       }
@@ -458,9 +459,10 @@ function (_React$Component) {
             type: "SET_PATH_COMPLETE"
           });else {
             if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE_SET_PATH updateHistory");
+            ReactActionStatePath.topState = null;
+            clearTimeout(this.completionCheck);
             this.updateHistory();
           }
-          ;
         }
       } else if (action.type === "SET_STATE_AND_CONTINUE") {
         if (ReactActionStatePath.pathSegments.length) {
@@ -771,11 +773,9 @@ function (_React$Component) {
       }
 
       if (typeof window === 'undefined') {
-        if (this.debug.noop) console.info("ReactActionStatePath.updateHistory called on servr side");
-        if (this.props.rasp && this.props.rasp.toParent) this.props.rasp.toParent({
-          type: "UPDATE_HISTORY"
-        });
-        return;
+        if (this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side");
+        if (!(this.props.rasp && this.props.rasp.toParent)) // don't get history on server side if no toParent to send it to
+          return;
       }
 
       var completionCheck = setTimeout(function () {
@@ -794,28 +794,38 @@ function (_React$Component) {
       ReactActionStatePath.topState = null;
       clearTimeout(completionCheck);
       var curPath = stateStack.stateStack.reduce(function (acc, cur) {
-        // parse the state to build the curreent path
+        // parse the state to build the current path
         if (cur.pathSegment) acc.push(cur.pathSegment);
         return acc;
       }, []);
       curPath = (this.props.RASPRoot || '/h/') + curPath.join('/');
 
-      if (curPath !== window.location.pathname && stateStack.stateStack[stateStack.stateStack.length - 1].shape !== 'redirect') {
-        // push the new state and path onto history
-        if (this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", {
-          stateStack: stateStack
-        }, {
-          curPath: curPath
-        });
-        window.history.pushState(stateStack, '', curPath);
+      if (typeof window !== 'undefined') {
+        if (curPath !== window.location.pathname && stateStack.stateStack[stateStack.stateStack.length - 1].shape !== 'redirect') {
+          // push the new state and path onto history
+          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", {
+            stateStack: stateStack
+          }, {
+            curPath: curPath
+          });
+          window.history.pushState(stateStack, '', curPath);
+        } else {
+          // update the state of the current historys
+          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromParent replaceState", {
+            stateStack: stateStack
+          }, {
+            curPath: curPath
+          });
+          window.history.replaceState(stateStack, '', curPath); //update the history after changes have propagated among the children
+        }
       } else {
-        // update the state of the current historys
-        if (this.debug.noop) console.log("ReactActionStatePath.toMeFromParent replaceState", {
-          stateStack: stateStack
-        }, {
+        if (this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side");
+        if (this.props.rasp && this.props.rasp.toParent) this.props.rasp.toParent({
+          type: "UPDATE_HISTORY",
+          stateStack: stateStack,
           curPath: curPath
         });
-        window.history.replaceState(stateStack, '', curPath); //update the history after changes have propogated among the children
+        return;
       }
 
       return null;
