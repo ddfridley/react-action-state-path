@@ -366,7 +366,7 @@ function (_React$Component) {
           if (ReactActionStatePath.topState) console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD, expected topState null got:", ReactActionStatePath.topState);
           this.completionCheck = setTimeout(function () {
             if (ReactActionStatePath.topState === "SET_PATH") {
-              console.error("ReactActionStatePath.toMeFromChild SET_PATH did not complete", _this4);
+              console.error("ReactActionStatePath.toMeFromChild SET_PATH did not complete, topState:", ReactActionStatePath.topState, "this:", _this4);
               ReactActionStatePath.topState = null;
             }
           }, 10000);
@@ -1224,6 +1224,26 @@ function (_React$Component2) {
         shape: shape,
         toParent: this.toMeFromChild.bind(this, childKey)
       });
+    } // when using actionFilers all you need is this actionToState - or you can replace it
+
+  }, {
+    key: "actionToState",
+    value: function actionToState(action, rasp, source, initialRASP, delta) {
+      var _console;
+
+      if (this.debug.noop) (_console = console).info.apply(_console, ["ReactActionStatePath.actionToState"].concat(Array.prototype.slice.call(arguments)));
+      var nextRASP = {};
+
+      if (this.vM && this.vM.actionToState(action, rasp, source, initialRASP, delta)) {
+        ; //then do nothing - it's been done if (action.type==="DESCENDANT_FOCUS") {
+      } else if (Object.keys(delta).length) {
+        ; // no need to do anything, but do continue to calculate nextRASP
+      } else return null; // don't know this action, null so the default methods can have a shot at it
+
+
+      Object.assign(nextRASP, rasp, delta);
+      if (this.vM && this.vM.deriveRASP) this.vM.deriveRASP(nextRASP, initialRASP);else if (this.deriveRASP) this.deriveRASP(nextRASP, initialRASP);
+      return nextRASP;
     }
   }]);
 
