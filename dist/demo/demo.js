@@ -3968,6 +3968,20 @@ function (_React$Component2) {
       if (this.vM && this.vM.deriveRASP) this.vM.deriveRASP(nextRASP, initialRASP);else if (this.deriveRASP) this.deriveRASP(nextRASP, initialRASP);
       return nextRASP;
     }
+  }, {
+    key: "componentWillMount",
+    value: function componentWillMount() {
+      var _this13 = this;
+
+      if (this.actionFilters) Object.keys(this.actionFilters).forEach(function (filterType) {
+        return _this13.props.rasp.toParent({
+          type: "SET_ACTION_FILTER",
+          filterType: filterType,
+          name: _this13.constructor.name,
+          function: _this13.actionFilters[filterType].bind(_this13)
+        });
+      });
+    }
   }]);
 
   return ReactActionStatePathClient;
@@ -3981,21 +3995,21 @@ function (_ReactActionStatePath) {
   _inherits(ReactActionStatePathMulti, _ReactActionStatePath);
 
   function ReactActionStatePathMulti(props, keyfield, debug) {
-    var _this13;
+    var _this14;
 
     _classCallCheck(this, ReactActionStatePathMulti);
 
-    _this13 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePathMulti).call(this, props, keyfield, debug));
-    if (_typeof(debug) === 'object') _this13.debug = debug;else _this13.debug = {
+    _this14 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePathMulti).call(this, props, keyfield, debug));
+    if (_typeof(debug) === 'object') _this14.debug = debug;else _this14.debug = {
       noop: debug
     };
-    return _this13;
+    return _this14;
   }
 
   _createClass(ReactActionStatePathMulti, [{
     key: "toMeFromParent",
     value: function toMeFromParent(action) {
-      var _this14 = this;
+      var _this15 = this;
 
       if (this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent", this.props.rasp.depth, action);
 
@@ -4008,8 +4022,8 @@ function (_ReactActionStatePath) {
           return keepChild[child] = false;
         });
         stateStack[stackDepth + 1].raspChildren.forEach(function (child) {
-          if (_this14.toChild[child.key]) {
-            _this14.toChild[child.key]({
+          if (_this15.toChild[child.key]) {
+            _this15.toChild[child.key]({
               type: "ONPOPSTATE",
               stateStack: child.stateStack,
               stackDepth: 0
@@ -4023,7 +4037,7 @@ function (_ReactActionStatePath) {
           if (!keep) {
             console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE child not kept", child);
 
-            _this14.toChild[child]({
+            _this15.toChild[child]({
               type: "CLEAR_PATH"
             }); // only one button panel is open, any others are truncated (but inactive)
 
@@ -4035,7 +4049,7 @@ function (_ReactActionStatePath) {
         if (this.debug.noop) console.log("ReactActionStatePathMulti.toMeFromParent GET_STATE", this.props.rasp.depth, action);
         var raspChildren = Object.keys(this.toChild).map(function (child) {
           return {
-            stateStack: _this14.toChild[child]({
+            stateStack: _this15.toChild[child]({
               type: "GET_STATE"
             }),
             key: child
@@ -4063,7 +4077,7 @@ function (_ReactActionStatePath) {
         // clear the path and reset the RASP state back to what the const
         Object.keys(this.toChild).forEach(function (child) {
           // send the action to every child
-          _this14.toChild[child](action);
+          _this15.toChild[child](action);
         });
       } else if (action.type === "RESET") {
         // clear the path and reset the RASP state back to what the const
@@ -4072,7 +4086,7 @@ function (_ReactActionStatePath) {
         if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
         Object.keys(this.toChild).forEach(function (child) {
           // send the action to every child
-          _this14.toChild[child](action);
+          _this15.toChild[child](action);
         });
         return null; // end of the line
       } else if (action.type === "SET_PATH") {
@@ -4092,12 +4106,12 @@ function (_ReactActionStatePath) {
 
             var setPredicessors = function setPredicessors() {
               var predicessors = that.toChild.length;
-              if (_this14.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", key, predicessors);
+              if (_this15.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", key, predicessors);
 
               if (predicessors < key) {
                 var predicessorRASP = Object.assign({}, nextRASP, _defineProperty({}, that.keyField, predicessors));
                 that.waitingOnResults = {
-                  nextFunc: setPredicessors.bind(_this14)
+                  nextFunc: setPredicessors.bind(_this15)
                 };
                 that.props.rasp.toParent({
                   type: "SET_STATE",
@@ -4149,8 +4163,8 @@ function (_ReactActionStatePath) {
           var result;
           keys.forEach(function (key) {
             // send the action to every child
-            if (_this14.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent passing action to child", _this14.constructor.name, _this14.childTitle, _this14.props.rasp.raspId, action, key);
-            result = _this14.toChild[key](action);
+            if (_this15.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent passing action to child", _this15.constructor.name, _this15.childTitle, _this15.props.rasp.raspId, action, key);
+            result = _this15.toChild[key](action);
           });
           return result;
         } else {
@@ -4171,56 +4185,56 @@ function (_React$Component3) {
   _inherits(ReactActionStatePathFilter, _React$Component3);
 
   function ReactActionStatePathFilter(props, keyField, debug) {
-    var _this15;
+    var _this16;
 
     _classCallCheck(this, ReactActionStatePathFilter);
 
-    _this15 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePathFilter).call(this, props));
-    _this15.keyField = keyField;
-    if (_typeof(debug) === 'object') _this15.debug = debug;else _this15.debug = {
+    _this16 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePathFilter).call(this, props));
+    _this16.keyField = keyField;
+    if (_typeof(debug) === 'object') _this16.debug = debug;else _this16.debug = {
       noop: debug
     };
-    _this15.qaction = qaction; // make the module specific funtion available
+    _this16.qaction = qaction; // make the module specific funtion available
 
-    _this15.queueAction = queueAction.bind(_assertThisInitialized(_assertThisInitialized(_this15)));
+    _this16.queueAction = queueAction.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
 
-    _this15.queueFocus = function (action) {
-      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this15)), _defineProperty({
+    _this16.queueFocus = function (action) {
+      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this16)), _defineProperty({
         type: "DESCENDANT_FOCUS",
         wasType: action.type
-      }, _this15.keyField, action[_this15.keyField]));
+      }, _this16.keyField, action[_this16.keyField]));
     };
 
-    _this15.queueUnfocus = function (action) {
-      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this15)), _defineProperty({
+    _this16.queueUnfocus = function (action) {
+      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this16)), _defineProperty({
         type: "DESCENDANT_UNFOCUS",
         wasType: action.type
-      }, _this15.keyField, action[_this15.keyField]));
+      }, _this16.keyField, action[_this16.keyField]));
     };
 
-    _this15.initialRASP = (0, _clone.default)(_this15.props.rasp);
+    _this16.initialRASP = (0, _clone.default)(_this16.props.rasp);
 
-    var _staticKeys = Object.keys(_assertThisInitialized(_assertThisInitialized(_this15))); // the react keys that we aren't going to touch when resetting
+    var _staticKeys = Object.keys(_assertThisInitialized(_assertThisInitialized(_this16))); // the react keys that we aren't going to touch when resetting
 
 
-    _this15._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
+    _this16._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
 
-    _this15.createDefaults = createDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this15)));
-    _this15.restoreDefaults = restoreDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this15)));
-    return _this15;
+    _this16.createDefaults = createDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
+    _this16.restoreDefaults = restoreDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
+    return _this16;
   }
 
   _createClass(ReactActionStatePathFilter, [{
     key: "componentWillMount",
     value: function componentWillMount() {
-      var _this16 = this;
+      var _this17 = this;
 
       if (this.actionFilters) Object.keys(this.actionFilters).forEach(function (filterType) {
-        return _this16.props.rasp.toParent({
+        return _this17.props.rasp.toParent({
           type: "SET_ACTION_FILTER",
           filterType: filterType,
-          name: _this16.constructor.name,
-          function: _this16.actionFilters[filterType].bind(_this16)
+          name: _this17.constructor.name,
+          function: _this17.actionFilters[filterType].bind(_this17)
         });
       });
     }
