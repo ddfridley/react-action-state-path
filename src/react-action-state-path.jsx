@@ -876,10 +876,10 @@ export class ReactActionStatePathFilter extends React.Component {
         this.queueFocus = (action) => queueAction.call(this, { type: "DESCENDANT_FOCUS", wasType: action.type, [this.keyField]: action[this.keyField] });
         this.queueUnfocus = (action) => queueAction.call(this, { type: "DESCENDANT_UNFOCUS", wasType: action.type, [this.keyField]: action[this.keyField] });
         this.initialRASP = clone(this.props.rasp);
-        var _staticKeys = Object.keys(this); // the react keys that we aren't going to touch when resetting
-        this._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
         this.createDefaults = createDefaults.bind(this);
         this.restoreDefaults = restoreDefaults.bind(this);
+        var _staticKeys = Object.keys(this); // the react keys that we aren't going to touch when resetting
+        this._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
     }
 
     componentWillMount(){

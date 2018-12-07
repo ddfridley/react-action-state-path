@@ -4213,14 +4213,14 @@ function (_React$Component3) {
     };
 
     _this16.initialRASP = (0, _clone.default)(_this16.props.rasp);
+    _this16.createDefaults = createDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
+    _this16.restoreDefaults = restoreDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
 
     var _staticKeys = Object.keys(_assertThisInitialized(_assertThisInitialized(_this16))); // the react keys that we aren't going to touch when resetting
 
 
     _this16._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
 
-    _this16.createDefaults = createDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
-    _this16.restoreDefaults = restoreDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
     return _this16;
   }
 
