@@ -418,8 +418,8 @@ export class ReactActionStatePath extends React.Component {
             else stack=[Object.assign({},this.state.rasp)];
             return stack;
         } else if(action.type==="RESET") {
-            this.setState(this.getDefaultState()); // reset my state first, then send RESET to child, because it will effect which childs child gets the reset.
-            if(this.toChild) this.toChild(action); // this needs to be processed by the child, before actionToState is processed.
+            if(this.toChild) this.toChild(action); // reset children first, then reset parent (depth first)
+            this.setState(this.getDefaultState()); // now reset my state
             return null;
         } else if(
                 ((this.actionFilters[action.type] && this.actionFilters[action.type].forEach(filter=>filter.function(action, delta))), true) // process any action filters and always evaluate to true
@@ -656,11 +656,12 @@ export class ReactActionStatePathClient extends React.Component {
         } else return null; // end of the line
     } else if (action.type === "RESET") {  // clear the path and reset the RASP state back to what the const
         var delta={};
-        if(this._defaults) this.restoreDefaults(); 
-        if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
+        // reset all the children first (depth first)
         Object.keys(this.toChild).forEach(child => { // send the action to every child
             this.toChild[child](action)
           });
+        if(this._defaults) this.restoreDefaults(); 
+        if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
         return null; // end of the line
     } else if (action.type === "SET_PATH") {
         var nextRASP, setBeforeWait;
@@ -807,11 +808,12 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
           });
         } else if (action.type === "RESET") {  // clear the path and reset the RASP state back to what the const
             var delta={};
-            if(this._defaults) this.restoreDefaults(); 
-            if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
+            // reset children first
             Object.keys(this.toChild).forEach(child => { // send the action to every child
                 this.toChild[child](action)
               });
+            if(this._defaults) this.restoreDefaults(); 
+            if(this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
             return null; // end of the line
         } else if (action.type === "SET_PATH") {
           const { nextRASP, setBeforeWait } = this.segmentToState(action);
