@@ -930,8 +930,12 @@ function restoreDefaults() {
   });
 
   if (this._defaults.state) {
-    var state = this._defaults.state;
-    this.setState(state);
+    try {
+      var state = this._defaults.state;
+      this.setState(state);
+    } catch (error) {
+      console.error("restoreDefaults: setState through error. rasp:", this.props.rasp, "error:", error);
+    }
   }
 }
 

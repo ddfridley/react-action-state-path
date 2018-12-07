@@ -563,8 +563,13 @@ function restoreDefaults() {
     undefinedKeys.forEach(key=>this[key]=undefined);
     Object.keys(this._defaults.that).forEach(key=>{this[key]=clone(this._defaults.that[key])});
     if(this._defaults.state){
-        const state=this._defaults.state;
-        this.setState(state);
+        try {
+            const state=this._defaults.state;
+            this.setState(state);
+        }
+        catch (error) {
+            console.error("restoreDefaults: setState through error. rasp:", this.props.rasp, "error:", error)
+        }
     }
 }
 

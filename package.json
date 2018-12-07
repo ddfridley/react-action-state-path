@@ -1,6 +1,6 @@
 {
   "name": "react-action-state-path",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "An alternative to redux for use when components choose children dynamically based on user input and where simplified state needs to be recorded in the URL path so that users can navigate.",
   "main": "dist/react-action-state-path.js",
   "scripts": {
