@@ -558,18 +558,14 @@ function restoreDefaults() {
     currentKeys.forEach(key=>{
         if(this._staticKeys.indexOf(key)!==-1) return;
         if(defaultKeys.indexOf(key)!==-1) return;
+        if(key[0]==='_') return;  // React16 is adding properties to the class, after it was constructed. such as  _reactInternalFiber and _reactInternalInstance since we can't guess what future will bring we will use _ as the designator
         undefinedKeys.push(key);
     });
     undefinedKeys.forEach(key=>this[key]=undefined);
     Object.keys(this._defaults.that).forEach(key=>{this[key]=clone(this._defaults.that[key])});
     if(this._defaults.state){
-        try {
-            const state=this._defaults.state;
-            this.setState(state);
-        }
-        catch (error) {
-            console.error("restoreDefaults: setState through error. rasp:", this.props.rasp, "error:", error)
-        }
+        const state=this._defaults.state;
+        this.setState(state);
     }
 }
 
