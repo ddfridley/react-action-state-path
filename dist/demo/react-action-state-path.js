@@ -2149,6 +2149,10 @@ function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterat
 var equaly = function equaly(a, b) {
   if (!a && !b) return true; //if both are false, they are the same
 
+  if (a && !b) return false; //if one is false and the other is not - they are not the same
+
+  if (!a && b) return false;
+
   var t = _typeof(a);
 
   if (t !== _typeof(b)) return false; // if not falsy and types are not equal, they are not equal

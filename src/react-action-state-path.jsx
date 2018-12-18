@@ -10,6 +10,8 @@ import clone from 'clone';
 // and we make a deep compare
 var equaly=function(a,b){
             if(!a && !b) return true; //if both are false, they are the same
+            if(a && !b) return false; //if one is false and the other is not - they are not the same
+            if(!a && b) return false;
             let t=typeof a;
             if(t !== typeof b) return false; // if not falsy and types are not equal, they are not equal
             if(t === 'object') return union(Object.keys(a),Object.keys(b)).every(k=>equaly(a[k],b[k])); // they are both objects, break them down and compare them
