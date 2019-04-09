@@ -145,7 +145,7 @@ export class ReactActionStatePath extends React.Component {
 
              if(typeof window !== 'undefined'){ // if we are running on the browser
                 ReactActionStatePath.thiss=[];
-                window.onpopstate=this.onpopstate.bind(this);
+                top.onpopstate=this.onpopstate.bind(this);  // top rather than window incase in iFrame like in storybook
                 window.ReactActionStatePath={thiss: ReactActionStatePath.thiss};
                 UpdateHistory=this.updateHistory.bind(this);
                 if(ReactActionStatePath.pathSegments.length===0) qhistory.call(this,()=>this.updateHistory(),0); // aftr things have settled down, update history for the first time
@@ -490,12 +490,19 @@ export class ReactActionStatePath extends React.Component {
         }, []);
         curPath = (this.props.RASPRoot || '/h/') + curPath.join('/');
         if(typeof window !== 'undefined'){
-            if (curPath !== window.location.pathname && stateStack.stateStack[stateStack.stateStack.length-1].shape !== 'redirect') { // push the new state and path onto history
+            let parts=top.location.href.split('/');
+            if(parts[0]==="http:" || parts[0]==="https:"){
+                parts.shift() // http:
+                parts.shift() // 
+                parts.shift() // localhost:6006
+            }
+            parts=parts.join('/');
+            if (curPath !== parts && stateStack.stateStack[stateStack.stateStack.length-1].shape !== 'redirect') { // push the new state and path onto history
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", { stateStack }, { curPath });
-                window.history.pushState(stateStack, '', curPath);
+                top.history.pushState(stateStack, '', curPath); // history on top in case in iframe like in storybook
             } else { // update the state of the current historys
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent replaceState", { stateStack }, { curPath });
-                window.history.replaceState(stateStack, '', curPath); //update the history after changes have propagated among the children
+                top.history.replaceState(stateStack, '', curPath); //update the history after changes have propagated among the children -- history on top in case in iframe like in storybook
             }
         } else {
             if(this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side"); 
