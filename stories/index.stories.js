@@ -40,13 +40,23 @@ class RASPPassiveClient extends ReactActionStatePathClient {
 		return (
 			<div>
 				<div>Passive Client</div>
-				<Client rasp={this.childRASP('truncated','1')}/>
+				<Client rasp={this.childRASP('truncated','default')}/>
 			</div>
 		)
 	}
 }
 
-class Client extends ReactActionStatePathClient {
+class Client extends React.Component{
+	render(){
+		return(
+			<ReactActionStatePath {...this.props} >
+				<RASPClient />
+			</ReactActionStatePath>
+		)
+	}
+}
+
+class RASPClient extends ReactActionStatePathClient {
 	constructor(props){
 		super(props,"hello",1)
 		this.createDefaults();
@@ -87,9 +97,7 @@ class Client extends ReactActionStatePathClient {
 			<section>
 				<div style={{ fontSize: rasp.hello ? "2rem" : "1rem" }} onClick={() => this.queueAction({ type: "HELLO" })}>Hello World!</div>
 				{rasp.hello && (
-					<ReactActionStatePath rasp={this.childRASP("truncated",'1')} >
-						<Client />
-					</ReactActionStatePath>
+						<Client rasp={this.childRASP("truncated",'1')} />
 				)}
 			</section>
 		)

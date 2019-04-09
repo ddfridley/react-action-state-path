@@ -626,6 +626,12 @@ export class ReactActionStatePathClient extends React.Component {
             this.waitingOn = null;
             if(nextFunc) qaction(nextFunc);
             else qaction(() => this.props.rasp.toParent({ type: "SET_STATE_AND_CONTINUE", nextRASP: nextRASP, function: this.toChild[key] }));
+          } else if((typeof nextRASP[this.keyField]==='undefined' || nextRASP[this.keyField]===null) && key==='default' && this.toChild['default']){
+            if(this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent got waitingOn nextRASP default");
+            var nextFunc=this.waitingOn.nextFunc;
+            this.waitingOn = null;
+            if(nextFunc) qaction(nextFunc);
+            else qaction(() => this.props.rasp.toParent({ type: "SET_STATE_AND_CONTINUE", nextRASP: nextRASP, function: this.toChild[key] }));              
           }
         }
       }
@@ -648,6 +654,7 @@ export class ReactActionStatePathClient extends React.Component {
       let sent = false;
       Object.keys(this.toChild).forEach(child => { // only child panels with RASP managers will have entries in this list. 
         if (child === key) { sent = true; this.toChild[child]({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth+1}); }
+        else if((typeof key==='undefined' || key===null) && child==='default'){ sent = true; this.toChild[child]({type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth+1}); }
         else this.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
       });
       if (key && !sent) console.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action });
@@ -657,12 +664,16 @@ export class ReactActionStatePathClient extends React.Component {
       if (typeof key !== 'undefined' && key !== null){
           if( this.toChild[key]) return this.toChild[key](action); // pass the action to the child
           else console.error("ReactActionStatePathClien.toMeFromParent GET_STATE key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp)
+      } else if(this.toChild['default']) {
+          return this.toChild['default'](action); // pass the action to the default child
       } else return null; // end of the line
     } else if (action.type === "CLEAR_PATH") {  // clear the path and reset the RASP state back to what the const
         var key = this.props.rasp[this.keyField];
         if (typeof key !== 'undefined' && key !== null){
             if( this.toChild[key]) return this.toChild[key](action); // pass the action to the child
             else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there",this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp)
+        } else if(this.toChild['default']) {
+            return this.toChild['default'](action); // pass the action to the default childelse return null; // end of the line
         } else return null; // end of the line
     } else if (action.type === "RESET") {  // clear the path and reset the RASP state back to what the const
         var delta={};
@@ -688,6 +699,8 @@ export class ReactActionStatePathClient extends React.Component {
                 if(this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
                 this.waitingOn = {nextRASP};
                 }
+            } else if(this.toChild['default']) {
+                return this.toChild['default'](action); // pass the action to the default child
             } else {
                 this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: null });
             }
@@ -696,12 +709,16 @@ export class ReactActionStatePathClient extends React.Component {
             if (typeof key !== 'undefined' && key !== null && this.toChild[key]) {
                 this.props.rasp.toParent({ type: 'SET_PATH_SKIP', segment: action.segment, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
             } else {
-                let keys=Object.keys(this.toChild);
-                if(keys.length)
-                    this.props.rasp.toParent({ type: 'SET_PATH_SKIP', segment: action.segment, function: this.toChild[keys[0]] }); // we assume there is only 1, if there are others they are ignored
-                else {
-                    if(this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH_SKIP waitingOn", action.initialRASP);
-                    this.waitingOn = {nextRASP: action.initialRASP, function: ()=>this.props.rasp.toParent({type: "SET_PATH_SKIP", segment: action.segment, function: this.toChild[Object.keys(this.toChild)[0]]})};
+                if(this.toChild['default']){
+                    this.props.rasp.toParent({ type: 'SET_PATH_SKIP', segment: action.segment, function: this.toChild['default']}); // we assume there is only 1, if there are others they are ignored
+                } else {
+                    let keys=Object.keys(this.toChild);
+                    if(keys.length)
+                        this.props.rasp.toParent({ type: 'SET_PATH_SKIP', segment: action.segment, function: this.toChild[keys[0]] }); // we assume there is only 1, if there are others they are ignored
+                    else {
+                        if(this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH_SKIP waitingOn", action.initialRASP);
+                        this.waitingOn = {nextRASP: action.initialRASP, function: ()=>this.props.rasp.toParent({type: "SET_PATH_SKIP", segment: action.segment, function: this.toChild[Object.keys(this.toChild)[0]]})};
+                    }
                 }
             }
         }
@@ -719,6 +736,8 @@ export class ReactActionStatePathClient extends React.Component {
                 if(this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on active child of rasp", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, key);
                 return this.toChild[key](action); // pass the action to the child
             }
+        } else if(this.toChild['default']) {
+            return this.toChild['default'](action); // pass the action to the default child
         } else {
             if(this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent unknown action and not active child", this.constructor.name, this.childTitle, this.props.rasp.raspId, action);
         }
@@ -726,7 +745,7 @@ export class ReactActionStatePathClient extends React.Component {
 }
 
   // a consistent way to set the rasp for children
-  childRASP(shape, childKey) {
+  childRASP(shape, childKey='default') {
       return (
           Object.assign({}, this.props.rasp, { shape, toParent: this.toMeFromChild.bind(this, childKey) })
       );
