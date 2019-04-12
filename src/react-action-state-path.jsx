@@ -235,7 +235,7 @@ export class ReactActionStatePath extends React.Component {
                         console.error("ReactActionStatePath.toMeFromChild SET_PATH did not complete, topState:", ReactActionStatePath.topState, "this:",this);
                         ReactActionStatePath.topState=null;
                     }
-                },10000);
+                },30000);
                 qaction(()=>{
                     ReactActionStatePath.topState="SET_PATH";
                     this.toChild({type: "SET_PATH", segment: ReactActionStatePath.pathSegments.shift(), initialRASP: this.initialRASP });
@@ -464,10 +464,14 @@ export class ReactActionStatePath extends React.Component {
     updateHistory() {
         if(this.debug.noop) console.info("ReactActionStatePath.updateHistory",  this.id);
         if(this.id!==0) console.error("ReactActionStatePath.updateHistory called but not from root", this.props.rasp);
-        if(ReactActionStatePath.topState) console.error("ReactActionStatePath.updateHistory, expected topState null, got:", ReactActionStatePath.topState);
+        if(ReactActionStatePath.topState==='SET_PATH') {
+            console.info("Won't update History during SET_PATH");
+            return;
+        } else if(ReactActionStatePath.topState) 
+            console.error("ReactActionStatePath.updateHistory, expected topState null, got:", ReactActionStatePath.topState);
         if(queue) { 
             if(this.debug.noop) console.info("ReactActionStatePath.updateHistory waiting, queue is", queue);
-            return null;
+            return;
         }
         if(typeof window === 'undefined') { 
             if(this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side"); 
@@ -779,6 +783,12 @@ export class ReactActionStatePathClient extends React.Component {
 
 }
 
+// for PathMulti the keyField should be a number
+// when SET_PATH is used to set the state, the state for all toChild[]s with key's less than the one specified in the pathSegment/ action.segment will have SET_STATE called on them first.
+// setting the next toChild[]'s state will continue when the RASP Component calls this.waitingOnResults.nextFunc.  
+// Make sure to check .waitingOnResults[this.keyField] to ensure you are calling .nextFunc for the child/key that is being waited on, and not a previous one that is setting results again.
+//
+
 export class ReactActionStatePathMulti extends ReactActionStatePathClient{
     constructor(props,keyfield,debug){
         super(props,keyfield,debug);
@@ -857,7 +867,7 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
                 if(this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", key, predicessors);
                 if(predicessors < key) {
                   var predicessorRASP=Object.assign({},nextRASP,{[that.keyField]: predicessors});
-                  that.waitingOnResults={ nextFunc: setPredicessors.bind(this)};
+                  that.waitingOnResults={ [that.keyField]: predicessors, nextFunc: setPredicessors.bind(this)};
                   that.props.rasp.toParent({ type: "SET_STATE", nextRASP: predicessorRASP });
                 }else {
                   that.waitingOn={ nextRASP, nextFunc: () => that.props.rasp.toParent({ type: "CONTINUE_SET_PATH", function: that.toChild[key] }) };

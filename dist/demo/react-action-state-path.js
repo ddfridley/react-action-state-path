@@ -1,4 +1,1607 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.ReactActionStatePathFilter = exports.ReactActionStatePathMulti = exports.ReactActionStatePathClient = exports.default = exports.ReactActionStatePath = void 0;
+
+var _react = _interopRequireDefault(require("react"));
+
+var _union = _interopRequireDefault(require("lodash/union"));
+
+var _shallowequal = _interopRequireDefault(require("shallowequal"));
+
+var _clone = _interopRequireDefault(require("clone"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+function _objectWithoutProperties(source, excluded) { if (source == null) return {}; var target = _objectWithoutPropertiesLoose(source, excluded); var key, i; if (Object.getOwnPropertySymbols) { var sourceSymbolKeys = Object.getOwnPropertySymbols(source); for (i = 0; i < sourceSymbolKeys.length; i++) { key = sourceSymbolKeys[i]; if (excluded.indexOf(key) >= 0) continue; if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue; target[key] = source[key]; } } return target; }
+
+function _objectWithoutPropertiesLoose(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+// for comparing rasp states, we use equaly.  If a property in two objects is logically false in both, the property is equal.  This means that undefined, null, false, 0, and '' are all the same.
+// and we make a deep compare
+var equaly = function equaly(a, b) {
+  if (!a && !b) return true; //if both are false, they are the same
+
+  if (a && !b) return false; //if one is false and the other is not - they are not the same
+
+  if (!a && b) return false;
+
+  var t = _typeof(a);
+
+  if (t !== _typeof(b)) return false; // if not falsy and types are not equal, they are not equal
+
+  if (t === 'object') return (0, _union.default)(Object.keys(a), Object.keys(b)).every(function (k) {
+    return equaly(a[k], b[k]);
+  }); // they are both objects, break them down and compare them
+
+  if (t === 'function') return true; //treat functions are equal no matter what they are
+
+  if (a && b) return a == b; // if both are truthy are they equal
+
+  return false;
+}; //React Action State Path - manages the state of react components that interact with each other and change state based user interactions and interactions between stateful components.
+//Components communicate through the rasp object, which is passed between them.  The basic component is
+//rasp={shape: a string representing a shape.  You can have any shapes you want, this is using 'truncated', 'open' and 'collapsed' but this can be upto the implementation.  But all components will need to understand these shapes
+//     depth: the distance of the component from the root (first) component.
+//     toParent: the function to call to send 'actions' to the parent function
+//     each child component can add more properties to it's state, through the actionToState function
+//     }
+//q
+
+
+var queue = 0;
+
+var qaction = function qaction(func) {
+  queue += 1; //console.info("qaction queueing", queue);
+
+  setTimeout(function () {
+    //console.info("qaction continuing", queue);
+    queue--;
+    func();
+
+    if (queue === 0 && UpdateHistory && !ReactActionStatePath.topState) {
+      //console.info("qaction updating history");
+      UpdateHistory();
+    } else //console.info("qaction after continuing", queue)
+      ;
+  }, 0);
+};
+
+var queueAction = function queueAction(action) {
+  var _this = this;
+
+  // called by a client, with it's this
+  //console.info("queueAction", this.props.rasp.raspId, this.props.rasp.depth, this.constructor.name, action)
+  qaction(function () {
+    return _this.props.rasp.toParent(action);
+  });
+};
+
+var qhistory = function qhistory(func, delay) {
+  console.info("qhistory", queue, this.id, this.childName, this.childTitle);
+
+  if (queue > 0) {
+    //console.info("qhistory put off"); 
+    return;
+  } else setTimeout(func, delay);
+}; // not being used yet
+
+
+var qfuncPair = function qfuncPair(updateHistory) {
+  var queue = 0;
+
+  var qaction = function qaction(func) {
+    queue += 1;
+    setTimeout(function () {
+      queue--;
+      func();
+      if (queue === 0 && updateHistory) updateHistory();
+    }, 0);
+  };
+
+  var qhistory = function qhistory(func, delay) {
+    console.info("qhistory", queue);
+
+    if (queue > 0) {
+      //console.info("qhistory put off"); 
+      return;
+    } else setTimeout(func, delay);
+  };
+
+  return {
+    qaction: qaction,
+    qhistory: qhistory
+  };
+};
+
+var UpdateHistory;
+
+var ReactActionStatePath =
+/*#__PURE__*/
+function (_React$Component) {
+  _inherits(ReactActionStatePath, _React$Component);
+
+  function ReactActionStatePath(props) {
+    var _this2;
+
+    _classCallCheck(this, ReactActionStatePath);
+
+    _this2 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePath).call(this, props)); //if(this.debug.noop) console.log("ReactActionStatePath.constructor", this.constructor.name, this.props.rasp);
+
+    _this2.toChild = null;
+    _this2.childName = '';
+    _this2.childTitle = '';
+    _this2.debug = _this2.props.debugObject || {
+      noop: false,
+      near: false
+    };
+    _this2.waitingOn = false;
+    _this2.initialRASP = Object.assign({}, {
+      shape: _this2.props.rasp && _this2.props.rasp.shape ? _this2.props.rasp.shape : 'truncated',
+      depth: _this2.props.rasp ? _this2.props.rasp.depth : 0 // for debugging  - this is my depth to check
+
+    }, _this2.props.initialRASP);
+
+    if (typeof window !== 'undefined') {
+      // browser side, there should be no rasp
+      if (!(_this2.props.rasp && _this2.props.rasp.toParent)) {
+        if (typeof ReactActionStatePath.nextId !== 'undefined') console.error("ReactActionStatePath.constructor no parent, but not root!");
+      } else {
+        _this2.props.rasp.toParent({
+          type: "SET_TO_CHILD",
+          function: _this2.toMeFromParent.bind(_assertThisInitialized(_assertThisInitialized(_this2))),
+          name: "ReactActionStatePath"
+        });
+      }
+    } else {
+      // server side, rasp is how we get the data out
+      if (!_this2.props.rasp || typeof _this2.props.rasp.depth === 'undefined' || _this2.props.RASPRoot) {
+        // this is this root
+        if (_this2.debug.constructor) console.info("ReactActionStatePath.construction at root");
+
+        if (typeof ReactActionStatePath.nextId !== 'undefined') {
+          if (_this2.debug.constructor) console.info("ReactActionStatePath.construction at root, but nextId was", ReactActionStatePath.nextId);
+          ReactActionStatePath.nextId = undefined;
+        }
+      }
+
+      if (_this2.props.rasp && _this2.props.rasp.toParent) {
+        _this2.props.rasp.toParent({
+          type: "SET_TO_CHILD",
+          function: _this2.toMeFromParent.bind(_assertThisInitialized(_assertThisInitialized(_this2))),
+          name: "ReactActionStatePath"
+        });
+      }
+    } // not an else of above because of the possibility that one might want to put a rasp and toParent before the first component
+
+
+    if (typeof ReactActionStatePath.nextId === 'undefined') {
+      // this is the root ReactActionStatePath
+      ReactActionStatePath.nextId = 0;
+      ReactActionStatePath.queue = 0; // initialize the queue count
+
+      if (queue !== 0) {
+        console.error("ReactActionStatePath module scope queue was not 0, was:", queue, "resetting.");
+        queue = 0;
+      }
+
+      ReactActionStatePath.topState = null;
+
+      if (_this2.props.path && _this2.props.path !== '/') {
+        var pathSegments = _this2.props.path.split('/');
+
+        while (pathSegments.length && !pathSegments[0]) {
+          pathSegments.shift();
+        } // an initial '/' turns into an empty element at the beginning
+
+
+        while (pathSegments.length && !pathSegments[pathSegments.length - 1]) {
+          pathSegments.pop();
+        } // '/'s at the end translate to null elements, remove them
+
+
+        var root = (_this2.props.RASPRoot || '/h/').split('/');
+
+        while (root.length && !root[0]) {
+          root.shift();
+        } // shift off leading empty's caused by leading '/'s
+
+
+        while (root.length && !root[root.length - 1]) {
+          root.pop();
+        } // '/'s at the end translate to null elements, remove them
+
+
+        if (root.some(function (segment) {
+          return segment !== pathSegments.shift();
+        })) {
+          console.error("ReactActionStatePath.componentDidMount path didn't match props", root, pathSegments);
+        }
+
+        ReactActionStatePath.pathSegments = pathSegments;
+      } else ReactActionStatePath.pathSegments = [];
+
+      if (typeof window !== 'undefined') {
+        // if we are running on the browser
+        ReactActionStatePath.thiss = [];
+        top.onpopstate = _this2.onpopstate.bind(_assertThisInitialized(_assertThisInitialized(_this2))); // top rather than window incase in iFrame like in storybook
+
+        window.ReactActionStatePath = {
+          thiss: ReactActionStatePath.thiss
+        };
+        UpdateHistory = _this2.updateHistory.bind(_assertThisInitialized(_assertThisInitialized(_this2)));
+        if (ReactActionStatePath.pathSegments.length === 0) qhistory.call(_assertThisInitialized(_assertThisInitialized(_this2)), function () {
+          return _this2.updateHistory();
+        }, 0); // aftr things have settled down, update history for the first time
+      }
+
+      console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
+    }
+
+    _this2.id = ReactActionStatePath.nextId++; // get the next id
+
+    _this2.state = _this2.getDefaultState(); //below are variables not restored by RESET
+
+    if (typeof window !== 'undefined') ReactActionStatePath.thiss[_this2.id] = {
+      parent: _assertThisInitialized(_assertThisInitialized(_this2)),
+      client: null
+    };
+    _this2.actionFilters = {};
+    return _this2;
+  }
+
+  _createClass(ReactActionStatePath, [{
+    key: "componentWillUnmount",
+    value: function componentWillUnmount() {
+      if (this.debug.componentWillUnmount) console.info("ReactActionStatePath.componentWillUnmount", this.id, this.childTitle);
+
+      if (typeof window !== 'undefined') {
+        ReactActionStatePath.thiss[this.id] = undefined;
+        var id = this.id;
+
+        if (id === ReactActionStatePath.nextId - 1) {
+          while (id && typeof ReactActionStatePath.thiss[id] === 'undefined') {
+            id--;
+          }
+
+          if (!id && typeof ReactActionStatePath.thiss[id] === 'undefined') ReactActionStatePath.nextId = undefined;else ReactActionStatePath.nextId = id + 1;
+        }
+      }
+    } // consistently get the default state from multiple places
+
+  }, {
+    key: "getDefaultState",
+    value: function getDefaultState() {
+      return {
+        rasp: Object.assign({}, this.initialRASP)
+      };
+    } // handler for the window onpop state
+    // only the root ReactActionStatePath will set this 
+    // it works by recursively passing the ONPOPSTATE action to each child RASP component starting with the root
+
+  }, {
+    key: "onpopstate",
+    value: function onpopstate(event) {
+      var _this3 = this;
+
+      if (this.debug.onpopstate) console.info("ReactActionStatePath.onpopstate", this.id, {
+        event: event
+      });
+
+      if (event.state && event.state.stateStack) {
+        if (ReactActionStatePath.topState) console.error("ReactActionStatePath.onpopstate expected topState null, got:", ReactActionStatePath.topState);
+        ReactActionStatePath.topState = "ONPOPSTATE";
+        var completionCheck = setTimeout(function () {
+          if (ReactActionStatePath.topState === "ONPOPSTATE") {
+            console.error("ReactActionStatePath.onpopstate ONPOPSTATE did not complete.", _this3);
+            ReactActionStatePath.topState = null;
+          }
+        }, 10000);
+        this.toMeFromParent({
+          type: "ONPOPSTATE",
+          stateStack: event.state.stateStack,
+          stackDepth: 0
+        });
+        if (this.debug.onpopstate) console.log("ReactActionStatePath.onpopstate: returned.");
+        ReactActionStatePath.topState = null;
+        clearTimeout(completionCheck);
+      }
+    }
+  }, {
+    key: "toMeFromChild",
+    value: function toMeFromChild(action) {
+      var _this4 = this;
+
+      if (this.debug.toMeFromChild) console.info("ReactActionStatePath.toMeFromChild", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
+      if (this.debug.near && (action.distance === 0 || action.distance === 1)) console.info("ReactActionStatePath.toMeFromChild near", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
+      var nextRASP = {},
+          delta = {};
+      if (!action.distance) action.distance = 0; // action was from component so add distance
+
+      if (action.distance < 0) {
+        action.distance += 1;
+        if (this.id) return this.props.rasp.toParent(action);else return;
+      }
+
+      if (action.direction === "DESCEND") return this.toChild(action);else action.direction = "ASCEND";
+
+      if (action.type === "SET_TO_CHILD") {
+        // child is passing up her func
+        if (typeof action.debug === 'number') this.debug.noop = action.debug;else if (_typeof(action.debug) === 'object') Object.assign(this.debug, action.debug);else if (action.debug) console.error("ReactActionStatePath.toMeFromChild unexpected debug in action", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
+        if (this.debug.SET_TO_CHILD) console.info("ReactActionStatePath.toMeFromChild debug set", this.debug.noop, this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
+
+        if (!(this.toChild = action.function)) {
+          this.childName = undefined;
+          this.actionToState = undefined;
+          if (typeof window !== 'undefined' && ReactActionStatePath.thiss[this.id] && ReactActionStatePath.thiss[this.id].client) ReactActionStatePath.thiss[this.id].client = undefined;
+          return;
+        }
+
+        if (action.name) this.childName = action.name;
+        if (action.actionToState) this.actionToState = action.actionToState;
+        if (action.clientThis && typeof window !== 'undefined') ReactActionStatePath.thiss[this.id].client = action.clientThis;else {
+          if (typeof window !== 'undefined') console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD clientThis missing on browser", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action);
+        }
+
+        if (typeof window !== 'undefined' && this.id === 0 && ReactActionStatePath.pathSegments.length) {
+          // this is the root and we are on the browser and there is at least one pathSegment
+          if (this.debug.SET_PATH) console.log("ReactActionStatePath.toMeFromChild will SET_PATH to", ReactActionStatePath.pathSegments);
+          if (ReactActionStatePath.topState) console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD, expected topState null got:", ReactActionStatePath.topState);
+          this.completionCheck = setTimeout(function () {
+            if (ReactActionStatePath.topState === "SET_PATH") {
+              console.error("ReactActionStatePath.toMeFromChild SET_PATH did not complete, topState:", ReactActionStatePath.topState, "this:", _this4);
+              ReactActionStatePath.topState = null;
+            }
+          }, 30000);
+          qaction(function () {
+            ReactActionStatePath.topState = "SET_PATH";
+
+            _this4.toChild({
+              type: "SET_PATH",
+              segment: ReactActionStatePath.pathSegments.shift(),
+              initialRASP: _this4.initialRASP
+            });
+          }); // this starts after the return toChild so it completes.
+        } else if (this.waitingOn) {
+          var nextFunc = this.waitingOn.nextFunc;
+          this.waitingOn = null;
+          qaction(nextFunc);
+          return;
+        }
+      } else if (action.type === "SET_ACTION_FILTER") {
+        if (this.actionFilters[action.filterType]) this.actionFilters[action.filterType].push({
+          name: action.name,
+          function: action.function
+        });else this.actionFilters[action.filterType] = [{
+          name: action.name,
+          function: action.function
+        }];
+        return;
+      } else if (action.type === "RESET_ACTION_FILTER") {
+        Object.keys(this.actionFilters).forEach(function (key) {
+          _this4.actionFilters[key] = _this4.actionFilters[key].filter(function (filter) {
+            return filter.name !== action.name;
+          }); // remove all action filters from that constructor based on it's name
+
+          if (!_this4.actionFilters[key].length) delete _this4.actionFilters[key];
+        });
+        return;
+      } else if (action.type === "SET_DATA") {
+        if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_DATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+        this.setState({
+          rasp: Object.assign({}, this.state.rasp, {
+            data: action.data
+          })
+        });
+      } else if (action.type === "SET_STATE") {
+        if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+        this.setState({
+          rasp: Object.assign({}, this.state.rasp, action.nextRASP)
+        });
+      } else if (action.type === "SET_TITLE") {
+        if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_TITLE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+        this.childTitle = action.title; // this is only for pretty debugging
+      } else if (action.type === "SET_PATH_SKIP") {
+        // this child will not consume the path segment, so pass the path segment to the next child, but reset the state if it isn't
+        if ((0, _shallowequal.default)(this.state.rasp, this.initialRASP)) {
+          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
+          qaction(function () {
+            return action.function({
+              type: 'SET_PATH',
+              segment: action.segment,
+              initialRASP: _this4.initialRASP
+            });
+          }); // if the child is this child's parent RASP, then it will reset initialRASP
+        } else {
+          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP setState first", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+          this.setState({
+            rasp: this.initialRASP
+          }, function () {
+            return qaction(function () {
+              return action.function({
+                type: 'SET_PATH',
+                segment: action.segment,
+                initialRASP: _this4.initialRASP
+              });
+            });
+          }); // if the child is this child's parent RASP, then it will reset initialRASP)
+        }
+      } else if (action.type === "CONTINUE_SET_PATH") {
+        if (ReactActionStatePath.pathSegments.length) {
+          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
+          qaction(function () {
+            return action.function({
+              type: 'SET_PATH',
+              segment: ReactActionStatePath.pathSegments.shift(),
+              initialRASP: _this4.initialRASP
+            });
+          });
+        } else {
+          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
+          if (this.id !== 0) this.props.rasp.toParent({
+            type: "SET_PATH_COMPLETE"
+          });else {
+            if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE_SET_PATH updateHistory");
+            ReactActionStatePath.topState = null;
+            clearTimeout(this.completionCheck);
+            this.updateHistory();
+          }
+        }
+      } else if (action.type === "SET_STATE_AND_CONTINUE") {
+        if (ReactActionStatePath.pathSegments.length) {
+          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
+          if (action.function) this.setState({
+            rasp: Object.assign({}, this.state.rasp, action.nextRASP)
+          }, function () {
+            return qaction(function () {
+              return action.function({
+                type: 'SET_PATH',
+                segment: ReactActionStatePath.pathSegments.shift(),
+                initialRASP: _this4.initialRASP
+              });
+            });
+          });else {
+            console.error("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE pathSegments remain, but no next function", this.id, this.childTitle, action, ReactActionStatePath.pathSegments);
+            this.setState({
+              rasp: Object.assign({}, this.state.rasp, action.nextRASP)
+            });
+          }
+        } else {
+          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp, action.nextRASP);
+          this.setState({
+            rasp: Object.assign({}, this.state.rasp, action.nextRASP)
+          }, function () {
+            if (_this4.id !== 0) _this4.props.rasp.toParent({
+              type: "SET_PATH_COMPLETE"
+            });else {
+              if (_this4.debug.noop) console.log("ReactActionStatePath.toMeFromChild  SET_STATE_AND_CONTINUE last one updateHistory");
+              ReactActionStatePath.topState = null;
+              clearTimeout(_this4.completionCheck);
+
+              _this4.updateHistory();
+            }
+          });
+        }
+      } else if (action.type === "SET_PATH_COMPLETE") {
+        if (this.id !== 0) return this.props.rasp.toParent({
+          type: "SET_PATH_COMPLETE"
+        });else {
+          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET PATH COMPLETED, updateHistory");
+          ReactActionStatePath.topState = null;
+          clearTimeout(this.completionCheck);
+          return this.updateHistory();
+        }
+      } else if (action.type === "RESET") {
+        this.setState(this.getDefaultState()); // after clearing thechildren clear this state
+
+        return null;
+      } else if ((this.actionFilters[action.type] && this.actionFilters[action.type].every(function (filter) {
+        return filter.function(action, delta);
+      }), true // process action filters until on returns false and always evaluate to true
+      ) && this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp, delta)) !== null // if no actionToState or actionToState returns NULL propogate the action on, otherwise the action ends here
+      ) {
+          if (this.state.rasp.pathSegment && !nextRASP.pathSegment) {
+            // path has been removed
+            if (this.debug.noop) console.log("ReactActionStatePath.toChildFromParent child changed state and path being removed so reset children", this.id, this.state.rasp.pathSegment); //this.toChild({type:"CLEAR_PATH"}); // if toChild is not set let there be an error
+          } else if (!this.state.rasp.pathSegment && nextRASP.pathSegment) {
+            // path being added
+            if (this.debug.noop) console.log("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment);
+          }
+
+          if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DESCENDANT_FOCUS" || action.type === "DESCENDANT_UNFOCUS" || action.duration)) {
+            if (typeof action.duration === 'number') action.duration -= 1;
+            action.distance += 1;
+            this.setState({
+              rasp: nextRASP
+            }, function () {
+              return action.direction === 'ASCEND' ? _this4.props.rasp.toParent(action) : action.direction === 'DESCEND' ? _this4.toChild(action) : console.error("ReactActionStatePath direction unknown", action, _this4.id, _this4.childName, _this4.childTitle);
+            });
+          } else if (this.id !== 0) {
+            this.setState({
+              rasp: nextRASP
+            });
+          } else {
+            // this is the root, after changing shape, remind me so I can update the window.histor
+            if (equaly(this.state.rasp, nextRASP)) {
+              if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action);
+              this.updateHistory();
+            } // updateHistory now!
+            else this.setState({
+                rasp: nextRASP
+              }, function () {
+                if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action);
+                qhistory.call(_this4, function () {
+                  return _this4.updateHistory();
+                }, 0); // update history after the queue of chanages from this state change is processed);
+              }); // otherwise, set the state and let history update on componentDidUpdate
+
+          }
+        } // these actions are overridden by the component's actonToState if either there is and it returns a new RASP to set (not null)
+      else if (action.type === "DESCENDANT_FOCUS" || action.type === "DESCENDANT_UNFOCUS") {
+          if (this.id) {
+            action.distance += 1;
+            action.shape = this.state.rasp.shape;
+            return this.props.rasp.toParent(action);
+          } else return qhistory.call(this, function () {
+            if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild ", action.type, " updateHistory");
+
+            _this4.updateHistory();
+          }, 0);
+
+          ;
+        } else if (action.type === "CHANGE_SHAPE") {
+          if (this.state.rasp.shape !== action.shape) {
+            // really the shape changed
+            var nextRASP = Object.assign({}, this.state.rasp, {
+              shape: action.shape
+            });
+
+            if (this.id !== 0) {
+              // don't propogate a change
+              this.setState({
+                rasp: nextRASP
+              });
+            } else // this is the root, change state and then update history
+              this.setState({
+                rasp: nextRASP
+              }, function () {
+                if (_this4.debug.noop) console.log("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");
+                qhistory.call(_this4, function () {
+                  return _this4.updateHistory;
+                }, 0); // update history after changes from setstate have been processed
+              });
+          } // no change, nothing to do
+
+        } else if (action.type === "CHILD_SHAPE_CHANGED") {
+          if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState", this.id, this.props.rasp && this.props.rasp.depth);
+
+          if (this.id !== 0) {
+            if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState, not root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
+            this.props.rasp.toParent({
+              type: "CHILD_SHAPE_CHANGED",
+              shape: action.shape,
+              distance: action.distance + 1
+            }); // pass a new action, not a copy including internal properties like itemId. This shape hasn't changed
+          } else {
+            // this is the root RASP, update history.state
+            if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
+            qhistory.call(this, function () {
+              if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED default updateHistory");
+
+              _this4.updateHistory();
+            }, 0);
+          }
+        } else if (action.type === "CHILD_STATE_CHANGED") {
+          if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState", this.id, this.props.rasp && this.props.rasp.depth);
+          action.distance += 1;
+
+          if (this.id !== 0) {
+            if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState, not root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
+            this.props.rasp.toParent(action); // passs the original action, with incremented distance
+          } else {
+            // this is the root RASP, update history.state
+            if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
+            if (typeof window === 'undefined' && this.props.rasp && this.props.rasp.toParent) qaction(function () {
+              return _this4.props.rasp.toParent(action);
+            }); // on server, send action to server renderer
+
+            qhistory.call(this, function () {
+              if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED default updateHistory");
+
+              _this4.updateHistory();
+            }, 0);
+          }
+        } else {
+          // the action was not understood, send it up
+          if (this.id) {
+            action.distance += 1;
+            return this.props.rasp.toParent(action);
+          } else return;
+        }
+
+      return null;
+    }
+  }, {
+    key: "toMeFromParent",
+    value: function toMeFromParent(action) {
+      var _this5 = this;
+
+      if (this.debug.noop) console.info("ReactActionStatePath.toMeFromParent", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
+      if (this.debug.near && (action.distance === 0 || action.distance == 1)) console.info("ReactActionStatePath.toMeFromParent near", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
+
+      if (typeof action.distance === 'undefined') {
+        action.distance = 0;
+        action.direction = "DESCEND";
+      }
+
+      var nextRASP = {},
+          delta = {};
+
+      if (action.type === "ONPOPSTATE") {
+        var stackDepth = action.stackDepth,
+            stateStack = action.stateStack;
+        if (stateStack[stackDepth].depth !== (this.id ? this.props.rasp.depth : 0)) console.error("ReactActionStatePath.toMeFromParent ONPOPSTATE state depth not equal to component depth", action.stateStack[stackDepth], this.props.rasp.depth); // debugging info
+
+        if (stateStack.length > stackDepth + 1) {
+          if (this.toChild) this.toChild({
+            type: "ONPOPSTATE",
+            stateStack: stateStack,
+            stackDepth: stackDepth
+          });else console.error("ReactActionStatePath.toMeFromParent ONPOPSTATE more stack but no toChild", {
+            action: action
+          }, {
+            rasp: this.props.rasp
+          });
+        } else if (this.toChild) this.toChild({
+          type: "CLEAR_PATH"
+        }); // at the end of the new state, deeper states should be reset
+
+
+        this.setState({
+          rasp: stateStack[stackDepth]
+        });
+        return;
+      } else if (action.type === "GET_STATE") {
+        // return the array of all RASP States from the top down - with the top at 0 and the bottom at the end
+        // it works by recursivelly calling GET_STATE from here to the end and then unshifting the RASP state of each component onto an array
+        // the top RASP state of the array is the root component
+        var stack;
+
+        if (!this.toChild) {
+          console.error("ReactActionStatePath.toMeFromParetn GET_STATE child not ready", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
+          return [Object.assign({}, this.state.rasp)];
+        } else stack = this.toChild(action);
+
+        if (stack) stack.unshift(Object.assign({}, this.state.rasp)); // if non-rasp child is at the end, it returns null
+        else stack = [Object.assign({}, this.state.rasp)];
+        return stack;
+      } else if (action.type === "RESET") {
+        if (this.toChild) this.toChild(action); // reset children first, then reset parent (depth first)
+
+        this.setState(this.getDefaultState()); // now reset my state
+
+        return null;
+      } else if ((this.actionFilters[action.type] && this.actionFilters[action.type].forEach(function (filter) {
+        return filter.function(action, delta);
+      }), true // process any action filters and always evaluate to true
+      ) && this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp, delta)) !== null) {
+        if (!equaly(this.state.rasp, nextRASP)) {
+          // really something changed
+          if (this.id !== 0) {
+            this.setState({
+              rasp: nextRASP
+            });
+          } else // no parent to tell of the change
+            this.setState({
+              rasp: nextRASP
+            }, function () {
+              if (_this5.debug.noop) console.log("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
+              qhistory.call(_this5, function () {
+                return _this5.updateHistory;
+              }, 0); // update history after statechage events are processed
+            });
+        } // no change, nothing to do
+
+
+        return null;
+      } else if (action.type === "CLEAR_PATH") {
+        // clear the path and reset the RASP state back to what the constructor would
+        if (this.toChild) this.toChild(action); // clear children first
+
+        this.setState(this.getDefaultState()); // after clearing thechildren clear this state
+
+        return null;
+      } else if (action.type === "RESET_SHAPE") {
+        // clear the path and reset the RASP state back to what the constructor would
+        this.setState(this.getDefaultState()); //
+
+        return null;
+      } else if (action.type === "CHANGE_SHAPE") {
+        // change the shape if it needs to be changed
+        nextRASP = Object.assign({}, this.getDefaultState().rasp, {
+          shape: action.shape
+        }); // 
+
+        this.setState({
+          rasp: nextRASP
+        });
+        return null;
+      } else if (action.type === "SET_PATH") {
+        // let child handle this one without complaint
+        action.initialRASP = this.initialRASP; // segmentToState needs to apply this
+
+        if (this.toChild) return this.toChild(action);else this.waitingOn = {
+          nextFunc: function nextFunc() {
+            _this5.toChild(action);
+          }
+        };
+        return;
+      } else {
+        if (this.debug.noop) console.info("ReactActionStatePath.toMeFromParent: passing action to child", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
+        return this.toChild(action);
+      }
+    }
+  }, {
+    key: "updateHistory",
+    value: function updateHistory() {
+      var _this6 = this;
+
+      if (this.debug.noop) console.info("ReactActionStatePath.updateHistory", this.id);
+      if (this.id !== 0) console.error("ReactActionStatePath.updateHistory called but not from root", this.props.rasp);
+
+      if (ReactActionStatePath.topState === 'SET_PATH') {
+        console.info("Won't update History during SET_PATH");
+        return;
+      } else if (ReactActionStatePath.topState) console.error("ReactActionStatePath.updateHistory, expected topState null, got:", ReactActionStatePath.topState);
+
+      if (queue) {
+        if (this.debug.noop) console.info("ReactActionStatePath.updateHistory waiting, queue is", queue);
+        return;
+      }
+
+      if (typeof window === 'undefined') {
+        if (this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side");
+        if (!(this.props.rasp && this.props.rasp.toParent)) // don't get history on server side if no toParent to send it to
+          return;
+      }
+
+      var completionCheck = setTimeout(function () {
+        if (ReactActionStatePath.topState === "GET_STATE") {
+          console.error("ReactActionStatePath.updateHistory GET_STATE did not complete.", _this6);
+          ReactActionStatePath.topState = null;
+        }
+      }, 100);
+      ReactActionStatePath.topState = "GET_STATE";
+      var stateStack = {
+        stateStack: this.toMeFromParent({
+          type: "GET_STATE"
+        })
+      }; // recursively call me to get my state stack
+
+      ReactActionStatePath.topState = null;
+      clearTimeout(completionCheck);
+      var curPath = stateStack.stateStack.reduce(function (acc, cur) {
+        // parse the state to build the current path
+        if (cur.pathSegment) acc.push(cur.pathSegment);
+        return acc;
+      }, []);
+      curPath = (this.props.RASPRoot || '/h/') + curPath.join('/');
+
+      if (typeof window !== 'undefined') {
+        var parts = top.location.href.split('/');
+
+        if (parts[0] === "http:" || parts[0] === "https:") {
+          parts.shift(); // http:
+
+          parts.shift(); // 
+
+          parts.shift(); // localhost:6006
+        }
+
+        parts = parts.join('/');
+
+        if (curPath !== parts && stateStack.stateStack[stateStack.stateStack.length - 1].shape !== 'redirect') {
+          // push the new state and path onto history
+          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", {
+            stateStack: stateStack
+          }, {
+            curPath: curPath
+          });
+          top.history.pushState(stateStack, '', curPath); // history on top in case in iframe like in storybook
+        } else {
+          // update the state of the current historys
+          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromParent replaceState", {
+            stateStack: stateStack
+          }, {
+            curPath: curPath
+          });
+          top.history.replaceState(stateStack, '', curPath); //update the history after changes have propagated among the children -- history on top in case in iframe like in storybook
+        }
+      } else {
+        if (this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side");
+        if (this.props.rasp && this.props.rasp.toParent) this.props.rasp.toParent({
+          type: "UPDATE_HISTORY",
+          stateStack: stateStack,
+          curPath: curPath
+        });
+        return;
+      }
+
+      return null;
+    }
+    /***  don't rerender if no change in state or props, use a logically equivalent check for state so that undefined and null are equivalent. Make it a deep compare in case apps want deep objects in their state ****/
+
+  }, {
+    key: "shouldComponentUpdate",
+    value: function shouldComponentUpdate(newProps, newState) {
+      if (!equaly(this.state, newState)) {
+        if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes state", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.state, newState);
+        return true;
+      }
+
+      if (!(0, _shallowequal.default)(this.props, newProps)) {
+        if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps);
+        return true;
+      }
+
+      if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate no", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps, this.state, newState);
+      return false;
+    }
+  }, {
+    key: "renderChildren",
+    value: function renderChildren() {
+      var _this7 = this;
+
+      var _this$props = this.props,
+          children = _this$props.children,
+          initialRASP = _this$props.initialRASP,
+          RASPRoot = _this$props.RASPRoot,
+          newProps = _objectWithoutProperties(_this$props, ["children", "initialRASP", "RASPRoot"]); // don't propogate initialRASP or RASPRoot
+
+
+      return _react.default.Children.map(_react.default.Children.only(children), function (child) {
+        newProps.rasp = Object.assign({}, _this7.state.rasp, {
+          depth: _this7.props.rasp && _this7.props.rasp.depth ? _this7.props.rasp.depth + 1 : 1,
+          raspId: _this7.id,
+          toParent: _this7.toMeFromChild.bind(_this7)
+        });
+        Object.keys(child.props).forEach(function (childProp) {
+          return delete newProps[childProp];
+        }); // allow child props to overwrite parent props
+
+        return _react.default.cloneElement(child, newProps, child.props.children);
+      });
+    } //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  }, {
+    key: "render",
+    value: function render() {
+      var children = this.renderChildren();
+      if (this.debug.render) console.info("ReactActionStatePath.render", this.childName, this.childTitle, this.id, this.props, this.state);
+      return _react.default.createElement("section", {
+        id: "rasp-".concat(this.id)
+      }, children);
+    }
+  }]);
+
+  return ReactActionStatePath;
+}(_react.default.Component);
+
+exports.ReactActionStatePath = ReactActionStatePath;
+var _default = ReactActionStatePath;
+exports.default = _default;
+
+function createDefaults() {
+  var _this8 = this;
+
+  // to be called at the end of the constructor extending this component
+  var _defaults = {
+    that: {}
+  };
+  Object.keys(this).forEach(function (key) {
+    if (_this8._staticKeys.indexOf(key) === -1) _defaults.that[key] = (0, _clone.default)(_this8[key]);
+  });
+
+  if (typeof this.state !== 'undefined') {
+    _defaults.state = this.state; // because setState always makes a new copy of the state
+  }
+
+  this._defaults = _defaults;
+}
+
+function restoreDefaults() {
+  var _this9 = this;
+
+  if (!this._defaults) return;
+  var currentKeys = Object.keys(this);
+  var defaultKeys = Object.keys(this._defaults.that);
+  var undefinedKeys = [];
+  currentKeys.forEach(function (key) {
+    if (_this9._staticKeys.indexOf(key) !== -1) return;
+    if (defaultKeys.indexOf(key) !== -1) return;
+    if (key[0] === '_') return; // React16 is adding properties to the class, after it was constructed. such as  _reactInternalFiber and _reactInternalInstance since we can't guess what future will bring we will use _ as the designator
+
+    undefinedKeys.push(key);
+  });
+  undefinedKeys.forEach(function (key) {
+    return _this9[key] = undefined;
+  });
+  Object.keys(this._defaults.that).forEach(function (key) {
+    _this9[key] = (0, _clone.default)(_this9._defaults.that[key]);
+  });
+
+  if (this._defaults.state) {
+    var state = this._defaults.state;
+    this.setState(state);
+  }
+}
+
+var ReactActionStatePathClient =
+/*#__PURE__*/
+function (_React$Component2) {
+  _inherits(ReactActionStatePathClient, _React$Component2);
+
+  function ReactActionStatePathClient(props) {
+    var _this10;
+
+    var keyField = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'key';
+    var debug = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
+      noop: false
+    };
+
+    _classCallCheck(this, ReactActionStatePathClient);
+
+    _this10 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePathClient).call(this, props));
+    _this10.toChild = [];
+    _this10.waitingOn = null;
+    _this10.keyField = keyField;
+    if (_typeof(debug) === 'object') _this10.debug = debug;else _this10.debug = {
+      noop: debug
+    };
+    if (!_this10.props.rasp) console.error("ReactActionStatePathClient no rasp", _this10.constructor.name, _this10.props);
+
+    if (_this10.props.rasp.toParent) {
+      _this10.props.rasp.toParent({
+        type: "SET_TO_CHILD",
+        function: _this10.toMeFromParent.bind(_assertThisInitialized(_assertThisInitialized(_this10))),
+        name: _this10.constructor.name,
+        actionToState: _this10.actionToState.bind(_assertThisInitialized(_assertThisInitialized(_this10))),
+        debug: debug,
+        clientThis: _assertThisInitialized(_assertThisInitialized(_this10))
+      });
+    } else console.error("ReactActionStatePathClient no rasp.toParent", _this10.props);
+
+    _this10.qaction = qaction; // make the module specific funtion available
+
+    _this10.queueAction = queueAction.bind(_assertThisInitialized(_assertThisInitialized(_this10)));
+
+    _this10.queueFocus = function (action) {
+      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this10)), _defineProperty({
+        type: "DESCENDANT_FOCUS",
+        wasType: action.type
+      }, _this10.keyField, action[_this10.keyField]));
+    };
+
+    _this10.queueUnfocus = function (action) {
+      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this10)), _defineProperty({
+        type: "DESCENDANT_UNFOCUS",
+        wasType: action.type
+      }, _this10.keyField, action[_this10.keyField]));
+    };
+
+    _this10.initialRASP = (0, _clone.default)(_this10.props.rasp);
+
+    var _staticKeys = Object.keys(_assertThisInitialized(_assertThisInitialized(_this10))); // the react keys that we aren't going to touch when resetting
+
+
+    _this10._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
+
+    _this10.createDefaults = createDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this10)));
+    _this10.restoreDefaults = restoreDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this10)));
+    return _this10;
+  }
+
+  _createClass(ReactActionStatePathClient, [{
+    key: "componentWillUnmount",
+    value: function componentWillUnmount() {
+      console.info("ReactActionStatePathClient.componentWillUnmount", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth);
+
+      if (this.props.rasp.toParent) {
+        this.props.rasp.toParent({
+          type: "SET_TO_CHILD",
+          function: undefined
+        });
+      }
+    } //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // this is a one to many pattern for the RASP, insert yourself between the RASP and each child
+    // send all unhandled actions to the parent RASP
+    //
+
+  }, {
+    key: "toMeFromChild",
+    value: function toMeFromChild(key, action) {
+      var _this11 = this;
+
+      if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, action);
+
+      if (action.type === "SET_TO_CHILD") {
+        // child is passing up her func
+        this.toChild[key] = action.function; // don't pass this to parent
+
+        if (this.waitingOn) {
+          if (this.waitingOn.nextRASP) {
+            var nextRASP = this.waitingOn.nextRASP;
+
+            if (key === nextRASP[this.keyField] && this.toChild[key]) {
+              if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent got waitingOn nextRASP", nextRASP);
+              var nextFunc = this.waitingOn.nextFunc;
+              this.waitingOn = null;
+              if (nextFunc) qaction(nextFunc);else qaction(function () {
+                return _this11.props.rasp.toParent({
+                  type: "SET_STATE_AND_CONTINUE",
+                  nextRASP: nextRASP,
+                  function: _this11.toChild[key]
+                });
+              });
+            } else if ((typeof nextRASP[this.keyField] === 'undefined' || nextRASP[this.keyField] === null) && key === 'default' && this.toChild['default']) {
+              if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent got waitingOn nextRASP default");
+              var nextFunc = this.waitingOn.nextFunc;
+              this.waitingOn = null;
+              if (nextFunc) qaction(nextFunc);else qaction(function () {
+                return _this11.props.rasp.toParent({
+                  type: "SET_STATE_AND_CONTINUE",
+                  nextRASP: nextRASP,
+                  function: _this11.toChild[key]
+                });
+              });
+            }
+          }
+        }
+      } else {
+        action[this.keyField] = key; // actionToState may need to know the child's id
+
+        var result = this.props.rasp.toParent(action); // if(this.debug.noop) console.log(this.constructor.name, this.title, action,'->', this.props.rasp);
+
+        return result;
+      }
+    } //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // this can handle a one to many pattern for the RASP, handle each action appropriatly
+    //
+
+  }, {
+    key: "toMeFromParent",
+    value: function toMeFromParent(action) {
+      var _this12 = this;
+
+      if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, action);
+
+      if (action.type === "ONPOPSTATE") {
+        var stateStack = action.stateStack,
+            stackDepth = action.stackDepth;
+        var key = stateStack[stackDepth][this.keyField];
+        var sent = false;
+        Object.keys(this.toChild).forEach(function (child) {
+          // only child panels with RASP managers will have entries in this list. 
+          if (child === key) {
+            sent = true;
+
+            _this12.toChild[child]({
+              type: "ONPOPSTATE",
+              stateStack: stateStack,
+              stackDepth: stackDepth + 1
+            });
+          } else if ((typeof key === 'undefined' || key === null) && child === 'default') {
+            sent = true;
+
+            _this12.toChild[child]({
+              type: "ONPOPSTATE",
+              stateStack: stateStack,
+              stackDepth: stackDepth + 1
+            });
+          } else _this12.toChild[child]({
+            type: "CLEAR_PATH"
+          }); // only one button panel is open, any others are truncated (but inactive)
+
+        });
+        if (key && !sent) console.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", {
+          depth: this.props.rasp.depth
+        }, {
+          action: action
+        });
+        return; // this was the end of the lines
+      } else if (action.type === "GET_STATE") {
+        var key = this.props.rasp[this.keyField];
+
+        if (typeof key !== 'undefined' && key !== null) {
+          if (this.toChild[key]) return this.toChild[key](action); // pass the action to the child
+          else console.error("ReactActionStatePathClien.toMeFromParent GET_STATE key set by child not there", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp);
+        } else if (this.toChild['default']) {
+          return this.toChild['default'](action); // pass the action to the default child
+        } else return null; // end of the line
+
+      } else if (action.type === "CLEAR_PATH") {
+        // clear the path and reset the RASP state back to what the const
+        var key = this.props.rasp[this.keyField];
+
+        if (typeof key !== 'undefined' && key !== null) {
+          if (this.toChild[key]) return this.toChild[key](action); // pass the action to the child
+          else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp);
+        } else if (this.toChild['default']) {
+          return this.toChild['default'](action); // pass the action to the default childelse return null; // end of the line
+        } else return null; // end of the line
+
+      } else if (action.type === "RESET") {
+        // clear the path and reset the RASP state back to what the const
+        var delta = {}; // reset all the children first (depth first)
+
+        Object.keys(this.toChild).forEach(function (child) {
+          // send the action to every child
+          _this12.toChild[child](action);
+        });
+        if (this._defaults) this.restoreDefaults();
+        if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
+        return null; // end of the line
+      } else if (action.type === "SET_PATH") {
+        var nextRASP, setBeforeWait;
+        var obj = this.segmentToState && this.segmentToState(action, action.initialRASP);
+
+        if (_typeof(obj) === 'object') {
+          nextRASP = obj.nextRASP;
+          setBeforeWait = obj.setBeforeWait;
+        }
+
+        ;
+
+        if (_typeof(nextRASP) === 'object') {
+          var key = nextRASP[this.keyField];
+
+          if (typeof key !== 'undefined' && key !== null) {
+            if (this.toChild[key]) this.props.rasp.toParent({
+              type: 'SET_STATE_AND_CONTINUE',
+              nextRASP: nextRASP,
+              function: this.toChild[key]
+            }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
+            else if (setBeforeWait) {
+                this.waitingOn = {
+                  nextRASP: nextRASP,
+                  nextFunc: function nextFunc() {
+                    return _this12.props.rasp.toParent({
+                      type: "CONTINUE_SET_PATH",
+                      function: _this12.toChild[key]
+                    });
+                  }
+                };
+                this.props.rasp.toParent({
+                  type: "SET_STATE",
+                  nextRASP: nextRASP
+                });
+              } else {
+                if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
+                this.waitingOn = {
+                  nextRASP: nextRASP
+                };
+              }
+          } else if (this.toChild['default']) {
+            return this.toChild['default'](action); // pass the action to the default child
+          } else {
+            this.props.rasp.toParent({
+              type: 'SET_STATE_AND_CONTINUE',
+              nextRASP: nextRASP,
+              function: null
+            });
+          }
+        } else {
+          var key = action.initialRASP[this.keyField];
+
+          if (typeof key !== 'undefined' && key !== null && this.toChild[key]) {
+            this.props.rasp.toParent({
+              type: 'SET_PATH_SKIP',
+              segment: action.segment,
+              function: this.toChild[key]
+            }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
+          } else {
+            if (this.toChild['default']) {
+              this.props.rasp.toParent({
+                type: 'SET_PATH_SKIP',
+                segment: action.segment,
+                function: this.toChild['default']
+              }); // we assume there is only 1, if there are others they are ignored
+            } else {
+              var keys = Object.keys(this.toChild);
+              if (keys.length) this.props.rasp.toParent({
+                type: 'SET_PATH_SKIP',
+                segment: action.segment,
+                function: this.toChild[keys[0]]
+              }); // we assume there is only 1, if there are others they are ignored
+              else {
+                  if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH_SKIP waitingOn", action.initialRASP);
+                  this.waitingOn = {
+                    nextRASP: action.initialRASP,
+                    function: function _function() {
+                      return _this12.props.rasp.toParent({
+                        type: "SET_PATH_SKIP",
+                        segment: action.segment,
+                        function: _this12.toChild[Object.keys(_this12.toChild)[0]]
+                      });
+                    }
+                  };
+                }
+            }
+          }
+        }
+      } else {
+        // if the key is in the action 
+        var _key = action[this.keyField];
+
+        if (typeof _key !== 'undefined' && this.toChild[_key]) {
+          if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on action keyField", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key);
+          return this.toChild[_key](action);
+        } // if there is an active child
+
+
+        _key = this.props.rasp[this.keyField];
+
+        if (typeof _key !== 'undefined' && _key !== null) {
+          if (this.toChild[_key]) {
+            if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on active child of rasp", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key);
+            return this.toChild[_key](action); // pass the action to the child
+          }
+        } else if (this.toChild['default']) {
+          return this.toChild['default'](action); // pass the action to the default child
+        } else {
+          if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent unknown action and not active child", this.constructor.name, this.childTitle, this.props.rasp.raspId, action);
+        }
+      }
+    } // a consistent way to set the rasp for children
+
+  }, {
+    key: "childRASP",
+    value: function childRASP(shape) {
+      var childKey = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'default';
+      return Object.assign({}, this.props.rasp, {
+        shape: shape,
+        toParent: this.toMeFromChild.bind(this, childKey)
+      });
+    } // when using actionFilers all you need is this actionToState - or you can replace it
+
+  }, {
+    key: "actionToState",
+    value: function actionToState(action, rasp, source, initialRASP, delta) {
+      var _console;
+
+      if (this.debug.noop) (_console = console).info.apply(_console, ["ReactActionStatePath.actionToState"].concat(Array.prototype.slice.call(arguments)));
+      var nextRASP = {};
+
+      if (this.vM && this.vM.actionToState(action, rasp, source, initialRASP, delta)) {
+        ; //then do nothing - it's been done if (action.type==="DESCENDANT_FOCUS") {
+      } else if (Object.keys(delta).length) {
+        ; // no need to do anything, but do continue to calculate nextRASP
+      } else return null; // don't know this action, null so the default methods can have a shot at it
+
+
+      Object.assign(nextRASP, rasp, delta);
+      if (this.vM && this.vM.deriveRASP) this.vM.deriveRASP(nextRASP, initialRASP);else if (this.deriveRASP) this.deriveRASP(nextRASP, initialRASP);
+      return nextRASP;
+    }
+  }, {
+    key: "componentWillMount",
+    value: function componentWillMount() {
+      var _this13 = this;
+
+      if (this.actionFilters) Object.keys(this.actionFilters).forEach(function (filterType) {
+        return _this13.props.rasp.toParent({
+          type: "SET_ACTION_FILTER",
+          filterType: filterType,
+          name: _this13.constructor.name,
+          function: _this13.actionFilters[filterType].bind(_this13)
+        });
+      });
+    }
+  }]);
+
+  return ReactActionStatePathClient;
+}(_react.default.Component); // for PathMulti the keyField should be a number
+// when SET_PATH is used to set the state, the state for all toChild[]s with key's less than the one specified in the pathSegment/ action.segment will have SET_STATE called on them first.
+// setting the next toChild[]'s state will continue when the RASP Component calls this.waitingOnResults.nextFunc.  
+// Make sure to check .waitingOnResults[this.keyField] to ensure you are calling .nextFunc for the child/key that is being waited on, and not a previous one that is setting results again.
+//
+
+
+exports.ReactActionStatePathClient = ReactActionStatePathClient;
+
+var ReactActionStatePathMulti =
+/*#__PURE__*/
+function (_ReactActionStatePath) {
+  _inherits(ReactActionStatePathMulti, _ReactActionStatePath);
+
+  function ReactActionStatePathMulti(props, keyfield, debug) {
+    var _this14;
+
+    _classCallCheck(this, ReactActionStatePathMulti);
+
+    _this14 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePathMulti).call(this, props, keyfield, debug));
+    if (_typeof(debug) === 'object') _this14.debug = debug;else _this14.debug = {
+      noop: debug
+    };
+    return _this14;
+  }
+
+  _createClass(ReactActionStatePathMulti, [{
+    key: "toMeFromParent",
+    value: function toMeFromParent(action) {
+      var _this15 = this;
+
+      if (this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent", this.props.rasp.depth, action);
+
+      if (action.type === "ONPOPSTATE") {
+        if (this.debug.noop) console.log("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE", this.props.rasp.depth, action);
+        var stackDepth = action.stackDepth,
+            stateStack = action.stateStack;
+        var keepChild = [];
+        Object.keys(this.toChild).forEach(function (child) {
+          return keepChild[child] = false;
+        });
+        stateStack[stackDepth + 1].raspChildren.forEach(function (child) {
+          if (_this15.toChild[child.key]) {
+            _this15.toChild[child.key]({
+              type: "ONPOPSTATE",
+              stateStack: child.stateStack,
+              stackDepth: 0
+            });
+
+            keepChild[child.key] = true;
+          } else console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE no child:", child.key);
+        });
+        keepChild.forEach(function (keep, child) {
+          // child id is the index
+          if (!keep) {
+            console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE child not kept", child);
+
+            _this15.toChild[child]({
+              type: "CLEAR_PATH"
+            }); // only one button panel is open, any others are truncated (but inactive)
+
+          }
+        });
+        return; // this was the end of the line
+      } else if (action.type === "GET_STATE") {
+        // get the state info from all the children and combind them into one Object
+        if (this.debug.noop) console.log("ReactActionStatePathMulti.toMeFromParent GET_STATE", this.props.rasp.depth, action);
+        var raspChildren = Object.keys(this.toChild).map(function (child) {
+          return {
+            stateStack: _this15.toChild[child]({
+              type: "GET_STATE"
+            }),
+            key: child
+          };
+        });
+        if (raspChildren.length === 1 && !raspChildren[0].stateStack) return null; // if the only child doesn't really exist yet (because it returns null) just return null
+
+        var curPath = raspChildren.reduce(function (acc, cur, i) {
+          // parse the state to build the curreent path
+          if (cur.stateStack && cur.stateStack[i] && cur.stateStack[i].pathSegment) acc.push(cur.stateStack[i].pathSegment);
+          return acc;
+        }, []);
+
+        if (raspChildren.length) {
+          var result = {
+            raspChildren: raspChildren,
+            depth: this.props.rasp.depth + 1,
+            shape: 'multichild'
+          };
+          if (curPath.length) result.pathSegment = curPath.join(':');
+          if (this.debug.noop) console.log("ReactActionStatePathMulti.toMeFromParent GET_STATE returns", result);
+          return [result];
+        } else return null;
+      } else if (action.type === "CLEAR_PATH") {
+        // clear the path and reset the RASP state back to what the const
+        Object.keys(this.toChild).forEach(function (child) {
+          // send the action to every child
+          _this15.toChild[child](action);
+        });
+      } else if (action.type === "RESET") {
+        // clear the path and reset the RASP state back to what the const
+        var delta = {}; // reset children first
+
+        Object.keys(this.toChild).forEach(function (child) {
+          // send the action to every child
+          _this15.toChild[child](action);
+        });
+        if (this._defaults) this.restoreDefaults();
+        if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
+        return null; // end of the line
+      } else if (action.type === "SET_PATH") {
+        var _this$segmentToState = this.segmentToState(action),
+            nextRASP = _this$segmentToState.nextRASP,
+            setBeforeWait = _this$segmentToState.setBeforeWait;
+
+        if (this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent SET_PATH", action);
+
+        if (nextRASP[this.keyField]) {
+          var _key2 = nextRASP[this.keyField];
+          /*if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
+          else */
+
+          if (setBeforeWait) {
+            var that = this;
+
+            var setPredicessors = function setPredicessors() {
+              var predicessors = that.toChild.length;
+              if (_this15.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", _key2, predicessors);
+
+              if (predicessors < _key2) {
+                var _that$waitingOnResult;
+
+                var predicessorRASP = Object.assign({}, nextRASP, _defineProperty({}, that.keyField, predicessors));
+                that.waitingOnResults = (_that$waitingOnResult = {}, _defineProperty(_that$waitingOnResult, that.keyField, predicessors), _defineProperty(_that$waitingOnResult, "nextFunc", setPredicessors.bind(_this15)), _that$waitingOnResult);
+                that.props.rasp.toParent({
+                  type: "SET_STATE",
+                  nextRASP: predicessorRASP
+                });
+              } else {
+                that.waitingOn = {
+                  nextRASP: nextRASP,
+                  nextFunc: function nextFunc() {
+                    return that.props.rasp.toParent({
+                      type: "CONTINUE_SET_PATH",
+                      function: that.toChild[_key2]
+                    });
+                  }
+                };
+                that.props.rasp.toParent({
+                  type: "SET_STATE",
+                  nextRASP: nextRASP
+                });
+              }
+            };
+
+            setPredicessors();
+          } else {
+            if (this.debug.noop) console.log("ReactActionStatePathMulti.toMeFromParent SET_PATH waitingOn", nextRASP);
+            this.waitingOn = {
+              nextRASP: nextRASP
+            };
+          }
+        } else {
+          this.props.rasp.toParent({
+            type: 'SET_STATE_AND_CONTINUE',
+            nextRASP: nextRASP,
+            function: null
+          });
+        }
+      } else {
+        // is there a key in the action
+        var _key3 = action[this.keyField];
+
+        if (typeof _key3 !== 'undefined' && this.toChild[_key3]) {
+          if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on action keyField", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key3);
+          return this.toChild[_key3](action);
+        }
+
+        var keys = Object.keys(this.toChild);
+
+        if (keys.length) {
+          var result;
+          keys.forEach(function (key) {
+            // send the action to every child
+            if (_this15.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent passing action to child", _this15.constructor.name, _this15.childTitle, _this15.props.rasp.raspId, action, key);
+            result = _this15.toChild[key](action);
+          });
+          return result;
+        } else {
+          if (this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent no children to pass action to", this.constructor.name, this.childTitle, this.props.rasp.raspId, action);
+        }
+      }
+    }
+  }]);
+
+  return ReactActionStatePathMulti;
+}(ReactActionStatePathClient);
+
+exports.ReactActionStatePathMulti = ReactActionStatePathMulti;
+
+var ReactActionStatePathFilter =
+/*#__PURE__*/
+function (_React$Component3) {
+  _inherits(ReactActionStatePathFilter, _React$Component3);
+
+  function ReactActionStatePathFilter(props, keyField, debug) {
+    var _this16;
+
+    _classCallCheck(this, ReactActionStatePathFilter);
+
+    _this16 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePathFilter).call(this, props));
+    _this16.keyField = keyField;
+    if (_typeof(debug) === 'object') _this16.debug = debug;else _this16.debug = {
+      noop: debug
+    };
+    _this16.qaction = qaction; // make the module specific funtion available
+
+    _this16.queueAction = queueAction.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
+
+    _this16.queueFocus = function (action) {
+      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this16)), _defineProperty({
+        type: "DESCENDANT_FOCUS",
+        wasType: action.type
+      }, _this16.keyField, action[_this16.keyField]));
+    };
+
+    _this16.queueUnfocus = function (action) {
+      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this16)), _defineProperty({
+        type: "DESCENDANT_UNFOCUS",
+        wasType: action.type
+      }, _this16.keyField, action[_this16.keyField]));
+    };
+
+    _this16.initialRASP = (0, _clone.default)(_this16.props.rasp);
+    _this16.createDefaults = createDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
+    _this16.restoreDefaults = restoreDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
+
+    var _staticKeys = Object.keys(_assertThisInitialized(_assertThisInitialized(_this16))); // the react keys that we aren't going to touch when resetting
+
+
+    _this16._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
+
+    return _this16;
+  }
+
+  _createClass(ReactActionStatePathFilter, [{
+    key: "componentWillMount",
+    value: function componentWillMount() {
+      var _this17 = this;
+
+      if (this.actionFilters) Object.keys(this.actionFilters).forEach(function (filterType) {
+        return _this17.props.rasp.toParent({
+          type: "SET_ACTION_FILTER",
+          filterType: filterType,
+          name: _this17.constructor.name,
+          function: _this17.actionFilters[filterType].bind(_this17)
+        });
+      });
+    }
+  }, {
+    key: "componentWillUnmount",
+    value: function componentWillUnmount() {
+      if (this.debug.noop) console.info("ReactActionStatePathFilter.componentWillUnmount", this.constructor.name, this.props.rasp.raspId, this.props.rasp.depth);
+
+      if (this.props.rasp.toParent) {
+        // parent might already be unmounted
+        this.props.rasp.toParent({
+          type: "RESET_ACTION_FILTER",
+          name: this.constructor.name
+        });
+      }
+    }
+  }]);
+
+  return ReactActionStatePathFilter;
+}(_react.default.Component);
+
+exports.ReactActionStatePathFilter = ReactActionStatePathFilter;
+},{"clone":4,"lodash/union":78,"react":85,"shallowequal":86}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -15,68 +1618,102 @@ for (var i = 0, len = code.length; i < len; ++i) {
   revLookup[code.charCodeAt(i)] = i
 }
 
+// Support decoding URL-safe base64 strings, as Node.js does.
+// See: https://en.wikipedia.org/wiki/Base64#URL_applications
 revLookup['-'.charCodeAt(0)] = 62
 revLookup['_'.charCodeAt(0)] = 63
 
-function placeHoldersCount (b64) {
+function getLens (b64) {
   var len = b64.length
+
   if (len % 4 > 0) {
     throw new Error('Invalid string. Length must be a multiple of 4')
   }
 
-  // the number of equal signs (place holders)
-  // if there are two placeholders, than the two characters before it
-  // represent one byte
-  // if there is only one, then the three characters before it represent 2 bytes
-  // this is just a cheap hack to not do indexOf twice
-  return b64[len - 2] === '=' ? 2 : b64[len - 1] === '=' ? 1 : 0
+  // Trim off extra bytes after placeholder bytes are found
+  // See: https://github.com/beatgammit/base64-js/issues/42
+  var validLen = b64.indexOf('=')
+  if (validLen === -1) validLen = len
+
+  var placeHoldersLen = validLen === len
+    ? 0
+    : 4 - (validLen % 4)
+
+  return [validLen, placeHoldersLen]
 }
 
+// base64 is 4/3 + up to two characters of the original data
 function byteLength (b64) {
-  // base64 is 4/3 + up to two characters of the original data
-  return (b64.length * 3 / 4) - placeHoldersCount(b64)
+  var lens = getLens(b64)
+  var validLen = lens[0]
+  var placeHoldersLen = lens[1]
+  return ((validLen + placeHoldersLen) * 3 / 4) - placeHoldersLen
+}
+
+function _byteLength (b64, validLen, placeHoldersLen) {
+  return ((validLen + placeHoldersLen) * 3 / 4) - placeHoldersLen
 }
 
 function toByteArray (b64) {
-  var i, l, tmp, placeHolders, arr
-  var len = b64.length
-  placeHolders = placeHoldersCount(b64)
+  var tmp
+  var lens = getLens(b64)
+  var validLen = lens[0]
+  var placeHoldersLen = lens[1]
 
-  arr = new Arr((len * 3 / 4) - placeHolders)
+  var arr = new Arr(_byteLength(b64, validLen, placeHoldersLen))
+
+  var curByte = 0
 
   // if there are placeholders, only get up to the last complete 4 chars
-  l = placeHolders > 0 ? len - 4 : len
+  var len = placeHoldersLen > 0
+    ? validLen - 4
+    : validLen
 
-  var L = 0
-
-  for (i = 0; i < l; i += 4) {
-    tmp = (revLookup[b64.charCodeAt(i)] << 18) | (revLookup[b64.charCodeAt(i + 1)] << 12) | (revLookup[b64.charCodeAt(i + 2)] << 6) | revLookup[b64.charCodeAt(i + 3)]
-    arr[L++] = (tmp >> 16) & 0xFF
-    arr[L++] = (tmp >> 8) & 0xFF
-    arr[L++] = tmp & 0xFF
+  for (var i = 0; i < len; i += 4) {
+    tmp =
+      (revLookup[b64.charCodeAt(i)] << 18) |
+      (revLookup[b64.charCodeAt(i + 1)] << 12) |
+      (revLookup[b64.charCodeAt(i + 2)] << 6) |
+      revLookup[b64.charCodeAt(i + 3)]
+    arr[curByte++] = (tmp >> 16) & 0xFF
+    arr[curByte++] = (tmp >> 8) & 0xFF
+    arr[curByte++] = tmp & 0xFF
   }
 
-  if (placeHolders === 2) {
-    tmp = (revLookup[b64.charCodeAt(i)] << 2) | (revLookup[b64.charCodeAt(i + 1)] >> 4)
-    arr[L++] = tmp & 0xFF
-  } else if (placeHolders === 1) {
-    tmp = (revLookup[b64.charCodeAt(i)] << 10) | (revLookup[b64.charCodeAt(i + 1)] << 4) | (revLookup[b64.charCodeAt(i + 2)] >> 2)
-    arr[L++] = (tmp >> 8) & 0xFF
-    arr[L++] = tmp & 0xFF
+  if (placeHoldersLen === 2) {
+    tmp =
+      (revLookup[b64.charCodeAt(i)] << 2) |
+      (revLookup[b64.charCodeAt(i + 1)] >> 4)
+    arr[curByte++] = tmp & 0xFF
+  }
+
+  if (placeHoldersLen === 1) {
+    tmp =
+      (revLookup[b64.charCodeAt(i)] << 10) |
+      (revLookup[b64.charCodeAt(i + 1)] << 4) |
+      (revLookup[b64.charCodeAt(i + 2)] >> 2)
+    arr[curByte++] = (tmp >> 8) & 0xFF
+    arr[curByte++] = tmp & 0xFF
   }
 
   return arr
 }
 
 function tripletToBase64 (num) {
-  return lookup[num >> 18 & 0x3F] + lookup[num >> 12 & 0x3F] + lookup[num >> 6 & 0x3F] + lookup[num & 0x3F]
+  return lookup[num >> 18 & 0x3F] +
+    lookup[num >> 12 & 0x3F] +
+    lookup[num >> 6 & 0x3F] +
+    lookup[num & 0x3F]
 }
 
 function encodeChunk (uint8, start, end) {
   var tmp
   var output = []
   for (var i = start; i < end; i += 3) {
-    tmp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2])
+    tmp =
+      ((uint8[i] << 16) & 0xFF0000) +
+      ((uint8[i + 1] << 8) & 0xFF00) +
+      (uint8[i + 2] & 0xFF)
     output.push(tripletToBase64(tmp))
   }
   return output.join('')
@@ -86,35 +1723,38 @@ function fromByteArray (uint8) {
   var tmp
   var len = uint8.length
   var extraBytes = len % 3 // if we have 1 byte left, pad 2 bytes
-  var output = ''
   var parts = []
   var maxChunkLength = 16383 // must be multiple of 3
 
   // go through the array every three bytes, we'll deal with trailing stuff later
   for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
-    parts.push(encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)))
+    parts.push(encodeChunk(
+      uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)
+    ))
   }
 
   // pad the end with zeros, but make sure to not forget the extra bytes
   if (extraBytes === 1) {
     tmp = uint8[len - 1]
-    output += lookup[tmp >> 2]
-    output += lookup[(tmp << 4) & 0x3F]
-    output += '=='
+    parts.push(
+      lookup[tmp >> 2] +
+      lookup[(tmp << 4) & 0x3F] +
+      '=='
+    )
   } else if (extraBytes === 2) {
-    tmp = (uint8[len - 2] << 8) + (uint8[len - 1])
-    output += lookup[tmp >> 10]
-    output += lookup[(tmp >> 4) & 0x3F]
-    output += lookup[(tmp << 2) & 0x3F]
-    output += '='
+    tmp = (uint8[len - 2] << 8) + uint8[len - 1]
+    parts.push(
+      lookup[tmp >> 10] +
+      lookup[(tmp >> 4) & 0x3F] +
+      lookup[(tmp << 2) & 0x3F] +
+      '='
+    )
   }
-
-  parts.push(output)
 
   return parts.join('')
 }
 
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -163,16 +1803,32 @@ function typedArraySupport () {
   // Can typed array instances can be augmented?
   try {
     var arr = new Uint8Array(1)
-    arr.__proto__ = {__proto__: Uint8Array.prototype, foo: function () { return 42 }}
+    arr.__proto__ = { __proto__: Uint8Array.prototype, foo: function () { return 42 } }
     return arr.foo() === 42
   } catch (e) {
     return false
   }
 }
 
+Object.defineProperty(Buffer.prototype, 'parent', {
+  enumerable: true,
+  get: function () {
+    if (!Buffer.isBuffer(this)) return undefined
+    return this.buffer
+  }
+})
+
+Object.defineProperty(Buffer.prototype, 'offset', {
+  enumerable: true,
+  get: function () {
+    if (!Buffer.isBuffer(this)) return undefined
+    return this.byteOffset
+  }
+})
+
 function createBuffer (length) {
   if (length > K_MAX_LENGTH) {
-    throw new RangeError('Invalid typed array length')
+    throw new RangeError('The value "' + length + '" is invalid for option "size"')
   }
   // Return an augmented `Uint8Array` instance
   var buf = new Uint8Array(length)
@@ -194,8 +1850,8 @@ function Buffer (arg, encodingOrOffset, length) {
   // Common case.
   if (typeof arg === 'number') {
     if (typeof encodingOrOffset === 'string') {
-      throw new Error(
-        'If encoding is specified then the first argument must be a string'
+      throw new TypeError(
+        'The "string" argument must be of type string. Received type number'
       )
     }
     return allocUnsafe(arg)
@@ -204,7 +1860,7 @@ function Buffer (arg, encodingOrOffset, length) {
 }
 
 // Fix subarray() in ES2016. See: https://github.com/feross/buffer/pull/97
-if (typeof Symbol !== 'undefined' && Symbol.species &&
+if (typeof Symbol !== 'undefined' && Symbol.species != null &&
     Buffer[Symbol.species] === Buffer) {
   Object.defineProperty(Buffer, Symbol.species, {
     value: null,
@@ -217,19 +1873,51 @@ if (typeof Symbol !== 'undefined' && Symbol.species &&
 Buffer.poolSize = 8192 // not used by this implementation
 
 function from (value, encodingOrOffset, length) {
-  if (typeof value === 'number') {
-    throw new TypeError('"value" argument must not be a number')
-  }
-
-  if (isArrayBuffer(value)) {
-    return fromArrayBuffer(value, encodingOrOffset, length)
-  }
-
   if (typeof value === 'string') {
     return fromString(value, encodingOrOffset)
   }
 
-  return fromObject(value)
+  if (ArrayBuffer.isView(value)) {
+    return fromArrayLike(value)
+  }
+
+  if (value == null) {
+    throw TypeError(
+      'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
+      'or Array-like Object. Received type ' + (typeof value)
+    )
+  }
+
+  if (isInstance(value, ArrayBuffer) ||
+      (value && isInstance(value.buffer, ArrayBuffer))) {
+    return fromArrayBuffer(value, encodingOrOffset, length)
+  }
+
+  if (typeof value === 'number') {
+    throw new TypeError(
+      'The "value" argument must not be of type number. Received type number'
+    )
+  }
+
+  var valueOf = value.valueOf && value.valueOf()
+  if (valueOf != null && valueOf !== value) {
+    return Buffer.from(valueOf, encodingOrOffset, length)
+  }
+
+  var b = fromObject(value)
+  if (b) return b
+
+  if (typeof Symbol !== 'undefined' && Symbol.toPrimitive != null &&
+      typeof value[Symbol.toPrimitive] === 'function') {
+    return Buffer.from(
+      value[Symbol.toPrimitive]('string'), encodingOrOffset, length
+    )
+  }
+
+  throw new TypeError(
+    'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
+    'or Array-like Object. Received type ' + (typeof value)
+  )
 }
 
 /**
@@ -251,9 +1939,9 @@ Buffer.__proto__ = Uint8Array
 
 function assertSize (size) {
   if (typeof size !== 'number') {
-    throw new TypeError('"size" argument must be a number')
+    throw new TypeError('"size" argument must be of type number')
   } else if (size < 0) {
-    throw new RangeError('"size" argument must not be negative')
+    throw new RangeError('The value "' + size + '" is invalid for option "size"')
   }
 }
 
@@ -305,7 +1993,7 @@ function fromString (string, encoding) {
   }
 
   if (!Buffer.isEncoding(encoding)) {
-    throw new TypeError('"encoding" must be a valid string encoding')
+    throw new TypeError('Unknown encoding: ' + encoding)
   }
 
   var length = byteLength(string, encoding) | 0
@@ -334,11 +2022,11 @@ function fromArrayLike (array) {
 
 function fromArrayBuffer (array, byteOffset, length) {
   if (byteOffset < 0 || array.byteLength < byteOffset) {
-    throw new RangeError('\'offset\' is out of bounds')
+    throw new RangeError('"offset" is outside of buffer bounds')
   }
 
   if (array.byteLength < byteOffset + (length || 0)) {
-    throw new RangeError('\'length\' is out of bounds')
+    throw new RangeError('"length" is outside of buffer bounds')
   }
 
   var buf
@@ -368,20 +2056,16 @@ function fromObject (obj) {
     return buf
   }
 
-  if (obj) {
-    if (isArrayBufferView(obj) || 'length' in obj) {
-      if (typeof obj.length !== 'number' || numberIsNaN(obj.length)) {
-        return createBuffer(0)
-      }
-      return fromArrayLike(obj)
+  if (obj.length !== undefined) {
+    if (typeof obj.length !== 'number' || numberIsNaN(obj.length)) {
+      return createBuffer(0)
     }
-
-    if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
-      return fromArrayLike(obj.data)
-    }
+    return fromArrayLike(obj)
   }
 
-  throw new TypeError('First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.')
+  if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
+    return fromArrayLike(obj.data)
+  }
 }
 
 function checked (length) {
@@ -402,12 +2086,17 @@ function SlowBuffer (length) {
 }
 
 Buffer.isBuffer = function isBuffer (b) {
-  return b != null && b._isBuffer === true
+  return b != null && b._isBuffer === true &&
+    b !== Buffer.prototype // so Buffer.isBuffer(Buffer.prototype) will be false
 }
 
 Buffer.compare = function compare (a, b) {
+  if (isInstance(a, Uint8Array)) a = Buffer.from(a, a.offset, a.byteLength)
+  if (isInstance(b, Uint8Array)) b = Buffer.from(b, b.offset, b.byteLength)
   if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b)) {
-    throw new TypeError('Arguments must be Buffers')
+    throw new TypeError(
+      'The "buf1", "buf2" arguments must be one of type Buffer or Uint8Array'
+    )
   }
 
   if (a === b) return 0
@@ -468,6 +2157,9 @@ Buffer.concat = function concat (list, length) {
   var pos = 0
   for (i = 0; i < list.length; ++i) {
     var buf = list[i]
+    if (isInstance(buf, Uint8Array)) {
+      buf = Buffer.from(buf)
+    }
     if (!Buffer.isBuffer(buf)) {
       throw new TypeError('"list" argument must be an Array of Buffers')
     }
@@ -481,15 +2173,19 @@ function byteLength (string, encoding) {
   if (Buffer.isBuffer(string)) {
     return string.length
   }
-  if (isArrayBufferView(string) || isArrayBuffer(string)) {
+  if (ArrayBuffer.isView(string) || isInstance(string, ArrayBuffer)) {
     return string.byteLength
   }
   if (typeof string !== 'string') {
-    string = '' + string
+    throw new TypeError(
+      'The "string" argument must be one of type string, Buffer, or ArrayBuffer. ' +
+      'Received type ' + typeof string
+    )
   }
 
   var len = string.length
-  if (len === 0) return 0
+  var mustMatch = (arguments.length > 2 && arguments[2] === true)
+  if (!mustMatch && len === 0) return 0
 
   // Use a for loop to avoid recursion
   var loweredCase = false
@@ -501,7 +2197,6 @@ function byteLength (string, encoding) {
         return len
       case 'utf8':
       case 'utf-8':
-      case undefined:
         return utf8ToBytes(string).length
       case 'ucs2':
       case 'ucs-2':
@@ -513,7 +2208,9 @@ function byteLength (string, encoding) {
       case 'base64':
         return base64ToBytes(string).length
       default:
-        if (loweredCase) return utf8ToBytes(string).length // assume utf8
+        if (loweredCase) {
+          return mustMatch ? -1 : utf8ToBytes(string).length // assume utf8
+        }
         encoding = ('' + encoding).toLowerCase()
         loweredCase = true
     }
@@ -649,6 +2346,8 @@ Buffer.prototype.toString = function toString () {
   return slowToString.apply(this, arguments)
 }
 
+Buffer.prototype.toLocaleString = Buffer.prototype.toString
+
 Buffer.prototype.equals = function equals (b) {
   if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
   if (this === b) return true
@@ -658,16 +2357,20 @@ Buffer.prototype.equals = function equals (b) {
 Buffer.prototype.inspect = function inspect () {
   var str = ''
   var max = exports.INSPECT_MAX_BYTES
-  if (this.length > 0) {
-    str = this.toString('hex', 0, max).match(/.{2}/g).join(' ')
-    if (this.length > max) str += ' ... '
-  }
+  str = this.toString('hex', 0, max).replace(/(.{2})/g, '$1 ').trim()
+  if (this.length > max) str += ' ... '
   return '<Buffer ' + str + '>'
 }
 
 Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
+  if (isInstance(target, Uint8Array)) {
+    target = Buffer.from(target, target.offset, target.byteLength)
+  }
   if (!Buffer.isBuffer(target)) {
-    throw new TypeError('Argument must be a Buffer')
+    throw new TypeError(
+      'The "target" argument must be one of type Buffer or Uint8Array. ' +
+      'Received type ' + (typeof target)
+    )
   }
 
   if (start === undefined) {
@@ -746,7 +2449,7 @@ function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
   } else if (byteOffset < -0x80000000) {
     byteOffset = -0x80000000
   }
-  byteOffset = +byteOffset  // Coerce to Number.
+  byteOffset = +byteOffset // Coerce to Number.
   if (numberIsNaN(byteOffset)) {
     // byteOffset: it it's undefined, null, NaN, "foo", etc, search whole buffer
     byteOffset = dir ? 0 : (buffer.length - 1)
@@ -869,9 +2572,7 @@ function hexWrite (buf, string, offset, length) {
     }
   }
 
-  // must be an even number of digits
   var strLen = string.length
-  if (strLen % 2 !== 0) throw new TypeError('Invalid hex string')
 
   if (length > strLen / 2) {
     length = strLen / 2
@@ -1000,8 +2701,8 @@ function utf8Slice (buf, start, end) {
     var codePoint = null
     var bytesPerSequence = (firstByte > 0xEF) ? 4
       : (firstByte > 0xDF) ? 3
-      : (firstByte > 0xBF) ? 2
-      : 1
+        : (firstByte > 0xBF) ? 2
+          : 1
 
     if (i + bytesPerSequence <= end) {
       var secondByte, thirdByte, fourthByte, tempCodePoint
@@ -1564,6 +3265,7 @@ Buffer.prototype.writeDoubleBE = function writeDoubleBE (value, offset, noAssert
 
 // copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
 Buffer.prototype.copy = function copy (target, targetStart, start, end) {
+  if (!Buffer.isBuffer(target)) throw new TypeError('argument should be a Buffer')
   if (!start) start = 0
   if (!end && end !== 0) end = this.length
   if (targetStart >= target.length) targetStart = target.length
@@ -1578,7 +3280,7 @@ Buffer.prototype.copy = function copy (target, targetStart, start, end) {
   if (targetStart < 0) {
     throw new RangeError('targetStart out of bounds')
   }
-  if (start < 0 || start >= this.length) throw new RangeError('sourceStart out of bounds')
+  if (start < 0 || start >= this.length) throw new RangeError('Index out of range')
   if (end < 0) throw new RangeError('sourceEnd out of bounds')
 
   // Are we oob?
@@ -1588,22 +3290,19 @@ Buffer.prototype.copy = function copy (target, targetStart, start, end) {
   }
 
   var len = end - start
-  var i
 
-  if (this === target && start < targetStart && targetStart < end) {
+  if (this === target && typeof Uint8Array.prototype.copyWithin === 'function') {
+    // Use built-in when available, missing from IE11
+    this.copyWithin(targetStart, start, end)
+  } else if (this === target && start < targetStart && targetStart < end) {
     // descending copy from end
-    for (i = len - 1; i >= 0; --i) {
-      target[i + targetStart] = this[i + start]
-    }
-  } else if (len < 1000) {
-    // ascending copy from start
-    for (i = 0; i < len; ++i) {
+    for (var i = len - 1; i >= 0; --i) {
       target[i + targetStart] = this[i + start]
     }
   } else {
     Uint8Array.prototype.set.call(
       target,
-      this.subarray(start, start + len),
+      this.subarray(start, end),
       targetStart
     )
   }
@@ -1626,17 +3325,19 @@ Buffer.prototype.fill = function fill (val, start, end, encoding) {
       encoding = end
       end = this.length
     }
-    if (val.length === 1) {
-      var code = val.charCodeAt(0)
-      if (code < 256) {
-        val = code
-      }
-    }
     if (encoding !== undefined && typeof encoding !== 'string') {
       throw new TypeError('encoding must be a string')
     }
     if (typeof encoding === 'string' && !Buffer.isEncoding(encoding)) {
       throw new TypeError('Unknown encoding: ' + encoding)
+    }
+    if (val.length === 1) {
+      var code = val.charCodeAt(0)
+      if ((encoding === 'utf8' && code < 128) ||
+          encoding === 'latin1') {
+        // Fast path: If `val` fits into a single byte, use that numeric value.
+        val = code
+      }
     }
   } else if (typeof val === 'number') {
     val = val & 255
@@ -1664,8 +3365,12 @@ Buffer.prototype.fill = function fill (val, start, end, encoding) {
   } else {
     var bytes = Buffer.isBuffer(val)
       ? val
-      : new Buffer(val, encoding)
+      : Buffer.from(val, encoding)
     var len = bytes.length
+    if (len === 0) {
+      throw new TypeError('The value "' + val +
+        '" is invalid for argument "value"')
+    }
     for (i = 0; i < end - start; ++i) {
       this[i + start] = bytes[i % len]
     }
@@ -1680,6 +3385,8 @@ Buffer.prototype.fill = function fill (val, start, end, encoding) {
 var INVALID_BASE64_RE = /[^+/0-9A-Za-z-_]/g
 
 function base64clean (str) {
+  // Node takes equal signs as end of the Base64 encoding
+  str = str.split('=')[0]
   // Node strips out invalid characters like \n and \t from the string, base64-js does not
   str = str.trim().replace(INVALID_BASE64_RE, '')
   // Node converts strings with length < 2 to ''
@@ -1813,1841 +3520,20 @@ function blitBuffer (src, dst, offset, length) {
   return i
 }
 
-// ArrayBuffers from another context (i.e. an iframe) do not pass the `instanceof` check
-// but they should be treated as valid. See: https://github.com/feross/buffer/issues/166
-function isArrayBuffer (obj) {
-  return obj instanceof ArrayBuffer ||
-    (obj != null && obj.constructor != null && obj.constructor.name === 'ArrayBuffer' &&
-      typeof obj.byteLength === 'number')
+// ArrayBuffer or Uint8Array objects from other contexts (i.e. iframes) do not pass
+// the `instanceof` check but they should be treated as of that type.
+// See: https://github.com/feross/buffer/issues/166
+function isInstance (obj, type) {
+  return obj instanceof type ||
+    (obj != null && obj.constructor != null && obj.constructor.name != null &&
+      obj.constructor.name === type.name)
 }
-
-// Node 0.10 supports `ArrayBuffer` but lacks `ArrayBuffer.isView`
-function isArrayBufferView (obj) {
-  return (typeof ArrayBuffer.isView === 'function') && ArrayBuffer.isView(obj)
-}
-
 function numberIsNaN (obj) {
+  // For IE11 support
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":1,"ieee754":3}],3:[function(require,module,exports){
-exports.read = function (buffer, offset, isLE, mLen, nBytes) {
-  var e, m
-  var eLen = nBytes * 8 - mLen - 1
-  var eMax = (1 << eLen) - 1
-  var eBias = eMax >> 1
-  var nBits = -7
-  var i = isLE ? (nBytes - 1) : 0
-  var d = isLE ? -1 : 1
-  var s = buffer[offset + i]
-
-  i += d
-
-  e = s & ((1 << (-nBits)) - 1)
-  s >>= (-nBits)
-  nBits += eLen
-  for (; nBits > 0; e = e * 256 + buffer[offset + i], i += d, nBits -= 8) {}
-
-  m = e & ((1 << (-nBits)) - 1)
-  e >>= (-nBits)
-  nBits += mLen
-  for (; nBits > 0; m = m * 256 + buffer[offset + i], i += d, nBits -= 8) {}
-
-  if (e === 0) {
-    e = 1 - eBias
-  } else if (e === eMax) {
-    return m ? NaN : ((s ? -1 : 1) * Infinity)
-  } else {
-    m = m + Math.pow(2, mLen)
-    e = e - eBias
-  }
-  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
-}
-
-exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
-  var e, m, c
-  var eLen = nBytes * 8 - mLen - 1
-  var eMax = (1 << eLen) - 1
-  var eBias = eMax >> 1
-  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
-  var i = isLE ? 0 : (nBytes - 1)
-  var d = isLE ? 1 : -1
-  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
-
-  value = Math.abs(value)
-
-  if (isNaN(value) || value === Infinity) {
-    m = isNaN(value) ? 1 : 0
-    e = eMax
-  } else {
-    e = Math.floor(Math.log(value) / Math.LN2)
-    if (value * (c = Math.pow(2, -e)) < 1) {
-      e--
-      c *= 2
-    }
-    if (e + eBias >= 1) {
-      value += rt / c
-    } else {
-      value += rt * Math.pow(2, 1 - eBias)
-    }
-    if (value * c >= 2) {
-      e++
-      c /= 2
-    }
-
-    if (e + eBias >= eMax) {
-      m = 0
-      e = eMax
-    } else if (e + eBias >= 1) {
-      m = (value * c - 1) * Math.pow(2, mLen)
-      e = e + eBias
-    } else {
-      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
-      e = 0
-    }
-  }
-
-  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
-
-  e = (e << mLen) | m
-  eLen += mLen
-  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
-
-  buffer[offset + i - d] |= s * 128
-}
-
-},{}],4:[function(require,module,exports){
-// shim for using process in browser
-var process = module.exports = {};
-
-// cached from whatever global is present so that test runners that stub it
-// don't break things.  But we need to wrap it in a try catch in case it is
-// wrapped in strict mode code which doesn't define any globals.  It's inside a
-// function because try/catches deoptimize in certain engines.
-
-var cachedSetTimeout;
-var cachedClearTimeout;
-
-function defaultSetTimout() {
-    throw new Error('setTimeout has not been defined');
-}
-function defaultClearTimeout () {
-    throw new Error('clearTimeout has not been defined');
-}
-(function () {
-    try {
-        if (typeof setTimeout === 'function') {
-            cachedSetTimeout = setTimeout;
-        } else {
-            cachedSetTimeout = defaultSetTimout;
-        }
-    } catch (e) {
-        cachedSetTimeout = defaultSetTimout;
-    }
-    try {
-        if (typeof clearTimeout === 'function') {
-            cachedClearTimeout = clearTimeout;
-        } else {
-            cachedClearTimeout = defaultClearTimeout;
-        }
-    } catch (e) {
-        cachedClearTimeout = defaultClearTimeout;
-    }
-} ())
-function runTimeout(fun) {
-    if (cachedSetTimeout === setTimeout) {
-        //normal enviroments in sane situations
-        return setTimeout(fun, 0);
-    }
-    // if setTimeout wasn't available but was latter defined
-    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
-        cachedSetTimeout = setTimeout;
-        return setTimeout(fun, 0);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedSetTimeout(fun, 0);
-    } catch(e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-            return cachedSetTimeout.call(null, fun, 0);
-        } catch(e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-            return cachedSetTimeout.call(this, fun, 0);
-        }
-    }
-
-
-}
-function runClearTimeout(marker) {
-    if (cachedClearTimeout === clearTimeout) {
-        //normal enviroments in sane situations
-        return clearTimeout(marker);
-    }
-    // if clearTimeout wasn't available but was latter defined
-    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
-        cachedClearTimeout = clearTimeout;
-        return clearTimeout(marker);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedClearTimeout(marker);
-    } catch (e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-            return cachedClearTimeout.call(null, marker);
-        } catch (e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-            return cachedClearTimeout.call(this, marker);
-        }
-    }
-
-
-
-}
-var queue = [];
-var draining = false;
-var currentQueue;
-var queueIndex = -1;
-
-function cleanUpNextTick() {
-    if (!draining || !currentQueue) {
-        return;
-    }
-    draining = false;
-    if (currentQueue.length) {
-        queue = currentQueue.concat(queue);
-    } else {
-        queueIndex = -1;
-    }
-    if (queue.length) {
-        drainQueue();
-    }
-}
-
-function drainQueue() {
-    if (draining) {
-        return;
-    }
-    var timeout = runTimeout(cleanUpNextTick);
-    draining = true;
-
-    var len = queue.length;
-    while(len) {
-        currentQueue = queue;
-        queue = [];
-        while (++queueIndex < len) {
-            if (currentQueue) {
-                currentQueue[queueIndex].run();
-            }
-        }
-        queueIndex = -1;
-        len = queue.length;
-    }
-    currentQueue = null;
-    draining = false;
-    runClearTimeout(timeout);
-}
-
-process.nextTick = function (fun) {
-    var args = new Array(arguments.length - 1);
-    if (arguments.length > 1) {
-        for (var i = 1; i < arguments.length; i++) {
-            args[i - 1] = arguments[i];
-        }
-    }
-    queue.push(new Item(fun, args));
-    if (queue.length === 1 && !draining) {
-        runTimeout(drainQueue);
-    }
-};
-
-// v8 likes predictible objects
-function Item(fun, array) {
-    this.fun = fun;
-    this.array = array;
-}
-Item.prototype.run = function () {
-    this.fun.apply(null, this.array);
-};
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-process.version = ''; // empty string to avoid regexp issues
-process.versions = {};
-
-function noop() {}
-
-process.on = noop;
-process.addListener = noop;
-process.once = noop;
-process.off = noop;
-process.removeListener = noop;
-process.removeAllListeners = noop;
-process.emit = noop;
-process.prependListener = noop;
-process.prependOnceListener = noop;
-
-process.listeners = function (name) { return [] }
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-};
-
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-process.umask = function() { return 0; };
-
-},{}],5:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.ReactActionStatePathFilter = exports.ReactActionStatePathMulti = exports.ReactActionStatePathClient = exports.default = exports.ReactActionStatePath = void 0;
-
-var _react = _interopRequireDefault(require("react"));
-
-var _union = _interopRequireDefault(require("lodash/union"));
-
-var _shallowequal = _interopRequireDefault(require("shallowequal"));
-
-var _clone = _interopRequireDefault(require("clone"));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-function _objectWithoutProperties(source, excluded) { if (source == null) return {}; var target = _objectWithoutPropertiesLoose(source, excluded); var key, i; if (Object.getOwnPropertySymbols) { var sourceSymbolKeys = Object.getOwnPropertySymbols(source); for (i = 0; i < sourceSymbolKeys.length; i++) { key = sourceSymbolKeys[i]; if (excluded.indexOf(key) >= 0) continue; if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue; target[key] = source[key]; } } return target; }
-
-function _objectWithoutPropertiesLoose(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } return target; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
-
-function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
-
-function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
-
-function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
-
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-// for comparing rasp states, we use equaly.  If a property in two objects is logically false in both, the property is equal.  This means that undefined, null, false, 0, and '' are all the same.
-// and we make a deep compare
-var equaly = function equaly(a, b) {
-  if (!a && !b) return true; //if both are false, they are the same
-
-  if (a && !b) return false; //if one is false and the other is not - they are not the same
-
-  if (!a && b) return false;
-
-  var t = _typeof(a);
-
-  if (t !== _typeof(b)) return false; // if not falsy and types are not equal, they are not equal
-
-  if (t === 'object') return (0, _union.default)(Object.keys(a), Object.keys(b)).every(function (k) {
-    return equaly(a[k], b[k]);
-  }); // they are both objects, break them down and compare them
-
-  if (t === 'function') return true; //treat functions are equal no matter what they are
-
-  if (a && b) return a == b; // if both are truthy are they equal
-
-  return false;
-}; //React Action State Path - manages the state of react components that interact with each other and change state based user interactions and interactions between stateful components.
-//Components communicate through the rasp object, which is passed between them.  The basic component is
-//rasp={shape: a string representing a shape.  You can have any shapes you want, this is using 'truncated', 'open' and 'collapsed' but this can be upto the implementation.  But all components will need to understand these shapes
-//     depth: the distance of the component from the root (first) component.
-//     toParent: the function to call to send 'actions' to the parent function
-//     each child component can add more properties to it's state, through the actionToState function
-//     }
-//q
-
-
-var queue = 0;
-
-var qaction = function qaction(func) {
-  queue += 1; //console.info("qaction queueing", queue);
-
-  setTimeout(function () {
-    //console.info("qaction continuing", queue);
-    queue--;
-    func();
-
-    if (queue === 0 && UpdateHistory && !ReactActionStatePath.topState) {
-      //console.info("qaction updating history");
-      UpdateHistory();
-    } else //console.info("qaction after continuing", queue)
-      ;
-  }, 0);
-};
-
-var queueAction = function queueAction(action) {
-  var _this = this;
-
-  // called by a client, with it's this
-  //console.info("queueAction", this.props.rasp.raspId, this.props.rasp.depth, this.constructor.name, action)
-  qaction(function () {
-    return _this.props.rasp.toParent(action);
-  });
-};
-
-var qhistory = function qhistory(func, delay) {
-  console.info("qhistory", queue, this.id, this.childName, this.childTitle);
-
-  if (queue > 0) {
-    //console.info("qhistory put off"); 
-    return;
-  } else setTimeout(func, delay);
-}; // not being used yet
-
-
-var qfuncPair = function qfuncPair(updateHistory) {
-  var queue = 0;
-
-  var qaction = function qaction(func) {
-    queue += 1;
-    setTimeout(function () {
-      queue--;
-      func();
-      if (queue === 0 && updateHistory) updateHistory();
-    }, 0);
-  };
-
-  var qhistory = function qhistory(func, delay) {
-    console.info("qhistory", queue);
-
-    if (queue > 0) {
-      //console.info("qhistory put off"); 
-      return;
-    } else setTimeout(func, delay);
-  };
-
-  return {
-    qaction: qaction,
-    qhistory: qhistory
-  };
-};
-
-var UpdateHistory;
-
-var ReactActionStatePath =
-/*#__PURE__*/
-function (_React$Component) {
-  _inherits(ReactActionStatePath, _React$Component);
-
-  function ReactActionStatePath(props) {
-    var _this2;
-
-    _classCallCheck(this, ReactActionStatePath);
-
-    _this2 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePath).call(this, props)); //if(this.debug.noop) console.log("ReactActionStatePath.constructor", this.constructor.name, this.props.rasp);
-
-    _this2.toChild = null;
-    _this2.childName = '';
-    _this2.childTitle = '';
-    _this2.debug = _this2.props.debugObject || {
-      noop: false,
-      near: false
-    };
-    _this2.waitingOn = false;
-    _this2.initialRASP = Object.assign({}, {
-      shape: _this2.props.rasp && _this2.props.rasp.shape ? _this2.props.rasp.shape : 'truncated',
-      depth: _this2.props.rasp ? _this2.props.rasp.depth : 0 // for debugging  - this is my depth to check
-
-    }, _this2.props.initialRASP);
-
-    if (typeof window !== 'undefined') {
-      // browser side, there should be no rasp
-      if (!(_this2.props.rasp && _this2.props.rasp.toParent)) {
-        if (typeof ReactActionStatePath.nextId !== 'undefined') console.error("ReactActionStatePath.constructor no parent, but not root!");
-      } else {
-        _this2.props.rasp.toParent({
-          type: "SET_TO_CHILD",
-          function: _this2.toMeFromParent.bind(_assertThisInitialized(_assertThisInitialized(_this2))),
-          name: "ReactActionStatePath"
-        });
-      }
-    } else {
-      // server side, rasp is how we get the data out
-      if (!_this2.props.rasp || typeof _this2.props.rasp.depth === 'undefined' || _this2.props.RASPRoot) {
-        // this is this root
-        if (_this2.debug.constructor) console.info("ReactActionStatePath.construction at root");
-
-        if (typeof ReactActionStatePath.nextId !== 'undefined') {
-          if (_this2.debug.constructor) console.info("ReactActionStatePath.construction at root, but nextId was", ReactActionStatePath.nextId);
-          ReactActionStatePath.nextId = undefined;
-        }
-      }
-
-      if (_this2.props.rasp && _this2.props.rasp.toParent) {
-        _this2.props.rasp.toParent({
-          type: "SET_TO_CHILD",
-          function: _this2.toMeFromParent.bind(_assertThisInitialized(_assertThisInitialized(_this2))),
-          name: "ReactActionStatePath"
-        });
-      }
-    } // not an else of above because of the possibility that one might want to put a rasp and toParent before the first component
-
-
-    if (typeof ReactActionStatePath.nextId === 'undefined') {
-      // this is the root ReactActionStatePath
-      ReactActionStatePath.nextId = 0;
-      ReactActionStatePath.queue = 0; // initialize the queue count
-
-      if (queue !== 0) {
-        console.error("ReactActionStatePath module scope queue was not 0, was:", queue, "resetting.");
-        queue = 0;
-      }
-
-      ReactActionStatePath.topState = null;
-
-      if (_this2.props.path && _this2.props.path !== '/') {
-        var pathSegments = _this2.props.path.split('/');
-
-        while (pathSegments.length && !pathSegments[0]) {
-          pathSegments.shift();
-        } // an initial '/' turns into an empty element at the beginning
-
-
-        while (pathSegments.length && !pathSegments[pathSegments.length - 1]) {
-          pathSegments.pop();
-        } // '/'s at the end translate to null elements, remove them
-
-
-        var root = (_this2.props.RASPRoot || '/h/').split('/');
-
-        while (root.length && !root[0]) {
-          root.shift();
-        } // shift off leading empty's caused by leading '/'s
-
-
-        while (root.length && !root[root.length - 1]) {
-          root.pop();
-        } // '/'s at the end translate to null elements, remove them
-
-
-        if (root.some(function (segment) {
-          return segment !== pathSegments.shift();
-        })) {
-          console.error("ReactActionStatePath.componentDidMount path didn't match props", root, pathSegments);
-        }
-
-        ReactActionStatePath.pathSegments = pathSegments;
-      } else ReactActionStatePath.pathSegments = [];
-
-      if (typeof window !== 'undefined') {
-        // if we are running on the browser
-        ReactActionStatePath.thiss = [];
-        window.onpopstate = _this2.onpopstate.bind(_assertThisInitialized(_assertThisInitialized(_this2)));
-        window.ReactActionStatePath = {
-          thiss: ReactActionStatePath.thiss
-        };
-        UpdateHistory = _this2.updateHistory.bind(_assertThisInitialized(_assertThisInitialized(_this2)));
-        if (ReactActionStatePath.pathSegments.length === 0) qhistory.call(_assertThisInitialized(_assertThisInitialized(_this2)), function () {
-          return _this2.updateHistory();
-        }, 0); // aftr things have settled down, update history for the first time
-      }
-
-      console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
-    }
-
-    _this2.id = ReactActionStatePath.nextId++; // get the next id
-
-    _this2.state = _this2.getDefaultState(); //below are variables not restored by RESET
-
-    if (typeof window !== 'undefined') ReactActionStatePath.thiss[_this2.id] = {
-      parent: _assertThisInitialized(_assertThisInitialized(_this2)),
-      client: null
-    };
-    _this2.actionFilters = {};
-    return _this2;
-  }
-
-  _createClass(ReactActionStatePath, [{
-    key: "componentWillUnmount",
-    value: function componentWillUnmount() {
-      if (this.debug.componentWillUnmount) console.info("ReactActionStatePath.componentWillUnmount", this.id, this.childTitle);
-
-      if (typeof window !== 'undefined') {
-        ReactActionStatePath.thiss[this.id] = undefined;
-        var id = this.id;
-
-        if (id === ReactActionStatePath.nextId - 1) {
-          while (id && typeof ReactActionStatePath.thiss[id] === 'undefined') {
-            id--;
-          }
-
-          if (!id && typeof ReactActionStatePath.thiss[id] === 'undefined') ReactActionStatePath.nextId = undefined;else ReactActionStatePath.nextId = id + 1;
-        }
-      }
-    } // consistently get the default state from multiple places
-
-  }, {
-    key: "getDefaultState",
-    value: function getDefaultState() {
-      return {
-        rasp: Object.assign({}, this.initialRASP)
-      };
-    } // handler for the window onpop state
-    // only the root ReactActionStatePath will set this 
-    // it works by recursively passing the ONPOPSTATE action to each child RASP component starting with the root
-
-  }, {
-    key: "onpopstate",
-    value: function onpopstate(event) {
-      var _this3 = this;
-
-      if (this.debug.onpopstate) console.info("ReactActionStatePath.onpopstate", this.id, {
-        event: event
-      });
-
-      if (event.state && event.state.stateStack) {
-        if (ReactActionStatePath.topState) console.error("ReactActionStatePath.onpopstate expected topState null, got:", ReactActionStatePath.topState);
-        ReactActionStatePath.topState = "ONPOPSTATE";
-        var completionCheck = setTimeout(function () {
-          if (ReactActionStatePath.topState === "ONPOPSTATE") {
-            console.error("ReactActionStatePath.onpopstate ONPOPSTATE did not complete.", _this3);
-            ReactActionStatePath.topState = null;
-          }
-        }, 10000);
-        this.toMeFromParent({
-          type: "ONPOPSTATE",
-          stateStack: event.state.stateStack,
-          stackDepth: 0
-        });
-        if (this.debug.onpopstate) console.log("ReactActionStatePath.onpopstate: returned.");
-        ReactActionStatePath.topState = null;
-        clearTimeout(completionCheck);
-      }
-    }
-  }, {
-    key: "toMeFromChild",
-    value: function toMeFromChild(action) {
-      var _this4 = this;
-
-      if (this.debug.toMeFromChild) console.info("ReactActionStatePath.toMeFromChild", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
-      if (this.debug.near && (action.distance === 0 || action.distance === 1)) console.info("ReactActionStatePath.toMeFromChild near", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
-      var nextRASP = {},
-          delta = {};
-      if (!action.distance) action.distance = 0; // action was from component so add distance
-
-      if (action.distance < 0) {
-        action.distance += 1;
-        if (this.id) return this.props.rasp.toParent(action);else return;
-      }
-
-      if (action.direction === "DESCEND") return this.toChild(action);else action.direction = "ASCEND";
-
-      if (action.type === "SET_TO_CHILD") {
-        // child is passing up her func
-        if (typeof action.debug === 'number') this.debug.noop = action.debug;else if (_typeof(action.debug) === 'object') Object.assign(this.debug, action.debug);else if (action.debug) console.error("ReactActionStatePath.toMeFromChild unexpected debug in action", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
-        if (this.debug.SET_TO_CHILD) console.info("ReactActionStatePath.toMeFromChild debug set", this.debug.noop, this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
-
-        if (!(this.toChild = action.function)) {
-          this.childName = undefined;
-          this.actionToState = undefined;
-          if (typeof window !== 'undefined' && ReactActionStatePath.thiss[this.id] && ReactActionStatePath.thiss[this.id].client) ReactActionStatePath.thiss[this.id].client = undefined;
-          return;
-        }
-
-        if (action.name) this.childName = action.name;
-        if (action.actionToState) this.actionToState = action.actionToState;
-        if (action.clientThis && typeof window !== 'undefined') ReactActionStatePath.thiss[this.id].client = action.clientThis;else {
-          if (typeof window !== 'undefined') console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD clientThis missing on browser", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action);
-        }
-
-        if (typeof window !== 'undefined' && this.id === 0 && ReactActionStatePath.pathSegments.length) {
-          // this is the root and we are on the browser and there is at least one pathSegment
-          if (this.debug.SET_PATH) console.log("ReactActionStatePath.toMeFromChild will SET_PATH to", ReactActionStatePath.pathSegments);
-          if (ReactActionStatePath.topState) console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD, expected topState null got:", ReactActionStatePath.topState);
-          this.completionCheck = setTimeout(function () {
-            if (ReactActionStatePath.topState === "SET_PATH") {
-              console.error("ReactActionStatePath.toMeFromChild SET_PATH did not complete, topState:", ReactActionStatePath.topState, "this:", _this4);
-              ReactActionStatePath.topState = null;
-            }
-          }, 10000);
-          qaction(function () {
-            ReactActionStatePath.topState = "SET_PATH";
-
-            _this4.toChild({
-              type: "SET_PATH",
-              segment: ReactActionStatePath.pathSegments.shift(),
-              initialRASP: _this4.initialRASP
-            });
-          }); // this starts after the return toChild so it completes.
-        } else if (this.waitingOn) {
-          var nextFunc = this.waitingOn.nextFunc;
-          this.waitingOn = null;
-          qaction(nextFunc);
-          return;
-        }
-      } else if (action.type === "SET_ACTION_FILTER") {
-        if (this.actionFilters[action.filterType]) this.actionFilters[action.filterType].push({
-          name: action.name,
-          function: action.function
-        });else this.actionFilters[action.filterType] = [{
-          name: action.name,
-          function: action.function
-        }];
-        return;
-      } else if (action.type === "RESET_ACTION_FILTER") {
-        Object.keys(this.actionFilters).forEach(function (key) {
-          _this4.actionFilters[key] = _this4.actionFilters[key].filter(function (filter) {
-            return filter.name !== action.name;
-          }); // remove all action filters from that constructor based on it's name
-
-          if (!_this4.actionFilters[key].length) delete _this4.actionFilters[key];
-        });
-        return;
-      } else if (action.type === "SET_DATA") {
-        if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_DATA", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
-        this.setState({
-          rasp: Object.assign({}, this.state.rasp, {
-            data: action.data
-          })
-        });
-      } else if (action.type === "SET_STATE") {
-        if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
-        this.setState({
-          rasp: Object.assign({}, this.state.rasp, action.nextRASP)
-        });
-      } else if (action.type === "SET_TITLE") {
-        if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_TITLE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
-        this.childTitle = action.title; // this is only for pretty debugging
-      } else if (action.type === "SET_PATH_SKIP") {
-        // this child will not consume the path segment, so pass the path segment to the next child, but reset the state if it isn't
-        if ((0, _shallowequal.default)(this.state.rasp, this.initialRASP)) {
-          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
-          qaction(function () {
-            return action.function({
-              type: 'SET_PATH',
-              segment: action.segment,
-              initialRASP: _this4.initialRASP
-            });
-          }); // if the child is this child's parent RASP, then it will reset initialRASP
-        } else {
-          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP setState first", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
-          this.setState({
-            rasp: this.initialRASP
-          }, function () {
-            return qaction(function () {
-              return action.function({
-                type: 'SET_PATH',
-                segment: action.segment,
-                initialRASP: _this4.initialRASP
-              });
-            });
-          }); // if the child is this child's parent RASP, then it will reset initialRASP)
-        }
-      } else if (action.type === "CONTINUE_SET_PATH") {
-        if (ReactActionStatePath.pathSegments.length) {
-          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
-          qaction(function () {
-            return action.function({
-              type: 'SET_PATH',
-              segment: ReactActionStatePath.pathSegments.shift(),
-              initialRASP: _this4.initialRASP
-            });
-          });
-        } else {
-          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
-          if (this.id !== 0) this.props.rasp.toParent({
-            type: "SET_PATH_COMPLETE"
-          });else {
-            if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE_SET_PATH updateHistory");
-            ReactActionStatePath.topState = null;
-            clearTimeout(this.completionCheck);
-            this.updateHistory();
-          }
-        }
-      } else if (action.type === "SET_STATE_AND_CONTINUE") {
-        if (ReactActionStatePath.pathSegments.length) {
-          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
-          if (action.function) this.setState({
-            rasp: Object.assign({}, this.state.rasp, action.nextRASP)
-          }, function () {
-            return qaction(function () {
-              return action.function({
-                type: 'SET_PATH',
-                segment: ReactActionStatePath.pathSegments.shift(),
-                initialRASP: _this4.initialRASP
-              });
-            });
-          });else {
-            console.error("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE pathSegments remain, but no next function", this.id, this.childTitle, action, ReactActionStatePath.pathSegments);
-            this.setState({
-              rasp: Object.assign({}, this.state.rasp, action.nextRASP)
-            });
-          }
-        } else {
-          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE last one", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp, action.nextRASP);
-          this.setState({
-            rasp: Object.assign({}, this.state.rasp, action.nextRASP)
-          }, function () {
-            if (_this4.id !== 0) _this4.props.rasp.toParent({
-              type: "SET_PATH_COMPLETE"
-            });else {
-              if (_this4.debug.noop) console.log("ReactActionStatePath.toMeFromChild  SET_STATE_AND_CONTINUE last one updateHistory");
-              ReactActionStatePath.topState = null;
-              clearTimeout(_this4.completionCheck);
-
-              _this4.updateHistory();
-            }
-          });
-        }
-      } else if (action.type === "SET_PATH_COMPLETE") {
-        if (this.id !== 0) return this.props.rasp.toParent({
-          type: "SET_PATH_COMPLETE"
-        });else {
-          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET PATH COMPLETED, updateHistory");
-          ReactActionStatePath.topState = null;
-          clearTimeout(this.completionCheck);
-          return this.updateHistory();
-        }
-      } else if (action.type === "RESET") {
-        this.setState(this.getDefaultState()); // after clearing thechildren clear this state
-
-        return null;
-      } else if ((this.actionFilters[action.type] && this.actionFilters[action.type].every(function (filter) {
-        return filter.function(action, delta);
-      }), true // process action filters until on returns false and always evaluate to true
-      ) && this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "CHILD", this.getDefaultState().rasp, delta)) !== null // if no actionToState or actionToState returns NULL propogate the action on, otherwise the action ends here
-      ) {
-          if (this.state.rasp.pathSegment && !nextRASP.pathSegment) {
-            // path has been removed
-            if (this.debug.noop) console.log("ReactActionStatePath.toChildFromParent child changed state and path being removed so reset children", this.id, this.state.rasp.pathSegment); //this.toChild({type:"CLEAR_PATH"}); // if toChild is not set let there be an error
-          } else if (!this.state.rasp.pathSegment && nextRASP.pathSegment) {
-            // path being added
-            if (this.debug.noop) console.log("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment);
-          }
-
-          if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DESCENDANT_FOCUS" || action.type === "DESCENDANT_UNFOCUS" || action.duration)) {
-            if (typeof action.duration === 'number') action.duration -= 1;
-            action.distance += 1;
-            this.setState({
-              rasp: nextRASP
-            }, function () {
-              return action.direction === 'ASCEND' ? _this4.props.rasp.toParent(action) : action.direction === 'DESCEND' ? _this4.toChild(action) : console.error("ReactActionStatePath direction unknown", action, _this4.id, _this4.childName, _this4.childTitle);
-            });
-          } else if (this.id !== 0) {
-            this.setState({
-              rasp: nextRASP
-            });
-          } else {
-            // this is the root, after changing shape, remind me so I can update the window.histor
-            if (equaly(this.state.rasp, nextRASP)) {
-              if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action);
-              this.updateHistory();
-            } // updateHistory now!
-            else this.setState({
-                rasp: nextRASP
-              }, function () {
-                if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action);
-                qhistory.call(_this4, function () {
-                  return _this4.updateHistory();
-                }, 0); // update history after the queue of chanages from this state change is processed);
-              }); // otherwise, set the state and let history update on componentDidUpdate
-
-          }
-        } // these actions are overridden by the component's actonToState if either there is and it returns a new RASP to set (not null)
-      else if (action.type === "DESCENDANT_FOCUS" || action.type === "DESCENDANT_UNFOCUS") {
-          if (this.id) {
-            action.distance += 1;
-            action.shape = this.state.rasp.shape;
-            return this.props.rasp.toParent(action);
-          } else return qhistory.call(this, function () {
-            if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild ", action.type, " updateHistory");
-
-            _this4.updateHistory();
-          }, 0);
-
-          ;
-        } else if (action.type === "CHANGE_SHAPE") {
-          if (this.state.rasp.shape !== action.shape) {
-            // really the shape changed
-            var nextRASP = Object.assign({}, this.state.rasp, {
-              shape: action.shape
-            });
-
-            if (this.id !== 0) {
-              // don't propogate a change
-              this.setState({
-                rasp: nextRASP
-              });
-            } else // this is the root, change state and then update history
-              this.setState({
-                rasp: nextRASP
-              }, function () {
-                if (_this4.debug.noop) console.log("ReactActionStatePath.toMeFromChild CHANGE_SHAPE updateHistory");
-                qhistory.call(_this4, function () {
-                  return _this4.updateHistory;
-                }, 0); // update history after changes from setstate have been processed
-              });
-          } // no change, nothing to do
-
-        } else if (action.type === "CHILD_SHAPE_CHANGED") {
-          if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState", this.id, this.props.rasp && this.props.rasp.depth);
-
-          if (this.id !== 0) {
-            if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState, not root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
-            this.props.rasp.toParent({
-              type: "CHILD_SHAPE_CHANGED",
-              shape: action.shape,
-              distance: action.distance + 1
-            }); // pass a new action, not a copy including internal properties like itemId. This shape hasn't changed
-          } else {
-            // this is the root RASP, update history.state
-            if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
-            qhistory.call(this, function () {
-              if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_SHAPE_CHANGED default updateHistory");
-
-              _this4.updateHistory();
-            }, 0);
-          }
-        } else if (action.type === "CHILD_STATE_CHANGED") {
-          if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState", this.id, this.props.rasp && this.props.rasp.depth);
-          action.distance += 1;
-
-          if (this.id !== 0) {
-            if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState, not root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
-            this.props.rasp.toParent(action); // passs the original action, with incremented distance
-          } else {
-            // this is the root RASP, update history.state
-            if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED not handled by actionToState at root", this.id, this.props.rasp && this.props.rasp.depth, this.childTitle);
-            if (typeof window === 'undefined' && this.props.rasp && this.props.rasp.toParent) qaction(function () {
-              return _this4.props.rasp.toParent(action);
-            }); // on server, send action to server renderer
-
-            qhistory.call(this, function () {
-              if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild CHILD_STATE_CHANGED default updateHistory");
-
-              _this4.updateHistory();
-            }, 0);
-          }
-        } else {
-          // the action was not understood, send it up
-          if (this.id) {
-            action.distance += 1;
-            return this.props.rasp.toParent(action);
-          } else return;
-        }
-
-      return null;
-    }
-  }, {
-    key: "toMeFromParent",
-    value: function toMeFromParent(action) {
-      var _this5 = this;
-
-      if (this.debug.noop) console.info("ReactActionStatePath.toMeFromParent", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
-      if (this.debug.near && (action.distance === 0 || action.distance == 1)) console.info("ReactActionStatePath.toMeFromParent near", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
-
-      if (typeof action.distance === 'undefined') {
-        action.distance = 0;
-        action.direction = "DESCEND";
-      }
-
-      var nextRASP = {},
-          delta = {};
-
-      if (action.type === "ONPOPSTATE") {
-        var stackDepth = action.stackDepth,
-            stateStack = action.stateStack;
-        if (stateStack[stackDepth].depth !== (this.id ? this.props.rasp.depth : 0)) console.error("ReactActionStatePath.toMeFromParent ONPOPSTATE state depth not equal to component depth", action.stateStack[stackDepth], this.props.rasp.depth); // debugging info
-
-        if (stateStack.length > stackDepth + 1) {
-          if (this.toChild) this.toChild({
-            type: "ONPOPSTATE",
-            stateStack: stateStack,
-            stackDepth: stackDepth
-          });else console.error("ReactActionStatePath.toMeFromParent ONPOPSTATE more stack but no toChild", {
-            action: action
-          }, {
-            rasp: this.props.rasp
-          });
-        } else if (this.toChild) this.toChild({
-          type: "CLEAR_PATH"
-        }); // at the end of the new state, deeper states should be reset
-
-
-        this.setState({
-          rasp: stateStack[stackDepth]
-        });
-        return;
-      } else if (action.type === "GET_STATE") {
-        // return the array of all RASP States from the top down - with the top at 0 and the bottom at the end
-        // it works by recursivelly calling GET_STATE from here to the end and then unshifting the RASP state of each component onto an array
-        // the top RASP state of the array is the root component
-        var stack;
-
-        if (!this.toChild) {
-          console.error("ReactActionStatePath.toMeFromParetn GET_STATE child not ready", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
-          return [Object.assign({}, this.state.rasp)];
-        } else stack = this.toChild(action);
-
-        if (stack) stack.unshift(Object.assign({}, this.state.rasp)); // if non-rasp child is at the end, it returns null
-        else stack = [Object.assign({}, this.state.rasp)];
-        return stack;
-      } else if (action.type === "RESET") {
-        if (this.toChild) this.toChild(action); // reset children first, then reset parent (depth first)
-
-        this.setState(this.getDefaultState()); // now reset my state
-
-        return null;
-      } else if ((this.actionFilters[action.type] && this.actionFilters[action.type].forEach(function (filter) {
-        return filter.function(action, delta);
-      }), true // process any action filters and always evaluate to true
-      ) && this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp, delta)) !== null) {
-        if (!equaly(this.state.rasp, nextRASP)) {
-          // really something changed
-          if (this.id !== 0) {
-            this.setState({
-              rasp: nextRASP
-            });
-          } else // no parent to tell of the change
-            this.setState({
-              rasp: nextRASP
-            }, function () {
-              if (_this5.debug.noop) console.log("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
-              qhistory.call(_this5, function () {
-                return _this5.updateHistory;
-              }, 0); // update history after statechage events are processed
-            });
-        } // no change, nothing to do
-
-
-        return null;
-      } else if (action.type === "CLEAR_PATH") {
-        // clear the path and reset the RASP state back to what the constructor would
-        if (this.toChild) this.toChild(action); // clear children first
-
-        this.setState(this.getDefaultState()); // after clearing thechildren clear this state
-
-        return null;
-      } else if (action.type === "RESET_SHAPE") {
-        // clear the path and reset the RASP state back to what the constructor would
-        this.setState(this.getDefaultState()); //
-
-        return null;
-      } else if (action.type === "CHANGE_SHAPE") {
-        // change the shape if it needs to be changed
-        nextRASP = Object.assign({}, this.getDefaultState().rasp, {
-          shape: action.shape
-        }); // 
-
-        this.setState({
-          rasp: nextRASP
-        });
-        return null;
-      } else if (action.type === "SET_PATH") {
-        // let child handle this one without complaint
-        action.initialRASP = this.initialRASP; // segmentToState needs to apply this
-
-        if (this.toChild) return this.toChild(action);else this.waitingOn = {
-          nextFunc: function nextFunc() {
-            _this5.toChild(action);
-          }
-        };
-        return;
-      } else {
-        if (this.debug.noop) console.info("ReactActionStatePath.toMeFromParent: passing action to child", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp);
-        return this.toChild(action);
-      }
-    }
-  }, {
-    key: "updateHistory",
-    value: function updateHistory() {
-      var _this6 = this;
-
-      if (this.debug.noop) console.info("ReactActionStatePath.updateHistory", this.id);
-      if (this.id !== 0) console.error("ReactActionStatePath.updateHistory called but not from root", this.props.rasp);
-      if (ReactActionStatePath.topState) console.error("ReactActionStatePath.updateHistory, expected topState null, got:", ReactActionStatePath.topState);
-
-      if (queue) {
-        if (this.debug.noop) console.info("ReactActionStatePath.updateHistory waiting, queue is", queue);
-        return null;
-      }
-
-      if (typeof window === 'undefined') {
-        if (this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side");
-        if (!(this.props.rasp && this.props.rasp.toParent)) // don't get history on server side if no toParent to send it to
-          return;
-      }
-
-      var completionCheck = setTimeout(function () {
-        if (ReactActionStatePath.topState === "GET_STATE") {
-          console.error("ReactActionStatePath.updateHistory GET_STATE did not complete.", _this6);
-          ReactActionStatePath.topState = null;
-        }
-      }, 100);
-      ReactActionStatePath.topState = "GET_STATE";
-      var stateStack = {
-        stateStack: this.toMeFromParent({
-          type: "GET_STATE"
-        })
-      }; // recursively call me to get my state stack
-
-      ReactActionStatePath.topState = null;
-      clearTimeout(completionCheck);
-      var curPath = stateStack.stateStack.reduce(function (acc, cur) {
-        // parse the state to build the current path
-        if (cur.pathSegment) acc.push(cur.pathSegment);
-        return acc;
-      }, []);
-      curPath = (this.props.RASPRoot || '/h/') + curPath.join('/');
-
-      if (typeof window !== 'undefined') {
-        if (curPath !== window.location.pathname && stateStack.stateStack[stateStack.stateStack.length - 1].shape !== 'redirect') {
-          // push the new state and path onto history
-          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", {
-            stateStack: stateStack
-          }, {
-            curPath: curPath
-          });
-          window.history.pushState(stateStack, '', curPath);
-        } else {
-          // update the state of the current historys
-          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromParent replaceState", {
-            stateStack: stateStack
-          }, {
-            curPath: curPath
-          });
-          window.history.replaceState(stateStack, '', curPath); //update the history after changes have propagated among the children
-        }
-      } else {
-        if (this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side");
-        if (this.props.rasp && this.props.rasp.toParent) this.props.rasp.toParent({
-          type: "UPDATE_HISTORY",
-          stateStack: stateStack,
-          curPath: curPath
-        });
-        return;
-      }
-
-      return null;
-    }
-    /***  don't rerender if no change in state or props, use a logically equivalent check for state so that undefined and null are equivalent. Make it a deep compare in case apps want deep objects in their state ****/
-
-  }, {
-    key: "shouldComponentUpdate",
-    value: function shouldComponentUpdate(newProps, newState) {
-      if (!equaly(this.state, newState)) {
-        if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes state", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.state, newState);
-        return true;
-      }
-
-      if (!(0, _shallowequal.default)(this.props, newProps)) {
-        if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps);
-        return true;
-      }
-
-      if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate no", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps, this.state, newState);
-      return false;
-    }
-  }, {
-    key: "renderChildren",
-    value: function renderChildren() {
-      var _this7 = this;
-
-      var _this$props = this.props,
-          children = _this$props.children,
-          initialRASP = _this$props.initialRASP,
-          RASPRoot = _this$props.RASPRoot,
-          newProps = _objectWithoutProperties(_this$props, ["children", "initialRASP", "RASPRoot"]); // don't propogate initialRASP or RASPRoot
-
-
-      return _react.default.Children.map(_react.default.Children.only(children), function (child) {
-        newProps.rasp = Object.assign({}, _this7.state.rasp, {
-          depth: _this7.props.rasp && _this7.props.rasp.depth ? _this7.props.rasp.depth + 1 : 1,
-          raspId: _this7.id,
-          toParent: _this7.toMeFromChild.bind(_this7)
-        });
-        Object.keys(child.props).forEach(function (childProp) {
-          return delete newProps[childProp];
-        }); // allow child props to overwrite parent props
-
-        return _react.default.cloneElement(child, newProps, child.props.children);
-      });
-    } //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-  }, {
-    key: "render",
-    value: function render() {
-      var children = this.renderChildren();
-      if (this.debug.render) console.info("ReactActionStatePath.render", this.childName, this.childTitle, this.id, this.props, this.state);
-      return _react.default.createElement("section", {
-        id: "rasp-".concat(this.id)
-      }, children);
-    }
-  }]);
-
-  return ReactActionStatePath;
-}(_react.default.Component);
-
-exports.ReactActionStatePath = ReactActionStatePath;
-var _default = ReactActionStatePath;
-exports.default = _default;
-
-function createDefaults() {
-  var _this8 = this;
-
-  // to be called at the end of the constructor extending this component
-  var _defaults = {
-    that: {}
-  };
-  Object.keys(this).forEach(function (key) {
-    if (_this8._staticKeys.indexOf(key) === -1) _defaults.that[key] = (0, _clone.default)(_this8[key]);
-  });
-
-  if (typeof this.state !== 'undefined') {
-    _defaults.state = this.state; // because setState always makes a new copy of the state
-  }
-
-  this._defaults = _defaults;
-}
-
-function restoreDefaults() {
-  var _this9 = this;
-
-  if (!this._defaults) return;
-  var currentKeys = Object.keys(this);
-  var defaultKeys = Object.keys(this._defaults.that);
-  var undefinedKeys = [];
-  currentKeys.forEach(function (key) {
-    if (_this9._staticKeys.indexOf(key) !== -1) return;
-    if (defaultKeys.indexOf(key) !== -1) return;
-    if (key[0] === '_') return; // React16 is adding properties to the class, after it was constructed. such as  _reactInternalFiber and _reactInternalInstance since we can't guess what future will bring we will use _ as the designator
-
-    undefinedKeys.push(key);
-  });
-  undefinedKeys.forEach(function (key) {
-    return _this9[key] = undefined;
-  });
-  Object.keys(this._defaults.that).forEach(function (key) {
-    _this9[key] = (0, _clone.default)(_this9._defaults.that[key]);
-  });
-
-  if (this._defaults.state) {
-    var state = this._defaults.state;
-    this.setState(state);
-  }
-}
-
-var ReactActionStatePathClient =
-/*#__PURE__*/
-function (_React$Component2) {
-  _inherits(ReactActionStatePathClient, _React$Component2);
-
-  function ReactActionStatePathClient(props) {
-    var _this10;
-
-    var keyField = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'key';
-    var debug = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {
-      noop: false
-    };
-
-    _classCallCheck(this, ReactActionStatePathClient);
-
-    _this10 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePathClient).call(this, props));
-    _this10.toChild = [];
-    _this10.waitingOn = null;
-    _this10.keyField = keyField;
-    if (_typeof(debug) === 'object') _this10.debug = debug;else _this10.debug = {
-      noop: debug
-    };
-    if (!_this10.props.rasp) console.error("ReactActionStatePathClient no rasp", _this10.constructor.name, _this10.props);
-
-    if (_this10.props.rasp.toParent) {
-      _this10.props.rasp.toParent({
-        type: "SET_TO_CHILD",
-        function: _this10.toMeFromParent.bind(_assertThisInitialized(_assertThisInitialized(_this10))),
-        name: _this10.constructor.name,
-        actionToState: _this10.actionToState.bind(_assertThisInitialized(_assertThisInitialized(_this10))),
-        debug: debug,
-        clientThis: _assertThisInitialized(_assertThisInitialized(_this10))
-      });
-    } else console.error("ReactActionStatePathClient no rasp.toParent", _this10.props);
-
-    _this10.qaction = qaction; // make the module specific funtion available
-
-    _this10.queueAction = queueAction.bind(_assertThisInitialized(_assertThisInitialized(_this10)));
-
-    _this10.queueFocus = function (action) {
-      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this10)), _defineProperty({
-        type: "DESCENDANT_FOCUS",
-        wasType: action.type
-      }, _this10.keyField, action[_this10.keyField]));
-    };
-
-    _this10.queueUnfocus = function (action) {
-      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this10)), _defineProperty({
-        type: "DESCENDANT_UNFOCUS",
-        wasType: action.type
-      }, _this10.keyField, action[_this10.keyField]));
-    };
-
-    _this10.initialRASP = (0, _clone.default)(_this10.props.rasp);
-
-    var _staticKeys = Object.keys(_assertThisInitialized(_assertThisInitialized(_this10))); // the react keys that we aren't going to touch when resetting
-
-
-    _this10._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
-
-    _this10.createDefaults = createDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this10)));
-    _this10.restoreDefaults = restoreDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this10)));
-    return _this10;
-  }
-
-  _createClass(ReactActionStatePathClient, [{
-    key: "componentWillUnmount",
-    value: function componentWillUnmount() {
-      console.info("ReactActionStatePathClient.componentWillUnmount", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth);
-
-      if (this.props.rasp.toParent) {
-        this.props.rasp.toParent({
-          type: "SET_TO_CHILD",
-          function: undefined
-        });
-      }
-    } //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // this is a one to many pattern for the RASP, insert yourself between the RASP and each child
-    // send all unhandled actions to the parent RASP
-    //
-
-  }, {
-    key: "toMeFromChild",
-    value: function toMeFromChild(key, action) {
-      var _this11 = this;
-
-      if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromChild", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, action);
-
-      if (action.type === "SET_TO_CHILD") {
-        // child is passing up her func
-        this.toChild[key] = action.function; // don't pass this to parent
-
-        if (this.waitingOn) {
-          if (this.waitingOn.nextRASP) {
-            var nextRASP = this.waitingOn.nextRASP;
-
-            if (key === nextRASP[this.keyField] && this.toChild[key]) {
-              if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent got waitingOn nextRASP", nextRASP);
-              var nextFunc = this.waitingOn.nextFunc;
-              this.waitingOn = null;
-              if (nextFunc) qaction(nextFunc);else qaction(function () {
-                return _this11.props.rasp.toParent({
-                  type: "SET_STATE_AND_CONTINUE",
-                  nextRASP: nextRASP,
-                  function: _this11.toChild[key]
-                });
-              });
-            }
-          }
-        }
-      } else {
-        action[this.keyField] = key; // actionToState may need to know the child's id
-
-        var result = this.props.rasp.toParent(action); // if(this.debug.noop) console.log(this.constructor.name, this.title, action,'->', this.props.rasp);
-
-        return result;
-      }
-    } //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // this can handle a one to many pattern for the RASP, handle each action appropriatly
-    //
-
-  }, {
-    key: "toMeFromParent",
-    value: function toMeFromParent(action) {
-      var _this12 = this;
-
-      if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, action);
-
-      if (action.type === "ONPOPSTATE") {
-        var stateStack = action.stateStack,
-            stackDepth = action.stackDepth;
-        var key = stateStack[stackDepth][this.keyField];
-        var sent = false;
-        Object.keys(this.toChild).forEach(function (child) {
-          // only child panels with RASP managers will have entries in this list. 
-          if (child === key) {
-            sent = true;
-
-            _this12.toChild[child]({
-              type: "ONPOPSTATE",
-              stateStack: stateStack,
-              stackDepth: stackDepth + 1
-            });
-          } else _this12.toChild[child]({
-            type: "CLEAR_PATH"
-          }); // only one button panel is open, any others are truncated (but inactive)
-
-        });
-        if (key && !sent) console.error("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", {
-          depth: this.props.rasp.depth
-        }, {
-          action: action
-        });
-        return; // this was the end of the lines
-      } else if (action.type === "GET_STATE") {
-        var key = this.props.rasp[this.keyField];
-
-        if (typeof key !== 'undefined' && key !== null) {
-          if (this.toChild[key]) return this.toChild[key](action); // pass the action to the child
-          else console.error("ReactActionStatePathClien.toMeFromParent GET_STATE key set by child not there", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp);
-        } else return null; // end of the line
-
-      } else if (action.type === "CLEAR_PATH") {
-        // clear the path and reset the RASP state back to what the const
-        var key = this.props.rasp[this.keyField];
-
-        if (typeof key !== 'undefined' && key !== null) {
-          if (this.toChild[key]) return this.toChild[key](action); // pass the action to the child
-          else console.error("ReactActionStatePathClient.toMeFromParent CLEAR_PATH key set by child not there", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, key, this.props.rasp);
-        } else return null; // end of the line
-
-      } else if (action.type === "RESET") {
-        // clear the path and reset the RASP state back to what the const
-        var delta = {}; // reset all the children first (depth first)
-
-        Object.keys(this.toChild).forEach(function (child) {
-          // send the action to every child
-          _this12.toChild[child](action);
-        });
-        if (this._defaults) this.restoreDefaults();
-        if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
-        return null; // end of the line
-      } else if (action.type === "SET_PATH") {
-        var nextRASP, setBeforeWait;
-        var obj = this.segmentToState && this.segmentToState(action, action.initialRASP);
-
-        if (_typeof(obj) === 'object') {
-          nextRASP = obj.nextRASP;
-          setBeforeWait = obj.setBeforeWait;
-        }
-
-        ;
-
-        if (_typeof(nextRASP) === 'object') {
-          var key = nextRASP[this.keyField];
-
-          if (typeof key !== 'undefined' && key !== null) {
-            if (this.toChild[key]) this.props.rasp.toParent({
-              type: 'SET_STATE_AND_CONTINUE',
-              nextRASP: nextRASP,
-              function: this.toChild[key]
-            }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
-            else if (setBeforeWait) {
-                this.waitingOn = {
-                  nextRASP: nextRASP,
-                  nextFunc: function nextFunc() {
-                    return _this12.props.rasp.toParent({
-                      type: "CONTINUE_SET_PATH",
-                      function: _this12.toChild[key]
-                    });
-                  }
-                };
-                this.props.rasp.toParent({
-                  type: "SET_STATE",
-                  nextRASP: nextRASP
-                });
-              } else {
-                if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
-                this.waitingOn = {
-                  nextRASP: nextRASP
-                };
-              }
-          } else {
-            this.props.rasp.toParent({
-              type: 'SET_STATE_AND_CONTINUE',
-              nextRASP: nextRASP,
-              function: null
-            });
-          }
-        } else {
-          var key = action.initialRASP[this.keyField];
-
-          if (typeof key !== 'undefined' && key !== null && this.toChild[key]) {
-            this.props.rasp.toParent({
-              type: 'SET_PATH_SKIP',
-              segment: action.segment,
-              function: this.toChild[key]
-            }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
-          } else {
-            var keys = Object.keys(this.toChild);
-            if (keys.length) this.props.rasp.toParent({
-              type: 'SET_PATH_SKIP',
-              segment: action.segment,
-              function: this.toChild[keys[0]]
-            }); // we assume there is only 1, if there are others they are ignored
-            else {
-                if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH_SKIP waitingOn", action.initialRASP);
-                this.waitingOn = {
-                  nextRASP: action.initialRASP,
-                  function: function _function() {
-                    return _this12.props.rasp.toParent({
-                      type: "SET_PATH_SKIP",
-                      segment: action.segment,
-                      function: _this12.toChild[Object.keys(_this12.toChild)[0]]
-                    });
-                  }
-                };
-              }
-          }
-        }
-      } else {
-        // if the key is in the action 
-        var _key = action[this.keyField];
-
-        if (typeof _key !== 'undefined' && this.toChild[_key]) {
-          if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on action keyField", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key);
-          return this.toChild[_key](action);
-        } // if there is an active child
-
-
-        _key = this.props.rasp[this.keyField];
-
-        if (typeof _key !== 'undefined' && _key !== null) {
-          if (this.toChild[_key]) {
-            if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on active child of rasp", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key);
-            return this.toChild[_key](action); // pass the action to the child
-          }
-        } else {
-          if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent unknown action and not active child", this.constructor.name, this.childTitle, this.props.rasp.raspId, action);
-        }
-      }
-    } // a consistent way to set the rasp for children
-
-  }, {
-    key: "childRASP",
-    value: function childRASP(shape, childKey) {
-      return Object.assign({}, this.props.rasp, {
-        shape: shape,
-        toParent: this.toMeFromChild.bind(this, childKey)
-      });
-    } // when using actionFilers all you need is this actionToState - or you can replace it
-
-  }, {
-    key: "actionToState",
-    value: function actionToState(action, rasp, source, initialRASP, delta) {
-      var _console;
-
-      if (this.debug.noop) (_console = console).info.apply(_console, ["ReactActionStatePath.actionToState"].concat(Array.prototype.slice.call(arguments)));
-      var nextRASP = {};
-
-      if (this.vM && this.vM.actionToState(action, rasp, source, initialRASP, delta)) {
-        ; //then do nothing - it's been done if (action.type==="DESCENDANT_FOCUS") {
-      } else if (Object.keys(delta).length) {
-        ; // no need to do anything, but do continue to calculate nextRASP
-      } else return null; // don't know this action, null so the default methods can have a shot at it
-
-
-      Object.assign(nextRASP, rasp, delta);
-      if (this.vM && this.vM.deriveRASP) this.vM.deriveRASP(nextRASP, initialRASP);else if (this.deriveRASP) this.deriveRASP(nextRASP, initialRASP);
-      return nextRASP;
-    }
-  }, {
-    key: "componentWillMount",
-    value: function componentWillMount() {
-      var _this13 = this;
-
-      if (this.actionFilters) Object.keys(this.actionFilters).forEach(function (filterType) {
-        return _this13.props.rasp.toParent({
-          type: "SET_ACTION_FILTER",
-          filterType: filterType,
-          name: _this13.constructor.name,
-          function: _this13.actionFilters[filterType].bind(_this13)
-        });
-      });
-    }
-  }]);
-
-  return ReactActionStatePathClient;
-}(_react.default.Component);
-
-exports.ReactActionStatePathClient = ReactActionStatePathClient;
-
-var ReactActionStatePathMulti =
-/*#__PURE__*/
-function (_ReactActionStatePath) {
-  _inherits(ReactActionStatePathMulti, _ReactActionStatePath);
-
-  function ReactActionStatePathMulti(props, keyfield, debug) {
-    var _this14;
-
-    _classCallCheck(this, ReactActionStatePathMulti);
-
-    _this14 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePathMulti).call(this, props, keyfield, debug));
-    if (_typeof(debug) === 'object') _this14.debug = debug;else _this14.debug = {
-      noop: debug
-    };
-    return _this14;
-  }
-
-  _createClass(ReactActionStatePathMulti, [{
-    key: "toMeFromParent",
-    value: function toMeFromParent(action) {
-      var _this15 = this;
-
-      if (this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent", this.props.rasp.depth, action);
-
-      if (action.type === "ONPOPSTATE") {
-        if (this.debug.noop) console.log("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE", this.props.rasp.depth, action);
-        var stackDepth = action.stackDepth,
-            stateStack = action.stateStack;
-        var keepChild = [];
-        Object.keys(this.toChild).forEach(function (child) {
-          return keepChild[child] = false;
-        });
-        stateStack[stackDepth + 1].raspChildren.forEach(function (child) {
-          if (_this15.toChild[child.key]) {
-            _this15.toChild[child.key]({
-              type: "ONPOPSTATE",
-              stateStack: child.stateStack,
-              stackDepth: 0
-            });
-
-            keepChild[child.key] = true;
-          } else console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE no child:", child.key);
-        });
-        keepChild.forEach(function (keep, child) {
-          // child id is the index
-          if (!keep) {
-            console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE child not kept", child);
-
-            _this15.toChild[child]({
-              type: "CLEAR_PATH"
-            }); // only one button panel is open, any others are truncated (but inactive)
-
-          }
-        });
-        return; // this was the end of the line
-      } else if (action.type === "GET_STATE") {
-        // get the state info from all the children and combind them into one Object
-        if (this.debug.noop) console.log("ReactActionStatePathMulti.toMeFromParent GET_STATE", this.props.rasp.depth, action);
-        var raspChildren = Object.keys(this.toChild).map(function (child) {
-          return {
-            stateStack: _this15.toChild[child]({
-              type: "GET_STATE"
-            }),
-            key: child
-          };
-        });
-        if (raspChildren.length === 1 && !raspChildren[0].stateStack) return null; // if the only child doesn't really exist yet (because it returns null) just return null
-
-        var curPath = raspChildren.reduce(function (acc, cur, i) {
-          // parse the state to build the curreent path
-          if (cur.stateStack && cur.stateStack[i] && cur.stateStack[i].pathSegment) acc.push(cur.stateStack[i].pathSegment);
-          return acc;
-        }, []);
-
-        if (raspChildren.length) {
-          var result = {
-            raspChildren: raspChildren,
-            depth: this.props.rasp.depth + 1,
-            shape: 'multichild'
-          };
-          if (curPath.length) result.pathSegment = curPath.join(':');
-          if (this.debug.noop) console.log("ReactActionStatePathMulti.toMeFromParent GET_STATE returns", result);
-          return [result];
-        } else return null;
-      } else if (action.type === "CLEAR_PATH") {
-        // clear the path and reset the RASP state back to what the const
-        Object.keys(this.toChild).forEach(function (child) {
-          // send the action to every child
-          _this15.toChild[child](action);
-        });
-      } else if (action.type === "RESET") {
-        // clear the path and reset the RASP state back to what the const
-        var delta = {}; // reset children first
-
-        Object.keys(this.toChild).forEach(function (child) {
-          // send the action to every child
-          _this15.toChild[child](action);
-        });
-        if (this._defaults) this.restoreDefaults();
-        if (this.actionToState) this.actionToState(action, this.props.rasp, "PARENT", this.initialRASP, delta);
-        return null; // end of the line
-      } else if (action.type === "SET_PATH") {
-        var _this$segmentToState = this.segmentToState(action),
-            nextRASP = _this$segmentToState.nextRASP,
-            setBeforeWait = _this$segmentToState.setBeforeWait;
-
-        if (this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent SET_PATH", action);
-
-        if (nextRASP[this.keyField]) {
-          var key = nextRASP[this.keyField];
-          /*if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
-          else */
-
-          if (setBeforeWait) {
-            var that = this;
-
-            var setPredicessors = function setPredicessors() {
-              var predicessors = that.toChild.length;
-              if (_this15.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", key, predicessors);
-
-              if (predicessors < key) {
-                var predicessorRASP = Object.assign({}, nextRASP, _defineProperty({}, that.keyField, predicessors));
-                that.waitingOnResults = {
-                  nextFunc: setPredicessors.bind(_this15)
-                };
-                that.props.rasp.toParent({
-                  type: "SET_STATE",
-                  nextRASP: predicessorRASP
-                });
-              } else {
-                that.waitingOn = {
-                  nextRASP: nextRASP,
-                  nextFunc: function nextFunc() {
-                    return that.props.rasp.toParent({
-                      type: "CONTINUE_SET_PATH",
-                      function: that.toChild[key]
-                    });
-                  }
-                };
-                that.props.rasp.toParent({
-                  type: "SET_STATE",
-                  nextRASP: nextRASP
-                });
-              }
-            };
-
-            setPredicessors();
-          } else {
-            if (this.debug.noop) console.log("ReactActionStatePathMulti.toMeFromParent SET_PATH waitingOn", nextRASP);
-            this.waitingOn = {
-              nextRASP: nextRASP
-            };
-          }
-        } else {
-          this.props.rasp.toParent({
-            type: 'SET_STATE_AND_CONTINUE',
-            nextRASP: nextRASP,
-            function: null
-          });
-        }
-      } else {
-        // is there a key in the action
-        var _key2 = action[this.keyField];
-
-        if (typeof _key2 !== 'undefined' && this.toChild[_key2]) {
-          if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on action keyField", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key2);
-          return this.toChild[_key2](action);
-        }
-
-        var keys = Object.keys(this.toChild);
-
-        if (keys.length) {
-          var result;
-          keys.forEach(function (key) {
-            // send the action to every child
-            if (_this15.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent passing action to child", _this15.constructor.name, _this15.childTitle, _this15.props.rasp.raspId, action, key);
-            result = _this15.toChild[key](action);
-          });
-          return result;
-        } else {
-          if (this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent no children to pass action to", this.constructor.name, this.childTitle, this.props.rasp.raspId, action);
-        }
-      }
-    }
-  }]);
-
-  return ReactActionStatePathMulti;
-}(ReactActionStatePathClient);
-
-exports.ReactActionStatePathMulti = ReactActionStatePathMulti;
-
-var ReactActionStatePathFilter =
-/*#__PURE__*/
-function (_React$Component3) {
-  _inherits(ReactActionStatePathFilter, _React$Component3);
-
-  function ReactActionStatePathFilter(props, keyField, debug) {
-    var _this16;
-
-    _classCallCheck(this, ReactActionStatePathFilter);
-
-    _this16 = _possibleConstructorReturn(this, _getPrototypeOf(ReactActionStatePathFilter).call(this, props));
-    _this16.keyField = keyField;
-    if (_typeof(debug) === 'object') _this16.debug = debug;else _this16.debug = {
-      noop: debug
-    };
-    _this16.qaction = qaction; // make the module specific funtion available
-
-    _this16.queueAction = queueAction.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
-
-    _this16.queueFocus = function (action) {
-      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this16)), _defineProperty({
-        type: "DESCENDANT_FOCUS",
-        wasType: action.type
-      }, _this16.keyField, action[_this16.keyField]));
-    };
-
-    _this16.queueUnfocus = function (action) {
-      return queueAction.call(_assertThisInitialized(_assertThisInitialized(_this16)), _defineProperty({
-        type: "DESCENDANT_UNFOCUS",
-        wasType: action.type
-      }, _this16.keyField, action[_this16.keyField]));
-    };
-
-    _this16.initialRASP = (0, _clone.default)(_this16.props.rasp);
-    _this16.createDefaults = createDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
-    _this16.restoreDefaults = restoreDefaults.bind(_assertThisInitialized(_assertThisInitialized(_this16)));
-
-    var _staticKeys = Object.keys(_assertThisInitialized(_assertThisInitialized(_this16))); // the react keys that we aren't going to touch when resetting
-
-
-    _this16._staticKeys = _staticKeys.concat(['state', '_reactInternalInstance', '_defaults', '_staticKeys']); // also don't touch these
-
-    return _this16;
-  }
-
-  _createClass(ReactActionStatePathFilter, [{
-    key: "componentWillMount",
-    value: function componentWillMount() {
-      var _this17 = this;
-
-      if (this.actionFilters) Object.keys(this.actionFilters).forEach(function (filterType) {
-        return _this17.props.rasp.toParent({
-          type: "SET_ACTION_FILTER",
-          filterType: filterType,
-          name: _this17.constructor.name,
-          function: _this17.actionFilters[filterType].bind(_this17)
-        });
-      });
-    }
-  }, {
-    key: "componentWillUnmount",
-    value: function componentWillUnmount() {
-      if (this.debug.noop) console.info("ReactActionStatePathFilter.componentWillUnmount", this.constructor.name, this.props.rasp.raspId, this.props.rasp.depth);
-
-      if (this.props.rasp.toParent) {
-        // parent might already be unmounted
-        this.props.rasp.toParent({
-          type: "RESET_ACTION_FILTER",
-          name: this.constructor.name
-        });
-      }
-    }
-  }]);
-
-  return ReactActionStatePathFilter;
-}(_react.default.Component);
-
-exports.ReactActionStatePathFilter = ReactActionStatePathFilter;
-},{"clone":6,"lodash/union":79,"react":85,"shallowequal":86}],6:[function(require,module,exports){
+},{"base64-js":2,"ieee754":5}],4:[function(require,module,exports){
 (function (Buffer){
 var clone = (function() {
 'use strict';
@@ -3902,7 +3788,93 @@ if (typeof module === 'object' && module.exports) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2}],7:[function(require,module,exports){
+},{"buffer":3}],5:[function(require,module,exports){
+exports.read = function (buffer, offset, isLE, mLen, nBytes) {
+  var e, m
+  var eLen = (nBytes * 8) - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var nBits = -7
+  var i = isLE ? (nBytes - 1) : 0
+  var d = isLE ? -1 : 1
+  var s = buffer[offset + i]
+
+  i += d
+
+  e = s & ((1 << (-nBits)) - 1)
+  s >>= (-nBits)
+  nBits += eLen
+  for (; nBits > 0; e = (e * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+
+  m = e & ((1 << (-nBits)) - 1)
+  e >>= (-nBits)
+  nBits += mLen
+  for (; nBits > 0; m = (m * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+
+  if (e === 0) {
+    e = 1 - eBias
+  } else if (e === eMax) {
+    return m ? NaN : ((s ? -1 : 1) * Infinity)
+  } else {
+    m = m + Math.pow(2, mLen)
+    e = e - eBias
+  }
+  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
+}
+
+exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
+  var e, m, c
+  var eLen = (nBytes * 8) - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
+  var i = isLE ? 0 : (nBytes - 1)
+  var d = isLE ? 1 : -1
+  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
+
+  value = Math.abs(value)
+
+  if (isNaN(value) || value === Infinity) {
+    m = isNaN(value) ? 1 : 0
+    e = eMax
+  } else {
+    e = Math.floor(Math.log(value) / Math.LN2)
+    if (value * (c = Math.pow(2, -e)) < 1) {
+      e--
+      c *= 2
+    }
+    if (e + eBias >= 1) {
+      value += rt / c
+    } else {
+      value += rt * Math.pow(2, 1 - eBias)
+    }
+    if (value * c >= 2) {
+      e++
+      c /= 2
+    }
+
+    if (e + eBias >= eMax) {
+      m = 0
+      e = eMax
+    } else if (e + eBias >= 1) {
+      m = ((value * c) - 1) * Math.pow(2, mLen)
+      e = e + eBias
+    } else {
+      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
+      e = 0
+    }
+  }
+
+  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
+
+  e = (e << mLen) | m
+  eLen += mLen
+  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
+
+  buffer[offset + i - d] |= s * 128
+}
+
+},{}],6:[function(require,module,exports){
 var hashClear = require('./_hashClear'),
     hashDelete = require('./_hashDelete'),
     hashGet = require('./_hashGet'),
@@ -3936,7 +3908,7 @@ Hash.prototype.set = hashSet;
 
 module.exports = Hash;
 
-},{"./_hashClear":38,"./_hashDelete":39,"./_hashGet":40,"./_hashHas":41,"./_hashSet":42}],8:[function(require,module,exports){
+},{"./_hashClear":37,"./_hashDelete":38,"./_hashGet":39,"./_hashHas":40,"./_hashSet":41}],7:[function(require,module,exports){
 var listCacheClear = require('./_listCacheClear'),
     listCacheDelete = require('./_listCacheDelete'),
     listCacheGet = require('./_listCacheGet'),
@@ -3970,7 +3942,7 @@ ListCache.prototype.set = listCacheSet;
 
 module.exports = ListCache;
 
-},{"./_listCacheClear":46,"./_listCacheDelete":47,"./_listCacheGet":48,"./_listCacheHas":49,"./_listCacheSet":50}],9:[function(require,module,exports){
+},{"./_listCacheClear":45,"./_listCacheDelete":46,"./_listCacheGet":47,"./_listCacheHas":48,"./_listCacheSet":49}],8:[function(require,module,exports){
 var getNative = require('./_getNative'),
     root = require('./_root');
 
@@ -3979,7 +3951,7 @@ var Map = getNative(root, 'Map');
 
 module.exports = Map;
 
-},{"./_getNative":35,"./_root":59}],10:[function(require,module,exports){
+},{"./_getNative":34,"./_root":58}],9:[function(require,module,exports){
 var mapCacheClear = require('./_mapCacheClear'),
     mapCacheDelete = require('./_mapCacheDelete'),
     mapCacheGet = require('./_mapCacheGet'),
@@ -4013,7 +3985,7 @@ MapCache.prototype.set = mapCacheSet;
 
 module.exports = MapCache;
 
-},{"./_mapCacheClear":51,"./_mapCacheDelete":52,"./_mapCacheGet":53,"./_mapCacheHas":54,"./_mapCacheSet":55}],11:[function(require,module,exports){
+},{"./_mapCacheClear":50,"./_mapCacheDelete":51,"./_mapCacheGet":52,"./_mapCacheHas":53,"./_mapCacheSet":54}],10:[function(require,module,exports){
 var getNative = require('./_getNative'),
     root = require('./_root');
 
@@ -4022,7 +3994,7 @@ var Set = getNative(root, 'Set');
 
 module.exports = Set;
 
-},{"./_getNative":35,"./_root":59}],12:[function(require,module,exports){
+},{"./_getNative":34,"./_root":58}],11:[function(require,module,exports){
 var MapCache = require('./_MapCache'),
     setCacheAdd = require('./_setCacheAdd'),
     setCacheHas = require('./_setCacheHas');
@@ -4051,7 +4023,7 @@ SetCache.prototype.has = setCacheHas;
 
 module.exports = SetCache;
 
-},{"./_MapCache":10,"./_setCacheAdd":60,"./_setCacheHas":61}],13:[function(require,module,exports){
+},{"./_MapCache":9,"./_setCacheAdd":59,"./_setCacheHas":60}],12:[function(require,module,exports){
 var root = require('./_root');
 
 /** Built-in value references. */
@@ -4059,7 +4031,7 @@ var Symbol = root.Symbol;
 
 module.exports = Symbol;
 
-},{"./_root":59}],14:[function(require,module,exports){
+},{"./_root":58}],13:[function(require,module,exports){
 /**
  * A faster alternative to `Function#apply`, this function invokes `func`
  * with the `this` binding of `thisArg` and the arguments of `args`.
@@ -4082,7 +4054,7 @@ function apply(func, thisArg, args) {
 
 module.exports = apply;
 
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var baseIndexOf = require('./_baseIndexOf');
 
 /**
@@ -4101,7 +4073,7 @@ function arrayIncludes(array, value) {
 
 module.exports = arrayIncludes;
 
-},{"./_baseIndexOf":22}],16:[function(require,module,exports){
+},{"./_baseIndexOf":21}],15:[function(require,module,exports){
 /**
  * This function is like `arrayIncludes` except that it accepts a comparator.
  *
@@ -4125,7 +4097,7 @@ function arrayIncludesWith(array, value, comparator) {
 
 module.exports = arrayIncludesWith;
 
-},{}],17:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 /**
  * Appends the elements of `values` to `array`.
  *
@@ -4147,7 +4119,7 @@ function arrayPush(array, values) {
 
 module.exports = arrayPush;
 
-},{}],18:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 var eq = require('./eq');
 
 /**
@@ -4170,7 +4142,7 @@ function assocIndexOf(array, key) {
 
 module.exports = assocIndexOf;
 
-},{"./eq":68}],19:[function(require,module,exports){
+},{"./eq":67}],18:[function(require,module,exports){
 /**
  * The base implementation of `_.findIndex` and `_.findLastIndex` without
  * support for iteratee shorthands.
@@ -4196,7 +4168,7 @@ function baseFindIndex(array, predicate, fromIndex, fromRight) {
 
 module.exports = baseFindIndex;
 
-},{}],20:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 var arrayPush = require('./_arrayPush'),
     isFlattenable = require('./_isFlattenable');
 
@@ -4236,7 +4208,7 @@ function baseFlatten(array, depth, predicate, isStrict, result) {
 
 module.exports = baseFlatten;
 
-},{"./_arrayPush":17,"./_isFlattenable":43}],21:[function(require,module,exports){
+},{"./_arrayPush":16,"./_isFlattenable":42}],20:[function(require,module,exports){
 var Symbol = require('./_Symbol'),
     getRawTag = require('./_getRawTag'),
     objectToString = require('./_objectToString');
@@ -4266,7 +4238,7 @@ function baseGetTag(value) {
 
 module.exports = baseGetTag;
 
-},{"./_Symbol":13,"./_getRawTag":36,"./_objectToString":57}],22:[function(require,module,exports){
+},{"./_Symbol":12,"./_getRawTag":35,"./_objectToString":56}],21:[function(require,module,exports){
 var baseFindIndex = require('./_baseFindIndex'),
     baseIsNaN = require('./_baseIsNaN'),
     strictIndexOf = require('./_strictIndexOf');
@@ -4288,7 +4260,7 @@ function baseIndexOf(array, value, fromIndex) {
 
 module.exports = baseIndexOf;
 
-},{"./_baseFindIndex":19,"./_baseIsNaN":24,"./_strictIndexOf":65}],23:[function(require,module,exports){
+},{"./_baseFindIndex":18,"./_baseIsNaN":23,"./_strictIndexOf":64}],22:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isObjectLike = require('./isObjectLike');
 
@@ -4308,7 +4280,7 @@ function baseIsArguments(value) {
 
 module.exports = baseIsArguments;
 
-},{"./_baseGetTag":21,"./isObjectLike":77}],24:[function(require,module,exports){
+},{"./_baseGetTag":20,"./isObjectLike":76}],23:[function(require,module,exports){
 /**
  * The base implementation of `_.isNaN` without support for number objects.
  *
@@ -4322,7 +4294,7 @@ function baseIsNaN(value) {
 
 module.exports = baseIsNaN;
 
-},{}],25:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 var isFunction = require('./isFunction'),
     isMasked = require('./_isMasked'),
     isObject = require('./isObject'),
@@ -4371,7 +4343,7 @@ function baseIsNative(value) {
 
 module.exports = baseIsNative;
 
-},{"./_isMasked":45,"./_toSource":66,"./isFunction":74,"./isObject":76}],26:[function(require,module,exports){
+},{"./_isMasked":44,"./_toSource":65,"./isFunction":73,"./isObject":75}],25:[function(require,module,exports){
 var identity = require('./identity'),
     overRest = require('./_overRest'),
     setToString = require('./_setToString');
@@ -4390,7 +4362,7 @@ function baseRest(func, start) {
 
 module.exports = baseRest;
 
-},{"./_overRest":58,"./_setToString":63,"./identity":69}],27:[function(require,module,exports){
+},{"./_overRest":57,"./_setToString":62,"./identity":68}],26:[function(require,module,exports){
 var constant = require('./constant'),
     defineProperty = require('./_defineProperty'),
     identity = require('./identity');
@@ -4414,7 +4386,7 @@ var baseSetToString = !defineProperty ? identity : function(func, string) {
 
 module.exports = baseSetToString;
 
-},{"./_defineProperty":32,"./constant":67,"./identity":69}],28:[function(require,module,exports){
+},{"./_defineProperty":31,"./constant":66,"./identity":68}],27:[function(require,module,exports){
 var SetCache = require('./_SetCache'),
     arrayIncludes = require('./_arrayIncludes'),
     arrayIncludesWith = require('./_arrayIncludesWith'),
@@ -4488,7 +4460,7 @@ function baseUniq(array, iteratee, comparator) {
 
 module.exports = baseUniq;
 
-},{"./_SetCache":12,"./_arrayIncludes":15,"./_arrayIncludesWith":16,"./_cacheHas":29,"./_createSet":31,"./_setToArray":62}],29:[function(require,module,exports){
+},{"./_SetCache":11,"./_arrayIncludes":14,"./_arrayIncludesWith":15,"./_cacheHas":28,"./_createSet":30,"./_setToArray":61}],28:[function(require,module,exports){
 /**
  * Checks if a `cache` value for `key` exists.
  *
@@ -4503,7 +4475,7 @@ function cacheHas(cache, key) {
 
 module.exports = cacheHas;
 
-},{}],30:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 var root = require('./_root');
 
 /** Used to detect overreaching core-js shims. */
@@ -4511,7 +4483,7 @@ var coreJsData = root['__core-js_shared__'];
 
 module.exports = coreJsData;
 
-},{"./_root":59}],31:[function(require,module,exports){
+},{"./_root":58}],30:[function(require,module,exports){
 var Set = require('./_Set'),
     noop = require('./noop'),
     setToArray = require('./_setToArray');
@@ -4532,7 +4504,7 @@ var createSet = !(Set && (1 / setToArray(new Set([,-0]))[1]) == INFINITY) ? noop
 
 module.exports = createSet;
 
-},{"./_Set":11,"./_setToArray":62,"./noop":78}],32:[function(require,module,exports){
+},{"./_Set":10,"./_setToArray":61,"./noop":77}],31:[function(require,module,exports){
 var getNative = require('./_getNative');
 
 var defineProperty = (function() {
@@ -4545,7 +4517,7 @@ var defineProperty = (function() {
 
 module.exports = defineProperty;
 
-},{"./_getNative":35}],33:[function(require,module,exports){
+},{"./_getNative":34}],32:[function(require,module,exports){
 (function (global){
 /** Detect free variable `global` from Node.js. */
 var freeGlobal = typeof global == 'object' && global && global.Object === Object && global;
@@ -4553,7 +4525,7 @@ var freeGlobal = typeof global == 'object' && global && global.Object === Object
 module.exports = freeGlobal;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],34:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 var isKeyable = require('./_isKeyable');
 
 /**
@@ -4573,7 +4545,7 @@ function getMapData(map, key) {
 
 module.exports = getMapData;
 
-},{"./_isKeyable":44}],35:[function(require,module,exports){
+},{"./_isKeyable":43}],34:[function(require,module,exports){
 var baseIsNative = require('./_baseIsNative'),
     getValue = require('./_getValue');
 
@@ -4592,7 +4564,7 @@ function getNative(object, key) {
 
 module.exports = getNative;
 
-},{"./_baseIsNative":25,"./_getValue":37}],36:[function(require,module,exports){
+},{"./_baseIsNative":24,"./_getValue":36}],35:[function(require,module,exports){
 var Symbol = require('./_Symbol');
 
 /** Used for built-in method references. */
@@ -4640,7 +4612,7 @@ function getRawTag(value) {
 
 module.exports = getRawTag;
 
-},{"./_Symbol":13}],37:[function(require,module,exports){
+},{"./_Symbol":12}],36:[function(require,module,exports){
 /**
  * Gets the value at `key` of `object`.
  *
@@ -4655,7 +4627,7 @@ function getValue(object, key) {
 
 module.exports = getValue;
 
-},{}],38:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /**
@@ -4672,7 +4644,7 @@ function hashClear() {
 
 module.exports = hashClear;
 
-},{"./_nativeCreate":56}],39:[function(require,module,exports){
+},{"./_nativeCreate":55}],38:[function(require,module,exports){
 /**
  * Removes `key` and its value from the hash.
  *
@@ -4691,7 +4663,7 @@ function hashDelete(key) {
 
 module.exports = hashDelete;
 
-},{}],40:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /** Used to stand-in for `undefined` hash values. */
@@ -4723,7 +4695,7 @@ function hashGet(key) {
 
 module.exports = hashGet;
 
-},{"./_nativeCreate":56}],41:[function(require,module,exports){
+},{"./_nativeCreate":55}],40:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /** Used for built-in method references. */
@@ -4748,7 +4720,7 @@ function hashHas(key) {
 
 module.exports = hashHas;
 
-},{"./_nativeCreate":56}],42:[function(require,module,exports){
+},{"./_nativeCreate":55}],41:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /** Used to stand-in for `undefined` hash values. */
@@ -4773,7 +4745,7 @@ function hashSet(key, value) {
 
 module.exports = hashSet;
 
-},{"./_nativeCreate":56}],43:[function(require,module,exports){
+},{"./_nativeCreate":55}],42:[function(require,module,exports){
 var Symbol = require('./_Symbol'),
     isArguments = require('./isArguments'),
     isArray = require('./isArray');
@@ -4795,7 +4767,7 @@ function isFlattenable(value) {
 
 module.exports = isFlattenable;
 
-},{"./_Symbol":13,"./isArguments":70,"./isArray":71}],44:[function(require,module,exports){
+},{"./_Symbol":12,"./isArguments":69,"./isArray":70}],43:[function(require,module,exports){
 /**
  * Checks if `value` is suitable for use as unique object key.
  *
@@ -4812,7 +4784,7 @@ function isKeyable(value) {
 
 module.exports = isKeyable;
 
-},{}],45:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 var coreJsData = require('./_coreJsData');
 
 /** Used to detect methods masquerading as native. */
@@ -4834,7 +4806,7 @@ function isMasked(func) {
 
 module.exports = isMasked;
 
-},{"./_coreJsData":30}],46:[function(require,module,exports){
+},{"./_coreJsData":29}],45:[function(require,module,exports){
 /**
  * Removes all key-value entries from the list cache.
  *
@@ -4849,7 +4821,7 @@ function listCacheClear() {
 
 module.exports = listCacheClear;
 
-},{}],47:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /** Used for built-in method references. */
@@ -4886,7 +4858,7 @@ function listCacheDelete(key) {
 
 module.exports = listCacheDelete;
 
-},{"./_assocIndexOf":18}],48:[function(require,module,exports){
+},{"./_assocIndexOf":17}],47:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /**
@@ -4907,7 +4879,7 @@ function listCacheGet(key) {
 
 module.exports = listCacheGet;
 
-},{"./_assocIndexOf":18}],49:[function(require,module,exports){
+},{"./_assocIndexOf":17}],48:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /**
@@ -4925,7 +4897,7 @@ function listCacheHas(key) {
 
 module.exports = listCacheHas;
 
-},{"./_assocIndexOf":18}],50:[function(require,module,exports){
+},{"./_assocIndexOf":17}],49:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /**
@@ -4953,7 +4925,7 @@ function listCacheSet(key, value) {
 
 module.exports = listCacheSet;
 
-},{"./_assocIndexOf":18}],51:[function(require,module,exports){
+},{"./_assocIndexOf":17}],50:[function(require,module,exports){
 var Hash = require('./_Hash'),
     ListCache = require('./_ListCache'),
     Map = require('./_Map');
@@ -4976,7 +4948,7 @@ function mapCacheClear() {
 
 module.exports = mapCacheClear;
 
-},{"./_Hash":7,"./_ListCache":8,"./_Map":9}],52:[function(require,module,exports){
+},{"./_Hash":6,"./_ListCache":7,"./_Map":8}],51:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -4996,7 +4968,7 @@ function mapCacheDelete(key) {
 
 module.exports = mapCacheDelete;
 
-},{"./_getMapData":34}],53:[function(require,module,exports){
+},{"./_getMapData":33}],52:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -5014,7 +4986,7 @@ function mapCacheGet(key) {
 
 module.exports = mapCacheGet;
 
-},{"./_getMapData":34}],54:[function(require,module,exports){
+},{"./_getMapData":33}],53:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -5032,7 +5004,7 @@ function mapCacheHas(key) {
 
 module.exports = mapCacheHas;
 
-},{"./_getMapData":34}],55:[function(require,module,exports){
+},{"./_getMapData":33}],54:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -5056,7 +5028,7 @@ function mapCacheSet(key, value) {
 
 module.exports = mapCacheSet;
 
-},{"./_getMapData":34}],56:[function(require,module,exports){
+},{"./_getMapData":33}],55:[function(require,module,exports){
 var getNative = require('./_getNative');
 
 /* Built-in method references that are verified to be native. */
@@ -5064,7 +5036,7 @@ var nativeCreate = getNative(Object, 'create');
 
 module.exports = nativeCreate;
 
-},{"./_getNative":35}],57:[function(require,module,exports){
+},{"./_getNative":34}],56:[function(require,module,exports){
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
 
@@ -5088,7 +5060,7 @@ function objectToString(value) {
 
 module.exports = objectToString;
 
-},{}],58:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 var apply = require('./_apply');
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
@@ -5126,7 +5098,7 @@ function overRest(func, start, transform) {
 
 module.exports = overRest;
 
-},{"./_apply":14}],59:[function(require,module,exports){
+},{"./_apply":13}],58:[function(require,module,exports){
 var freeGlobal = require('./_freeGlobal');
 
 /** Detect free variable `self`. */
@@ -5137,7 +5109,7 @@ var root = freeGlobal || freeSelf || Function('return this')();
 
 module.exports = root;
 
-},{"./_freeGlobal":33}],60:[function(require,module,exports){
+},{"./_freeGlobal":32}],59:[function(require,module,exports){
 /** Used to stand-in for `undefined` hash values. */
 var HASH_UNDEFINED = '__lodash_hash_undefined__';
 
@@ -5158,7 +5130,7 @@ function setCacheAdd(value) {
 
 module.exports = setCacheAdd;
 
-},{}],61:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 /**
  * Checks if `value` is in the array cache.
  *
@@ -5174,7 +5146,7 @@ function setCacheHas(value) {
 
 module.exports = setCacheHas;
 
-},{}],62:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 /**
  * Converts `set` to an array of its values.
  *
@@ -5194,7 +5166,7 @@ function setToArray(set) {
 
 module.exports = setToArray;
 
-},{}],63:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 var baseSetToString = require('./_baseSetToString'),
     shortOut = require('./_shortOut');
 
@@ -5210,7 +5182,7 @@ var setToString = shortOut(baseSetToString);
 
 module.exports = setToString;
 
-},{"./_baseSetToString":27,"./_shortOut":64}],64:[function(require,module,exports){
+},{"./_baseSetToString":26,"./_shortOut":63}],63:[function(require,module,exports){
 /** Used to detect hot functions by number of calls within a span of milliseconds. */
 var HOT_COUNT = 800,
     HOT_SPAN = 16;
@@ -5249,7 +5221,7 @@ function shortOut(func) {
 
 module.exports = shortOut;
 
-},{}],65:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 /**
  * A specialized version of `_.indexOf` which performs strict equality
  * comparisons of values, i.e. `===`.
@@ -5274,7 +5246,7 @@ function strictIndexOf(array, value, fromIndex) {
 
 module.exports = strictIndexOf;
 
-},{}],66:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 /** Used for built-in method references. */
 var funcProto = Function.prototype;
 
@@ -5302,7 +5274,7 @@ function toSource(func) {
 
 module.exports = toSource;
 
-},{}],67:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 /**
  * Creates a function that returns `value`.
  *
@@ -5330,7 +5302,7 @@ function constant(value) {
 
 module.exports = constant;
 
-},{}],68:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 /**
  * Performs a
  * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
@@ -5369,7 +5341,7 @@ function eq(value, other) {
 
 module.exports = eq;
 
-},{}],69:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 /**
  * This method returns the first argument it receives.
  *
@@ -5392,7 +5364,7 @@ function identity(value) {
 
 module.exports = identity;
 
-},{}],70:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 var baseIsArguments = require('./_baseIsArguments'),
     isObjectLike = require('./isObjectLike');
 
@@ -5430,7 +5402,7 @@ var isArguments = baseIsArguments(function() { return arguments; }()) ? baseIsAr
 
 module.exports = isArguments;
 
-},{"./_baseIsArguments":23,"./isObjectLike":77}],71:[function(require,module,exports){
+},{"./_baseIsArguments":22,"./isObjectLike":76}],70:[function(require,module,exports){
 /**
  * Checks if `value` is classified as an `Array` object.
  *
@@ -5458,7 +5430,7 @@ var isArray = Array.isArray;
 
 module.exports = isArray;
 
-},{}],72:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 var isFunction = require('./isFunction'),
     isLength = require('./isLength');
 
@@ -5493,7 +5465,7 @@ function isArrayLike(value) {
 
 module.exports = isArrayLike;
 
-},{"./isFunction":74,"./isLength":75}],73:[function(require,module,exports){
+},{"./isFunction":73,"./isLength":74}],72:[function(require,module,exports){
 var isArrayLike = require('./isArrayLike'),
     isObjectLike = require('./isObjectLike');
 
@@ -5528,7 +5500,7 @@ function isArrayLikeObject(value) {
 
 module.exports = isArrayLikeObject;
 
-},{"./isArrayLike":72,"./isObjectLike":77}],74:[function(require,module,exports){
+},{"./isArrayLike":71,"./isObjectLike":76}],73:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isObject = require('./isObject');
 
@@ -5567,7 +5539,7 @@ function isFunction(value) {
 
 module.exports = isFunction;
 
-},{"./_baseGetTag":21,"./isObject":76}],75:[function(require,module,exports){
+},{"./_baseGetTag":20,"./isObject":75}],74:[function(require,module,exports){
 /** Used as references for various `Number` constants. */
 var MAX_SAFE_INTEGER = 9007199254740991;
 
@@ -5604,7 +5576,7 @@ function isLength(value) {
 
 module.exports = isLength;
 
-},{}],76:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 /**
  * Checks if `value` is the
  * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)
@@ -5637,7 +5609,7 @@ function isObject(value) {
 
 module.exports = isObject;
 
-},{}],77:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 /**
  * Checks if `value` is object-like. A value is object-like if it's not `null`
  * and has a `typeof` result of "object".
@@ -5668,7 +5640,7 @@ function isObjectLike(value) {
 
 module.exports = isObjectLike;
 
-},{}],78:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 /**
  * This method returns `undefined`.
  *
@@ -5687,7 +5659,7 @@ function noop() {
 
 module.exports = noop;
 
-},{}],79:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 var baseFlatten = require('./_baseFlatten'),
     baseRest = require('./_baseRest'),
     baseUniq = require('./_baseUniq'),
@@ -5715,7 +5687,7 @@ var union = baseRest(function(arrays) {
 
 module.exports = union;
 
-},{"./_baseFlatten":20,"./_baseRest":26,"./_baseUniq":28,"./isArrayLikeObject":73}],80:[function(require,module,exports){
+},{"./_baseFlatten":19,"./_baseRest":25,"./_baseUniq":27,"./isArrayLikeObject":72}],79:[function(require,module,exports){
 /*
 object-assign
 (c) Sindre Sorhus
@@ -5806,6 +5778,192 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 
 	return to;
 };
+
+},{}],80:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
 
 },{}],81:[function(require,module,exports){
 (function (process){
@@ -5902,7 +6060,7 @@ function checkPropTypes(typeSpecs, values, location, componentName, getStack) {
 module.exports = checkPropTypes;
 
 }).call(this,require('_process'))
-},{"./lib/ReactPropTypesSecret":82,"_process":4}],82:[function(require,module,exports){
+},{"./lib/ReactPropTypesSecret":82,"_process":80}],82:[function(require,module,exports){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
  *
@@ -7760,7 +7918,7 @@ module.exports = react;
 }
 
 }).call(this,require('_process'))
-},{"_process":4,"object-assign":80,"prop-types/checkPropTypes":81}],84:[function(require,module,exports){
+},{"_process":80,"object-assign":79,"prop-types/checkPropTypes":81}],84:[function(require,module,exports){
 /** @license React v16.6.1
  * react.production.min.js
  *
@@ -7786,7 +7944,7 @@ _currentValue:a,_currentValue2:a,_threadCount:0,Provider:null,Consumer:null};a.P
 if(null!=b){void 0!==b.ref&&(h=b.ref,f=K.current);void 0!==b.key&&(g=""+b.key);var l=void 0;a.type&&a.type.defaultProps&&(l=a.type.defaultProps);for(c in b)L.call(b,c)&&!M.hasOwnProperty(c)&&(d[c]=void 0===b[c]&&void 0!==l?l[c]:b[c])}c=arguments.length-2;if(1===c)d.children=e;else if(1<c){l=Array(c);for(var m=0;m<c;m++)l[m]=arguments[m+2];d.children=l}return{$$typeof:p,type:a.type,key:g,ref:h,props:d,_owner:f}},createFactory:function(a){var b=N.bind(null,a);b.type=a;return b},isValidElement:O,version:"16.6.3",
 __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED:{ReactCurrentOwner:K,assign:k}};X.unstable_ConcurrentMode=x;X.unstable_Profiler=u;var Y={default:X},Z=Y&&X||Y;module.exports=Z.default||Z;
 
-},{"object-assign":80}],85:[function(require,module,exports){
+},{"object-assign":79}],85:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -7797,7 +7955,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 }).call(this,require('_process'))
-},{"./cjs/react.development.js":83,"./cjs/react.production.min.js":84,"_process":4}],86:[function(require,module,exports){
+},{"./cjs/react.development.js":83,"./cjs/react.production.min.js":84,"_process":80}],86:[function(require,module,exports){
 module.exports = function shallowEqual(objA, objB, compare, compareContext) {
 
     var ret = compare ? compare.call(compareContext, objA, objB) : void 0;
@@ -7849,4 +8007,4 @@ module.exports = function shallowEqual(objA, objB, compare, compareContext) {
 
 };
 
-},{}]},{},[5]);
+},{}]},{},[1]);
