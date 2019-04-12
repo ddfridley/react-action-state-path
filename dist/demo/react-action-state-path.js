@@ -1441,7 +1441,7 @@ function (_ReactActionStatePath) {
         if (this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent SET_PATH", action);
 
         if (nextRASP[this.keyField]) {
-          var _key2 = nextRASP[this.keyField];
+          var key = nextRASP[this.keyField];
           /*if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
           else */
 
@@ -1450,12 +1450,11 @@ function (_ReactActionStatePath) {
 
             var setPredicessors = function setPredicessors() {
               var predicessors = that.toChild.length;
-              if (_this15.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", _key2, predicessors);
+              if (_this15.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", key, predicessors);
 
-              if (predicessors < _key2 - 1) {
+              if (predicessors < key) {
                 var _that$waitingOnResult;
 
-                //don't wait for the last one to return results - it won't
                 var predicessorRASP = Object.assign({}, nextRASP, _defineProperty({}, that.keyField, predicessors));
                 that.waitingOnResults = (_that$waitingOnResult = {}, _defineProperty(_that$waitingOnResult, that.keyField, predicessors), _defineProperty(_that$waitingOnResult, "nextFunc", setPredicessors.bind(_this15)), _that$waitingOnResult);
                 that.props.rasp.toParent({
@@ -1468,7 +1467,7 @@ function (_ReactActionStatePath) {
                   nextFunc: function nextFunc() {
                     return that.props.rasp.toParent({
                       type: "CONTINUE_SET_PATH",
-                      function: that.toChild[_key2]
+                      function: that.toChild[key]
                     });
                   }
                 };
@@ -1495,11 +1494,11 @@ function (_ReactActionStatePath) {
         }
       } else {
         // is there a key in the action
-        var _key3 = action[this.keyField];
+        var _key2 = action[this.keyField];
 
-        if (typeof _key3 !== 'undefined' && this.toChild[_key3]) {
-          if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on action keyField", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key3);
-          return this.toChild[_key3](action);
+        if (typeof _key2 !== 'undefined' && this.toChild[_key2]) {
+          if (this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent passing action to child based on action keyField", this.constructor.name, this.childTitle, this.props.rasp.raspId, action, _key2);
+          return this.toChild[_key2](action);
         }
 
         var keys = Object.keys(this.toChild);

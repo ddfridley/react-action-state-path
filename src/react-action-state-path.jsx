@@ -858,19 +858,22 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
           const { nextRASP, setBeforeWait } = this.segmentToState(action);
           if(this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent SET_PATH", action);
           if (nextRASP[this.keyField]) {
-            let key = nextRASP[this.keyField];
+            var key = nextRASP[this.keyField];
             /*if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP: nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
             else */ if (setBeforeWait) {
               var that=this;
               var setPredicessors=()=>{
                 let predicessors=that.toChild.length;
                 if(this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", key, predicessors);
-                if(predicessors < (key-1)) { //don't wait for the last one to return results - it won't
+                if(predicessors < key) {
                   var predicessorRASP=Object.assign({},nextRASP,{[that.keyField]: predicessors});
                   that.waitingOnResults={ [that.keyField]: predicessors, nextFunc: setPredicessors.bind(this)};
                   that.props.rasp.toParent({ type: "SET_STATE", nextRASP: predicessorRASP });
                 }else {
-                  that.waitingOn={ nextRASP, nextFunc: () => that.props.rasp.toParent({ type: "CONTINUE_SET_PATH", function: that.toChild[key] }) };
+                    that.waitingOn={ 
+                        nextRASP, 
+                        nextFunc: () => that.props.rasp.toParent({ type: "CONTINUE_SET_PATH", function: that.toChild[key] }) 
+                    };
                   that.props.rasp.toParent({ type: "SET_STATE", nextRASP });
                 }
               }
