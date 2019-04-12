@@ -865,7 +865,7 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
               var setPredicessors=()=>{
                 let predicessors=that.toChild.length;
                 if(this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", key, predicessors);
-                if(predicessors < key) {
+                if(predicessors < (key-1)) { //don't wait for the last one to return results - it won't
                   var predicessorRASP=Object.assign({},nextRASP,{[that.keyField]: predicessors});
                   that.waitingOnResults={ [that.keyField]: predicessors, nextFunc: setPredicessors.bind(this)};
                   that.props.rasp.toParent({ type: "SET_STATE", nextRASP: predicessorRASP });

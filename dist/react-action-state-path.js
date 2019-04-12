@@ -1451,9 +1451,10 @@ function (_ReactActionStatePath) {
               var predicessors = that.toChild.length;
               if (_this15.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent.setPredicessors", _key2, predicessors);
 
-              if (predicessors < _key2) {
+              if (predicessors < _key2 - 1) {
                 var _that$waitingOnResult;
 
+                //don't wait for the last one to return results - it won't
                 var predicessorRASP = Object.assign({}, nextRASP, _defineProperty({}, that.keyField, predicessors));
                 that.waitingOnResults = (_that$waitingOnResult = {}, _defineProperty(_that$waitingOnResult, that.keyField, predicessors), _defineProperty(_that$waitingOnResult, "nextFunc", setPredicessors.bind(_this15)), _that$waitingOnResult);
                 that.props.rasp.toParent({
