@@ -114,9 +114,7 @@ storiesOf("RASP", module)
 			parts.shift(); //localhost:6006
 		}
 		return (
-		<ReactActionStatePath RASPRoot="/?path=/story/rasp--root/" path={parts.join('/')}>
-			<Client />
-		</ReactActionStatePath>
+			<Client RASPRoot="/?path=/story/rasp--root/" path={parts.join('/')} />
 	)})
 	.add("2 deep", () => {
 		var href=top.location.href;

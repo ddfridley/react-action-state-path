@@ -500,7 +500,7 @@ export class ReactActionStatePath extends React.Component {
                 parts.shift() // 
                 parts.shift() // localhost:6006
             }
-            parts=parts.join('/');
+            parts='/' + parts.join('/');
             if (curPath !== parts && stateStack.stateStack[stateStack.stateStack.length-1].shape !== 'redirect') { // push the new state and path onto history
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", { stateStack }, { curPath });
                 top.history.pushState(stateStack, '', curPath); // history on top in case in iframe like in storybook

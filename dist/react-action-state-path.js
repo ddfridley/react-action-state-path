@@ -820,7 +820,7 @@ function (_React$Component) {
           parts.shift(); // localhost:6006
         }
 
-        parts = parts.join('/');
+        parts = '/' + parts.join('/');
 
         if (curPath !== parts && stateStack.stateStack[stateStack.stateStack.length - 1].shape !== 'redirect') {
           // push the new state and path onto history
