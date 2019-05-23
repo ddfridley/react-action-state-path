@@ -55,10 +55,10 @@
     "lodash": "^4.17.11",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
-    "react-proactive-accordion": "github:ddfridley/react-proactive-accordion#react16",
+    "react-proactive-accordion": "github:ddfridley/react-proactive-accordion",
     "shallowequal": "^1.0.2"
   },
   "engines": {
-    "npm": "5.0.3"
+    "npm": "6.9.0"
   }
 }

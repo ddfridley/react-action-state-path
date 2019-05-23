@@ -322,7 +322,7 @@ class RASPSubArticleList extends ReactActionStatePathClient {
         if(action.type==="DESCENDANT_FOCUS" && action.distance===1) {
             if(rasp.id && rasp.id !== action.id) this.toChild[rasp.id]({type: "CLEAR_PATH"}); // if some other child is open, close it
             delta.id=action.id; // open a new one
-        } else if(action.type==="DESCENDANT_UNFOCUS"){
+        } else if(action.type==="DESCENDANT_UNFOCUS" && action.distance===1){
             if(rasp.id) { 
                 delta.id=null;
             }
@@ -369,10 +369,9 @@ class RASPSubArticleList extends ReactActionStatePathClient {
 
 class App extends React.Component {
     render(){
-        var path=window.location.href; 
-        var root=path.split('?');
+        var root=window.location.pathname.split('?');
         var RASPRoot=root[0]+'?/';
-        if(root.length===1 && path[path.length-1]!=='?') path+='?'; // append a ? to the end if it's just the file name
+        //if(root.length===1 && path[path.length-1]!=='?') path+='?'; // append a ? to the end if it's just the file name
         // only the first instance of ReactActionStatePath looks at path and RASPRoot. 
         // in this demo '?' is used to separate the file name from the rest of the URL because when you are opening demo.html on a file system, and the file system does not like demo.html/anything
         // but demo.html? works, and so does demo.html?/
@@ -380,7 +379,7 @@ class App extends React.Component {
         return (
             <div>
                 <div className="rasp-demo">
-                    <SubArticleList path={path} parent={null} RASPRoot={RASPRoot} />
+                    <SubArticleList path={RASPRoot} parent={null} RASPRoot={RASPRoot} />
                 </div>
                 <button onClick={()=>ReactActionStatePath.thiss[0].parent.toMeFromParent({type: "RESET"})}>Reset</button>
             </div>
