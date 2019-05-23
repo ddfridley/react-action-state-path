@@ -513,7 +513,7 @@ function (_ReactActionStatePath2) {
         }); // if some other child is open, close it
 
         delta.id = action.id; // open a new one
-      } else if (action.type === "DESCENDANT_UNFOCUS") {
+      } else if (action.type === "DESCENDANT_UNFOCUS" && action.distance === 1) {
         if (rasp.id) {
           delta.id = null;
         }
@@ -586,10 +586,8 @@ function (_React$Component4) {
   _createClass(App, [{
     key: "render",
     value: function render() {
-      var path = window.location.href;
-      var root = path.split('?');
-      var RASPRoot = root[0] + '?/';
-      if (root.length === 1 && path[path.length - 1] !== '?') path += '?'; // append a ? to the end if it's just the file name
+      var root = window.location.pathname.split('?');
+      var RASPRoot = root[0] + '?/'; //if(root.length===1 && path[path.length-1]!=='?') path+='?'; // append a ? to the end if it's just the file name
       // only the first instance of ReactActionStatePath looks at path and RASPRoot. 
       // in this demo '?' is used to separate the file name from the rest of the URL because when you are opening demo.html on a file system, and the file system does not like demo.html/anything
       // but demo.html? works, and so does demo.html?/
@@ -598,7 +596,7 @@ function (_React$Component4) {
       return _react.default.createElement("div", null, _react.default.createElement("div", {
         className: "rasp-demo"
       }, _react.default.createElement(SubArticleList, {
-        path: path,
+        path: RASPRoot,
         parent: null,
         RASPRoot: RASPRoot
       })), _react.default.createElement("button", {
