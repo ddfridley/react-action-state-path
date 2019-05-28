@@ -68,8 +68,57 @@ var equaly = function equaly(a, b) {
 //     toParent: the function to call to send 'actions' to the parent function
 //     each child component can add more properties to it's state, through the actionToState function
 //     }
-//q
+//
 
+
+var unwrap = function unwrap(s) {
+  if (typeof s !== 'string') return undefined;
+  var a = []; // the array to return
+
+  var e = ''; // an element in the array.
+
+  var l = s.length;
+  var i = 0;
+  if (s[0] === '/') i++; // strip off any leading /
+
+  var d = 0; // depth of ()'s
+
+  var c;
+
+  while (i < l) {
+    c = s[i];
+
+    if (!d) {
+      if (c === '/') {
+        a.push(e);
+        e = '';
+      } else if (c === '(') {
+        if (e) a.push(e);
+        e = '';
+        d++;
+      } else // at the level a ) is just added to the e
+        e += c;
+    } else if (d === 1) {
+      if (c === ')') {
+        a.push(e);
+        e = '';
+        d--;
+      } else if (c === '(') {
+        e += c;
+        d++;
+      } else // at this level ) is just added to the e
+        e += c;
+    } else {
+      if (c === ')') d--;else if (c === '(') d++;
+      e += c;
+    }
+
+    i++;
+  }
+
+  if (e) a.push(e);
+  return a;
+};
 
 var queue = 0;
 
@@ -208,9 +257,10 @@ function (_React$Component) {
       }
 
       ReactActionStatePath.topState = null;
+      var pathSegments = [];
 
       if (_this2.props.path && _this2.props.path !== '/') {
-        var pathSegments = _this2.props.path.split('/');
+        pathSegments = unwrap(_this2.props.path);
 
         while (pathSegments.length && !pathSegments[0]) {
           pathSegments.shift();
@@ -222,7 +272,7 @@ function (_React$Component) {
         } // '/'s at the end translate to null elements, remove them
 
 
-        var root = (_this2.props.RASPRoot || '/h/').split('/');
+        var root = unwrap(_this2.props.RASPRoot || '/h/');
 
         while (root.length && !root[0]) {
           root.shift();
@@ -240,8 +290,37 @@ function (_React$Component) {
           console.error("ReactActionStatePath.componentDidMount path didn't match props", root, pathSegments);
         }
 
-        ReactActionStatePath.pathSegments = pathSegments;
-      } else ReactActionStatePath.pathSegments = [];
+        if (pathSegments.length) _this2.waitingOn = {
+          nextFunc: function nextFunc() {
+            if (_this2.debug.SET_PATH) console.log("ReactActionStatePath.constructor will SET_PATH to", _this2.pathSegments);
+            if (ReactActionStatePath.topState) console.error("ReactActionStatePath.constructor expected topState null got:", ReactActionStatePath.topState);
+            _this2.completionCheck = setTimeout(function () {
+              if (ReactActionStatePath.topState === "SET_PATH") {
+                console.error("ReactActionStatePath.toMeFromChild SET_PATH did not complete, topState:", ReactActionStatePath.topState, "this:", _assertThisInitialized(_assertThisInitialized(_this2)));
+                ReactActionStatePath.topState = null;
+              }
+            }, 30000);
+            qaction(function () {
+              ReactActionStatePath.topState = "SET_PATH";
+
+              _this2.toMeFromParent({
+                type: "SET_PATH",
+                pathSegments: pathSegments
+              });
+            }); // this starts after the return toChild so it completes.
+          }
+        };
+      }
+
+      if (!pathSegments.length) {
+        _this2.waitingOn = {
+          nextFunc: function nextFunc() {
+            qhistory.call(_assertThisInitialized(_assertThisInitialized(_this2)), function () {
+              return _this2.updateHistory();
+            }, 0); // after things have settled down, update history for the first time
+          }
+        };
+      }
 
       if (typeof window !== 'undefined') {
         // if we are running on the browser
@@ -252,9 +331,6 @@ function (_React$Component) {
           thiss: ReactActionStatePath.thiss
         };
         UpdateHistory = _this2.updateHistory.bind(_assertThisInitialized(_assertThisInitialized(_this2)));
-        if (ReactActionStatePath.pathSegments.length === 0) qhistory.call(_assertThisInitialized(_assertThisInitialized(_this2)), function () {
-          return _this2.updateHistory();
-        }, 0); // aftr things have settled down, update history for the first time
       }
 
       console.info("ReactActionStatePath.thiss", ReactActionStatePath.thiss);
@@ -365,26 +441,7 @@ function (_React$Component) {
           if (typeof window !== 'undefined') console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD clientThis missing on browser", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action);
         }
 
-        if (typeof window !== 'undefined' && this.id === 0 && ReactActionStatePath.pathSegments.length) {
-          // this is the root and we are on the browser and there is at least one pathSegment
-          if (this.debug.SET_PATH) console.log("ReactActionStatePath.toMeFromChild will SET_PATH to", ReactActionStatePath.pathSegments);
-          if (ReactActionStatePath.topState) console.error("ReactActionStatePath.toMeFromChild SET_TO_CHILD, expected topState null got:", ReactActionStatePath.topState);
-          this.completionCheck = setTimeout(function () {
-            if (ReactActionStatePath.topState === "SET_PATH") {
-              console.error("ReactActionStatePath.toMeFromChild SET_PATH did not complete, topState:", ReactActionStatePath.topState, "this:", _this4);
-              ReactActionStatePath.topState = null;
-            }
-          }, 30000);
-          qaction(function () {
-            ReactActionStatePath.topState = "SET_PATH";
-
-            _this4.toChild({
-              type: "SET_PATH",
-              segment: ReactActionStatePath.pathSegments.shift(),
-              initialRASP: _this4.initialRASP
-            });
-          }); // this starts after the return toChild so it completes.
-        } else if (this.waitingOn) {
+        if (this.waitingOn) {
           var nextFunc = this.waitingOn.nextFunc;
           this.waitingOn = null;
           qaction(nextFunc);
@@ -425,13 +482,15 @@ function (_React$Component) {
         this.childTitle = action.title; // this is only for pretty debugging
       } else if (action.type === "SET_PATH_SKIP") {
         // this child will not consume the path segment, so pass the path segment to the next child, but reset the state if it isn't
+        var pathSegments = this.pathSegments;
+        this.pathSegments = undefined; // we did not consume the segment
+
         if ((0, _shallowequal.default)(this.state.rasp, this.initialRASP)) {
           if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_PATH_SKIP", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
           qaction(function () {
             return action.function({
               type: 'SET_PATH',
-              segment: action.segment,
-              initialRASP: _this4.initialRASP
+              pathSegments: pathSegments
             });
           }); // if the child is this child's parent RASP, then it will reset initialRASP
         } else {
@@ -442,20 +501,22 @@ function (_React$Component) {
             return qaction(function () {
               return action.function({
                 type: 'SET_PATH',
-                segment: action.segment,
-                initialRASP: _this4.initialRASP
+                pathSegments: pathSegments
               });
             });
           }); // if the child is this child's parent RASP, then it will reset initialRASP)
         }
       } else if (action.type === "CONTINUE_SET_PATH") {
-        if (ReactActionStatePath.pathSegments.length) {
+        var pathSegments = this.pathSegments;
+        this.pathSegments = undefined;
+        pathSegments.shift(); // setting the segment was completed so discard it
+
+        if (pathSegments.length) {
           if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, this.initialRASP);
           qaction(function () {
             return action.function({
               type: 'SET_PATH',
-              segment: ReactActionStatePath.pathSegments.shift(),
-              initialRASP: _this4.initialRASP
+              pathSegments: pathSegments
             });
           });
         } else {
@@ -470,7 +531,11 @@ function (_React$Component) {
           }
         }
       } else if (action.type === "SET_STATE_AND_CONTINUE") {
-        if (ReactActionStatePath.pathSegments.length) {
+        var pathSegments = this.pathSegments;
+        this.pathSegments = undefined;
+        pathSegments.shift(); // setting the segment was completed so discard it
+
+        if (pathSegments.length) {
           if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_STATE_AND_CONTINUE to SET_PATH", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
           if (action.function) this.setState({
             rasp: Object.assign({}, this.state.rasp, action.nextRASP)
@@ -478,8 +543,7 @@ function (_React$Component) {
             return qaction(function () {
               return action.function({
                 type: 'SET_PATH',
-                segment: ReactActionStatePath.pathSegments.shift(),
-                initialRASP: _this4.initialRASP
+                pathSegments: pathSegments
               });
             });
           });else {
@@ -505,6 +569,11 @@ function (_React$Component) {
           });
         }
       } else if (action.type === "SET_PATH_COMPLETE") {
+        if (this.pathSegments) {
+          console.error("ReactActionStatePath.toMeFromChild SET_PATH_COMPLETE but pathSegments remain", this.pathSegments);
+          this.pathSegments = undefined;
+        }
+
         if (this.id !== 0) return this.props.rasp.toParent({
           type: "SET_PATH_COMPLETE"
         });else {
@@ -514,7 +583,7 @@ function (_React$Component) {
           return this.updateHistory();
         }
       } else if (action.type === "RESET") {
-        this.setState(this.getDefaultState()); // after clearing thechildren clear this state
+        this.setState(this.getDefaultState()); // after clearing the children clear this state
 
         return null;
       } else if ((this.actionFilters[action.type] && this.actionFilters[action.type].every(function (filter) {
@@ -750,8 +819,12 @@ function (_React$Component) {
         return null;
       } else if (action.type === "SET_PATH") {
         // let child handle this one without complaint
+        if (this.pathSegments) console.error("ReactActionStatePath.toMeFromParent SET_PATH called, but previous SET_PATH was not complete", action, this.pathSegments);
+        this.pathSegments = action.pathSegments; // save the list of segments until SET_PATH_COMPLETE, ... cleans it up. 
+
         action.initialRASP = this.initialRASP; // segmentToState needs to apply this
 
+        action.segment = action.pathSegments[0];
         if (this.toChild) return this.toChild(action);else this.waitingOn = {
           nextFunc: function nextFunc() {
             _this5.toChild(action);
@@ -810,7 +883,7 @@ function (_React$Component) {
       curPath = (this.props.RASPRoot || '/h/') + curPath.join('/');
 
       if (typeof window !== 'undefined') {
-        var parts = top.location.href.split('/');
+        var parts = unwrap(top.location.href);
 
         if (parts[0] === "http:" || parts[0] === "https:") {
           parts.shift(); // http:
@@ -1204,7 +1277,11 @@ function (_React$Component2) {
                 };
               }
           } else if (this.toChild['default']) {
-            return this.toChild['default'](action); // pass the action to the default child
+            this.props.rasp.toParent({
+              type: 'SET_STATE_AND_CONTINUE',
+              nextRASP: nextRASP,
+              function: this.toChild['default']
+            });
           } else {
             this.props.rasp.toParent({
               type: 'SET_STATE_AND_CONTINUE',
@@ -1218,21 +1295,18 @@ function (_React$Component2) {
           if (typeof key !== 'undefined' && key !== null && this.toChild[key]) {
             this.props.rasp.toParent({
               type: 'SET_PATH_SKIP',
-              segment: action.segment,
               function: this.toChild[key]
             }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
           } else {
             if (this.toChild['default']) {
               this.props.rasp.toParent({
                 type: 'SET_PATH_SKIP',
-                segment: action.segment,
                 function: this.toChild['default']
               }); // we assume there is only 1, if there are others they are ignored
             } else {
               var keys = Object.keys(this.toChild);
               if (keys.length) this.props.rasp.toParent({
                 type: 'SET_PATH_SKIP',
-                segment: action.segment,
                 function: this.toChild[keys[0]]
               }); // we assume there is only 1, if there are others they are ignored
               else {
@@ -1242,7 +1316,6 @@ function (_React$Component2) {
                     function: function _function() {
                       return _this12.props.rasp.toParent({
                         type: "SET_PATH_SKIP",
-                        segment: action.segment,
                         function: _this12.toChild[Object.keys(_this12.toChild)[0]]
                       });
                     }

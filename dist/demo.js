@@ -586,19 +586,27 @@ function (_React$Component4) {
   _createClass(App, [{
     key: "render",
     value: function render() {
-      var root = window.location.pathname.split('?');
-      var RASPRoot = root[0] + '?/'; //if(root.length===1 && path[path.length-1]!=='?') path+='?'; // append a ? to the end if it's just the file name
+      //var root=window.location.pathname.split('?');
+      //var RASPRoot=root[0]+'?/';
+      //if(root.length===1 && path[path.length-1]!=='?') path+='?'; // append a ? to the end if it's just the file name
       // only the first instance of ReactActionStatePath looks at path and RASPRoot. 
       // in this demo '?' is used to separate the file name from the rest of the URL because when you are opening demo.html on a file system, and the file system does not like demo.html/anything
       // but demo.html? works, and so does demo.html?/
       // if you are strictly serving from a server, the ? is not required
+      var path = window.location.href.split('/');
+      path.shift(); //http or https
 
+      path.shift(); //
+
+      path.shift(); //'localhost:5000')
+
+      path = path.join('/');
       return _react.default.createElement("div", null, _react.default.createElement("div", {
         className: "rasp-demo"
       }, _react.default.createElement(SubArticleList, {
-        path: RASPRoot,
+        path: path,
         parent: null,
-        RASPRoot: RASPRoot
+        RASPRoot: '/demo.html?/'
       })), _react.default.createElement("button", {
         onClick: function onClick() {
           return _reactActionStatePath.ReactActionStatePath.thiss[0].parent.toMeFromParent({
