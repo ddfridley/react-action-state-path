@@ -1145,8 +1145,7 @@ function (_React$Component2) {
               this.waitingOn = null;
               if (nextFunc) qaction(nextFunc);else qaction(function () {
                 return _this11.props.rasp.toParent({
-                  type: "SET_STATE_AND_CONTINUE",
-                  nextRASP: nextRASP,
+                  type: "SET_PATH_SKIP",
                   function: _this11.toChild[key]
                 });
               });

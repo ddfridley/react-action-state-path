@@ -703,7 +703,7 @@ export class ReactActionStatePathClient extends React.Component {
             var nextFunc=this.waitingOn.nextFunc;
             this.waitingOn = null;
             if(nextFunc) qaction(nextFunc);
-            else qaction(() => this.props.rasp.toParent({ type: "SET_STATE_AND_CONTINUE", nextRASP: nextRASP, function: this.toChild[key] }));              
+            else qaction(() => this.props.rasp.toParent({ type: "SET_PATH_SKIP", function: this.toChild[key] }));              
           }
         }
       }
