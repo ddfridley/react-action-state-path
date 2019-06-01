@@ -887,7 +887,7 @@ function (_React$Component) {
           }, {
             curPath: curPath
           });
-          top.history.pushState(stateStack, '', curPath); // history on top in case in iframe like in storybook
+          top.history.pushState(stateStack, '', '/' + curPath); // history on top in case in iframe like in storybook
         } else {
           // update the state of the current historys
           if (this.debug.noop) console.log("ReactActionStatePath.toMeFromParent replaceState", {
@@ -895,7 +895,7 @@ function (_React$Component) {
           }, {
             curPath: curPath
           });
-          top.history.replaceState(stateStack, '', curPath); //update the history after changes have propagated among the children -- history on top in case in iframe like in storybook
+          top.history.replaceState(stateStack, '', '/' + curPath); //update the history after changes have propagated among the children -- history on top in case in iframe like in storybook
         }
       } else {
         if (this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side");
@@ -1559,7 +1559,7 @@ function (_ReactActionStatePath) {
 
         var curPath = raspChildren.reduce(function (acc, ch) {
           return acc + ch.key + '(' + ch.stateStack.reduce(function (acc, s) {
-            return acc ? acc + '/' + s.pathSegment : s.pathSegment;
+            return s.pathSegment ? acc ? acc + '/' + s.pathSegment : s.pathSegment : acc;
           }, '') + ')';
         }, '');
         rasp.raspChildren = raspChildren;

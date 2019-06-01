@@ -568,10 +568,10 @@ export class ReactActionStatePath extends React.Component {
             parts=parts.join('/');
             if (curPath !== parts && stateStack.stateStack[stateStack.stateStack.length-1].shape !== 'redirect') { // push the new state and path onto history
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", { stateStack }, { curPath });
-                top.history.pushState(stateStack, '', curPath); // history on top in case in iframe like in storybook
+                top.history.pushState(stateStack, '', '/'+curPath); // history on top in case in iframe like in storybook
             } else { // update the state of the current historys
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent replaceState", { stateStack }, { curPath });
-                top.history.replaceState(stateStack, '', curPath); //update the history after changes have propagated among the children -- history on top in case in iframe like in storybook
+                top.history.replaceState(stateStack, '', '/'+curPath); //update the history after changes have propagated among the children -- history on top in case in iframe like in storybook
             }
         } else {
             if(this.debug.noop) console.info("ReactActionStatePath.updateHistory called on server side"); 
@@ -935,7 +935,7 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
             if (raspChildren.length === 0 || (raspChildren.length === 1 && !raspChildren[0].stateStack)) return [rasp]; // if the only child doesn't really exist yet (because it returns null) just return null
             // curPath= child1(pathSegment1/pathSegment2/pathSegment...pathSegmentN)child2(pathSegment1/pathSegment2/...pathSegmentN)
             var curPath = raspChildren.reduce((acc, ch) => acc + ch.key
-                + '(' + ch.stateStack.reduce((acc, s) => acc ? acc + '/' + s.pathSegment : s.pathSegment, '')
+                + '(' + ch.stateStack.reduce((acc, s) => s.pathSegment ? (acc ? acc + '/' + s.pathSegment : s.pathSegment) : acc, '')
                 + ')'
                 , '');
             rasp.raspChildren=raspChildren;
