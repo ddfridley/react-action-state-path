@@ -958,7 +958,7 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
         } else if (action.type === "SET_PATH") {
             if(this.debug.noop) console.info("ReactActionStatePathMulti.toMeFromParent SET_PATH", action);
             const parts=unwrap(action.segment);
-            const { nextRASP, setBeforeWait} = this.segmentToState({type: SET_PATH, segment: parts[0], initialRASP: action.initialRASP});
+            const { nextRASP, setBeforeWait} = this.segmentToState({type: "SET_PATH", segment: parts[0], initialRASP: action.initialRASP});
             var raspChildren=unwrap(parts[1]); // undefined if undefined
             if(raspChildren && raspChildren.length & 1) {console.error("ReactActionStatePathMulti.toMeFromParent SET_PATH expected an even number in unwrap", raspChildren )}
             var that=this;
