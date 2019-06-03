@@ -2303,7 +2303,7 @@ function (_ReactActionStatePath) {
             var childRASP = Object.assign({}, _nextRASP, _defineProperty({}, _this15.keyField, key));
             that.waitingOnResults = (_that$waitingOnResult = {}, _defineProperty(_that$waitingOnResult, that.keyField, key), _defineProperty(_that$waitingOnResult, "nextFunc", _unwrapChildren2.bind(_this15)), _that$waitingOnResult); // waitingOnResults and waitingOn may happen in any order
 
-            that.waitingOn({
+            that.waitingOn = {
               nextRASP: childRASP,
               nextFunc: function nextFunc() {
                 return _this15.qaction({
@@ -2311,7 +2311,7 @@ function (_ReactActionStatePath) {
                   pathSegments: pathSegments
                 });
               }
-            });
+            };
           } else {
             var key = _nextRASP[_this15.keyField];
 
