@@ -721,17 +721,24 @@ export class ReactActionStatePathClient extends React.Component {
         let { stateStack, stackDepth } = action;
         var key = stateStack[stackDepth][this.keyField];
         let sent = false;
-        Object.keys(this.toChild).forEach(child => { // only child panels with RASP managers will have entries in this list. 
-            if (child === key) { sent = true; this.toChild[child]({ type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth + 1 }); }
-            else if ((typeof key === 'undefined' || key === null) && child === 'default') { sent = true; this.toChild[child]({ type: "ONPOPSTATE", stateStack, stackDepth: stackDepth + 1 }); }
-            else this.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
-        });
-        if (key && !sent) {
-            console.info("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action });
-            this.waitingOn = { nextRASP: stateStack[stackDepth], nextFunc: () => this.toChild[child]({ type: "ONPOPSTATE", stateStack, stackDepth: stackDepth + 1 }) }
-            return;
-        } else
+        if(stackDepth >= (stateStack.length-1)){ // this is the last one on the stack
+            Object.keys(this.toChild).forEach(child => { // only child panels with RASP managers will have entries in this list. 
+                this.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
+            });
             return this.props.rasp.toParent({ type: "SET_STATE", nextRASP: stateStack[stackDepth] });
+        } else {
+            Object.keys(this.toChild).forEach(child => { // only child panels with RASP managers will have entries in this list. 
+                if (child === key) { sent = true; this.toChild[child]({ type: "ONPOPSTATE", stateStack: stateStack, stackDepth: stackDepth + 1 }); }
+                else if ((typeof key === 'undefined' || key === null) && child === 'default') { sent = true; this.toChild[child]({ type: "ONPOPSTATE", stateStack, stackDepth: stackDepth + 1 }); }
+                else this.toChild[child]({ type: "CLEAR_PATH" }); // only one button panel is open, any others are truncated (but inactive)
+            });
+            if (key && !sent) {
+                console.info("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", { depth: this.props.rasp.depth }, { action });
+                this.waitingOn = { nextRASP: stateStack[stackDepth], nextFunc: () => this.toChild[child]({ type: "ONPOPSTATE", stateStack, stackDepth: stackDepth + 1 }) }
+                return;
+            } else
+                return this.props.rasp.toParent({ type: "SET_STATE", nextRASP: stateStack[stackDepth] });
+        }
     } else if (action.type === "GET_STATE") {
       var key = this.props.rasp[this.keyField];
       var {toParent, ...rasp}=this.props.rasp; // exclude the function which can not be saved as part of the state

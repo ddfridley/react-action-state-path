@@ -1159,51 +1159,67 @@ function (_React$Component2) {
             stackDepth = action.stackDepth;
         var key = stateStack[stackDepth][this.keyField];
         var sent = false;
-        Object.keys(this.toChild).forEach(function (child) {
-          // only child panels with RASP managers will have entries in this list. 
-          if (child === key) {
-            sent = true;
 
+        if (stackDepth >= stateStack.length - 1) {
+          // this is the last one on the stack
+          Object.keys(this.toChild).forEach(function (child) {
+            // only child panels with RASP managers will have entries in this list. 
             _this12.toChild[child]({
-              type: "ONPOPSTATE",
-              stateStack: stateStack,
-              stackDepth: stackDepth + 1
-            });
-          } else if ((typeof key === 'undefined' || key === null) && child === 'default') {
-            sent = true;
+              type: "CLEAR_PATH"
+            }); // only one button panel is open, any others are truncated (but inactive)
 
-            _this12.toChild[child]({
-              type: "ONPOPSTATE",
-              stateStack: stateStack,
-              stackDepth: stackDepth + 1
-            });
-          } else _this12.toChild[child]({
-            type: "CLEAR_PATH"
-          }); // only one button panel is open, any others are truncated (but inactive)
-
-        });
-
-        if (key && !sent) {
-          console.info("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", {
-            depth: this.props.rasp.depth
-          }, {
-            action: action
           });
-          this.waitingOn = {
-            nextRASP: stateStack[stackDepth],
-            nextFunc: function nextFunc() {
-              return _this12.toChild[child]({
+          return this.props.rasp.toParent({
+            type: "SET_STATE",
+            nextRASP: stateStack[stackDepth]
+          });
+        } else {
+          Object.keys(this.toChild).forEach(function (child) {
+            // only child panels with RASP managers will have entries in this list. 
+            if (child === key) {
+              sent = true;
+
+              _this12.toChild[child]({
                 type: "ONPOPSTATE",
                 stateStack: stateStack,
                 stackDepth: stackDepth + 1
               });
-            }
-          };
-          return;
-        } else return this.props.rasp.toParent({
-          type: "SET_STATE",
-          nextRASP: stateStack[stackDepth]
-        });
+            } else if ((typeof key === 'undefined' || key === null) && child === 'default') {
+              sent = true;
+
+              _this12.toChild[child]({
+                type: "ONPOPSTATE",
+                stateStack: stateStack,
+                stackDepth: stackDepth + 1
+              });
+            } else _this12.toChild[child]({
+              type: "CLEAR_PATH"
+            }); // only one button panel is open, any others are truncated (but inactive)
+
+          });
+
+          if (key && !sent) {
+            console.info("ReactActionStatePathClient.toMeFromParent ONPOPSTATE more state but child not found", {
+              depth: this.props.rasp.depth
+            }, {
+              action: action
+            });
+            this.waitingOn = {
+              nextRASP: stateStack[stackDepth],
+              nextFunc: function nextFunc() {
+                return _this12.toChild[child]({
+                  type: "ONPOPSTATE",
+                  stateStack: stateStack,
+                  stackDepth: stackDepth + 1
+                });
+              }
+            };
+            return;
+          } else return this.props.rasp.toParent({
+            type: "SET_STATE",
+            nextRASP: stateStack[stackDepth]
+          });
+        }
       } else if (action.type === "GET_STATE") {
         var key = this.props.rasp[this.keyField];
 
@@ -1588,7 +1604,7 @@ function (_ReactActionStatePath) {
         var parts = unwrap(action.segment);
 
         var _this$segmentToState = this.segmentToState({
-          type: SET_PATH,
+          type: "SET_PATH",
           segment: parts[0],
           initialRASP: action.initialRASP
         }),
