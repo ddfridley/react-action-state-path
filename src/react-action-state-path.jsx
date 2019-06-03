@@ -74,6 +74,51 @@ var unwrap=function(s){
     return a;
 }
 
+// separates a string by '/'. '/' within '()' are not separated, but an ending ')' is a saparator
+var separate=function(s){
+    if(typeof s!== 'string') return undefined;
+    var a=[]; // the array to return
+    var e=''; // an element in the array.
+    let l=s.length;
+    let i=0;
+    if(s[0]==='/')i++; // strip off any leading /
+    let d=0; // depth of ()'s
+    let c;
+    while(i<l){
+        c=s[i];
+        if(!d){
+            if(c==='/'){
+                a.push(e);
+                e='';
+            }else if(c==='('){
+                e+=c;
+                d++
+            }else // at the level a ) is just added to the e
+                e+=c;
+        }else if(d===1){
+            if(c===')'){
+                e+=c;
+                a.push(e);
+                e='';
+                d--;
+            }else if(c==='('){
+                e+=c;
+                d++;
+            }else // at this level ) is just added to the e
+                e+=c;
+        } else {
+            if(c===')')
+                d--;
+            else if(c==='(')
+                d++;
+            e+=c;
+        }
+        i++;
+    }
+    if(e) a.push(e);
+    return a;
+}
+
 var queue=0;
 
 var qaction=function(func){
@@ -177,10 +222,10 @@ export class ReactActionStatePath extends React.Component {
              ReactActionStatePath.topState=null;
              var pathSegments=[];
              if(this.props.path && this.props.path !== '/'){
-                pathSegments= unwrap(this.props.path);
+                pathSegments= separate(this.props.path);
                 while(pathSegments.length && !pathSegments[0]) pathSegments.shift(); // an initial '/' turns into an empty element at the beginning
                 while(pathSegments.length && !pathSegments[pathSegments.length-1]) pathSegments.pop(); // '/'s at the end translate to null elements, remove them
-                let root=unwrap(this.props.RASPRoot || '/h/');
+                let root=separate(this.props.RASPRoot || '/h/');
                 while(root.length && !root[0]) root.shift(); // shift off leading empty's caused by leading '/'s
                 while(root.length && !root[root.length-1]) root.pop(); // '/'s at the end translate to null elements, remove them
                 if(root.some(segment=>segment!==pathSegments.shift())) {console.error("ReactActionStatePath.componentDidMount path didn't match props", root, pathSegments )}
@@ -556,10 +601,10 @@ export class ReactActionStatePath extends React.Component {
             if (cur.pathSegment) acc.push(cur.pathSegment);
             return acc;
         }, []);
-        curPath=unwrap(this.props.RASPRoot || '/h/').concat(curPath)
+        curPath=separate(this.props.RASPRoot || '/h/').concat(curPath)
         curPath = curPath.join('/');
         if(typeof window !== 'undefined'){
-            let parts=unwrap(top.location.href);
+            let parts=separate(top.location.href);
             if(parts[0]==="http:" || parts[0]==="https:"){
                 parts.shift() // http:
                 parts.shift() // 

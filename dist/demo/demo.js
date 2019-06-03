@@ -743,6 +743,56 @@ var unwrap = function unwrap(s) {
 
   if (e) a.push(e);
   return a;
+}; // separates a string by '/'. '/' within '()' are not separated, but an ending ')' is a saparator
+
+
+var separate = function separate(s) {
+  if (typeof s !== 'string') return undefined;
+  var a = []; // the array to return
+
+  var e = ''; // an element in the array.
+
+  var l = s.length;
+  var i = 0;
+  if (s[0] === '/') i++; // strip off any leading /
+
+  var d = 0; // depth of ()'s
+
+  var c;
+
+  while (i < l) {
+    c = s[i];
+
+    if (!d) {
+      if (c === '/') {
+        a.push(e);
+        e = '';
+      } else if (c === '(') {
+        e += c;
+        d++;
+      } else // at the level a ) is just added to the e
+        e += c;
+    } else if (d === 1) {
+      if (c === ')') {
+        e += c;
+        a.push(e);
+        e = '';
+        d--;
+      } else if (c === '(') {
+        e += c;
+        d++;
+      } else // at this level ) is just added to the e
+        e += c;
+    } else {
+      if (c === ')') d--;else if (c === '(') d++;
+      e += c;
+    }
+
+    i++;
+  }
+
+  if (e) a.push(e);
+  return a;
 };
 
 var queue = 0;
@@ -885,7 +935,7 @@ function (_React$Component) {
       var pathSegments = [];
 
       if (_this2.props.path && _this2.props.path !== '/') {
-        pathSegments = unwrap(_this2.props.path);
+        pathSegments = separate(_this2.props.path);
 
         while (pathSegments.length && !pathSegments[0]) {
           pathSegments.shift();
@@ -897,7 +947,7 @@ function (_React$Component) {
         } // '/'s at the end translate to null elements, remove them
 
 
-        var root = unwrap(_this2.props.RASPRoot || '/h/');
+        var root = separate(_this2.props.RASPRoot || '/h/');
 
         while (root.length && !root[0]) {
           root.shift();
@@ -1489,11 +1539,11 @@ function (_React$Component) {
         if (cur.pathSegment) acc.push(cur.pathSegment);
         return acc;
       }, []);
-      curPath = unwrap(this.props.RASPRoot || '/h/').concat(curPath);
+      curPath = separate(this.props.RASPRoot || '/h/').concat(curPath);
       curPath = curPath.join('/');
 
       if (typeof window !== 'undefined') {
-        var parts = unwrap(top.location.href);
+        var parts = separate(top.location.href);
 
         if (parts[0] === "http:" || parts[0] === "https:") {
           parts.shift(); // http:
