@@ -1732,6 +1732,8 @@ function (_ReactActionStatePath) {
             }
           }
         };
+
+        _unwrapChildren2();
       } else {
         // is there a key in the action
         var _key3 = action[this.keyField];

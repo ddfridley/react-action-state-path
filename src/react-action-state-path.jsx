@@ -1039,6 +1039,7 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
                     }
                 }
             }
+            unwrapChildren();
         } else {
             // is there a key in the action
             let key=action[this.keyField];
