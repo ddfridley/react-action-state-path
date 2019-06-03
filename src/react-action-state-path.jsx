@@ -1017,6 +1017,7 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
             var unwrapChildren=()=>{
                 if(raspChildren.length){
                     var key=raspChildren.shift();
+                    if(parseInt(key,10)==key) key=parseInt(key,10); // if key could be an int, convert it to one. otherwise leave it alone.
                     var pathSegments=unwrap(raspChildren.shift());
                     var childRASP=Object.assign({},nextRASP,{[this.keyField]: key})
                     that.waitingOnResults={ [that.keyField]: key, nextFunc: unwrapChildren.bind(this)  } // waitingOnResults and waitingOn may happen in any order
