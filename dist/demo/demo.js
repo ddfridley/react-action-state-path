@@ -2308,7 +2308,7 @@ function (_ReactActionStatePath) {
             that.waitingOn = {
               nextRASP: childRASP,
               nextFunc: function nextFunc() {
-                return that.props.rasp.toParent({
+                return that.toChild[key]({
                   type: "SET_PATH",
                   pathSegments: pathSegments
                 });

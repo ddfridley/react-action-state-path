@@ -1021,7 +1021,7 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
                     var pathSegments=unwrap(raspChildren.shift());
                     var childRASP=Object.assign({},nextRASP,{[that.keyField]: key})
                     that.waitingOnResults={ [that.keyField]: key, nextFunc: unwrapChildren.bind(that)  } // waitingOnResults and waitingOn may happen in any order
-                    that.waitingOn={nextRASP: childRASP, nextFunc: ()=>that.props.rasp.toParent({type: "SET_PATH", pathSegments})};
+                    that.waitingOn={nextRASP: childRASP, nextFunc: ()=>that.toChild[key]({type: "SET_PATH", pathSegments})};
                 } else {
                     var key = nextRASP[that.keyField];
                     if (typeof key !== 'undefined' && key !== null) {
