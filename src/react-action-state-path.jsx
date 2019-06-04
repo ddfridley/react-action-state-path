@@ -1030,6 +1030,7 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
                             }
                         }
                     }};
+                    that.props.rasp.toParent({type: "SET_STATE", nextRASP: childRASP})
                 } else {
                     var key = nextRASP[that.keyField];
                     if (typeof key !== 'undefined' && key !== null) {

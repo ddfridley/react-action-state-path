@@ -1696,6 +1696,10 @@ function (_ReactActionStatePath) {
                 }
               }
             };
+            that.props.rasp.toParent({
+              type: "SET_STATE",
+              nextRASP: childRASP
+            });
           } else {
             var key = _nextRASP[that.keyField];
 
