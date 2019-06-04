@@ -391,7 +391,7 @@ export class ReactActionStatePath extends React.Component {
                 }
             }
         }else if (action.type==="SET_STATE_AND_CONTINUE"){
-            var pathSegments=this.pathSegments;
+            var pathSegments=this.pathSegments || [];
             this.pathSegments=undefined;
             pathSegments.shift(); // setting the segment was completed so discard it
             if(pathSegments.length) {
@@ -1020,7 +1020,7 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
                     if(parseInt(key,10)==key) key=parseInt(key,10); // if key could be an int, convert it to one. otherwise leave it alone.
                     var pathSegments=unwrap(raspChildren.shift());
                     var childRASP=Object.assign({},nextRASP,{[that.keyField]: key})
-                    that.waitingOnResults={ [that.keyField]: key, nextFunc: unwrapChildren.bind(that)  } // waitingOnResults and waitingOn may happen in any order
+                    if(raspChildren.length) that.waitingOnResults={ [that.keyField]: key, nextFunc: unwrapChildren.bind(that)  } // only advance to next child if there is one, waitingOnResults and waitingOn may happen in any order
                     that.waitingOn={nextRASP: childRASP, nextFunc: ()=>that.toChild[key]({type: "SET_PATH", pathSegments})};
                 } else {
                     var key = nextRASP[that.keyField];

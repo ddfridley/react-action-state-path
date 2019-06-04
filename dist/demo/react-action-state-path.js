@@ -575,7 +575,7 @@ function (_React$Component) {
           }
         }
       } else if (action.type === "SET_STATE_AND_CONTINUE") {
-        var pathSegments = this.pathSegments;
+        var pathSegments = this.pathSegments || [];
         this.pathSegments = undefined;
         pathSegments.shift(); // setting the segment was completed so discard it
 
@@ -1679,7 +1679,7 @@ function (_ReactActionStatePath) {
 
             var pathSegments = unwrap(raspChildren.shift());
             var childRASP = Object.assign({}, _nextRASP, _defineProperty({}, that.keyField, key));
-            that.waitingOnResults = (_that$waitingOnResult = {}, _defineProperty(_that$waitingOnResult, that.keyField, key), _defineProperty(_that$waitingOnResult, "nextFunc", _unwrapChildren2.bind(that)), _that$waitingOnResult); // waitingOnResults and waitingOn may happen in any order
+            if (raspChildren.length) that.waitingOnResults = (_that$waitingOnResult = {}, _defineProperty(_that$waitingOnResult, that.keyField, key), _defineProperty(_that$waitingOnResult, "nextFunc", _unwrapChildren2.bind(that)), _that$waitingOnResult); // only advance to next child if there is one, waitingOnResults and waitingOn may happen in any order
 
             that.waitingOn = {
               nextRASP: childRASP,
