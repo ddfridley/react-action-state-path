@@ -961,7 +961,9 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
                             that.toChild[child]({ type: "CLEAR_PATH" });
                         }
                     })
-                    if(stackDepth+1 >= stateStack.length) return; // end of the line
+                    if(stackDepth+1 >= stateStack.length) { // end of the line
+                        return this.props.rasp.toParent({ type: "SET_STATE", nextRASP });
+                    } 
                     var key = nextRASP[that.keyField];
                     var nextFunc=()=>that.toChild[key]({type: "ONPOPSTATE", stateStack, stackDepth: stackDepth+1 });
                     if (typeof key !== 'undefined' && key !== null) {

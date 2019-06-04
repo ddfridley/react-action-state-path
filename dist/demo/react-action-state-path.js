@@ -1574,7 +1574,14 @@ function (_ReactActionStatePath) {
                 });
               }
             });
-            if (stackDepth + 1 >= stateStack.length) return; // end of the line
+
+            if (stackDepth + 1 >= stateStack.length) {
+              // end of the line
+              return _this15.props.rasp.toParent({
+                type: "SET_STATE",
+                nextRASP: nextRASP
+              });
+            }
 
             var key = nextRASP[that.keyField];
 
