@@ -242,7 +242,13 @@ export class ReactActionStatePath extends React.Component {
                         },30000);
                         qaction(()=>{
                             ReactActionStatePath.topState="SET_PATH";
-                            this.toMeFromParent({type: "SET_PATH", pathSegments});
+                            this.toMeFromParent({type: "SET_PATH", pathSegments, onSetPathComplete: ()=>{
+                                if(this.debug.noop) console.log("ReactActionStatePath.constructor SET PATH COMPLETED, updateHistory");
+                                ReactActionStatePath.topState=null;
+                                clearTimeout(this.completionCheck);
+                                return this.updateHistory();
+                            }
+                        });
                         }); // this starts after the return toChild so it completes.
                     }}
              }
@@ -418,13 +424,14 @@ export class ReactActionStatePath extends React.Component {
                 console.error("ReactActionStatePath.toMeFromChild SET_PATH_COMPLETE but pathSegments remain", this.pathSegments);
                 this.pathSegments=undefined;
             }
-            if(this.id!==0) return this.props.rasp.toParent({type: "SET_PATH_COMPLETE"});
-            else {
-                if(this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET PATH COMPLETED, updateHistory");
-                ReactActionStatePath.topState=null;
-                clearTimeout(this.completionCheck);
-                return this.updateHistory();
-            }
+            if(this.onSetPathComplete) {
+                let func=this.onSetPathComplete;
+                this.onSetPathComplete=undefined;
+                return func();
+            } if(this.id!==0) 
+                return this.props.rasp.toParent({type: "SET_PATH_COMPLETE"});
+            else 
+                console.error("id is 0 but no onSetPathComplete");
         }else if(action.type==="RESET") {
             this.setState(this.getDefaultState()); // after clearing the children clear this state
             return null;
@@ -559,10 +566,10 @@ export class ReactActionStatePath extends React.Component {
         }else if(action.type==="SET_PATH"){ // let child handle this one without complaint
             if(this.pathSegments) console.error("ReactActionStatePath.toMeFromParent SET_PATH called, but previous SET_PATH was not complete",action,this.pathSegments)
             this.pathSegments=action.pathSegments; // save the list of segments until SET_PATH_COMPLETE, ... cleans it up. 
-            action.initialRASP=this.initialRASP; // segmentToState needs to apply this
-            action.segment=action.pathSegments[0];
-            if(this.toChild) return this.toChild(action);
-            else this.waitingOn={nextFunc: ()=>{this.toChild(action)}}
+            if(action.onSetPathComplete) this.onSetPathComplete=action.onSetPathComplete;
+            var childAction={type: "SET_PATH", pathSegments: action.pathSegments, segment: action.pathSegments[0], initialRASP: this.initialRASP};
+            if(this.toChild) return this.toChild(childAction);
+            else this.waitingOn={nextFunc: ()=>{this.toChild(childAction)}}
             return;
         }else {
             if(this.debug.noop) console.info("ReactActionStatePath.toMeFromParent: passing action to child", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.childTitle, action, this.state.rasp );
@@ -1020,11 +1027,17 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
                     if(parseInt(key,10)==key) key=parseInt(key,10); // if key could be an int, convert it to one. otherwise leave it alone.
                     var pathSegments=unwrap(raspChildren.shift());
                     var childRASP=Object.assign({},nextRASP,{[that.keyField]: key})
-                    if(raspChildren.length) that.waitingOnResults={ [that.keyField]: key, nextFunc: unwrapChildren.bind(that)  } // only advance to next child if there is one, waitingOnResults and waitingOn may happen in any order
+                    if(raspChildren.length) that.waitingOnResults={ [that.keyField]: key, nextFunc: ()=>{// only advance to next child if there is one, waitingOnResults and waitingOn may happen in any order
+                        if(!that.waitingOnSetPath) unwrapChildren()
+                    }} 
                     that.waitingOn={nextRASP: childRASP, nextFunc: ()=>{
                         if(pathSegments.length){
-                            that.toChild[key]({type: "SET_PATH", pathSegments})
-                        } else {
+                            that.waitingOnSetPath=true;
+                            that.toChild[key]({type: "SET_PATH", pathSegments, onSetPathComplete: ()=>{
+                                that.waitingOnSetPath=undefined;
+                                if(!that.waitingOnResults) return unwrapChildren();
+                            }})
+                        } else { // the child is in the path but has no state to set ex  0()
                             if(!raspChildren.length){
                                 unwrapChildren();
                             }

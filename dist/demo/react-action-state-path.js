@@ -356,7 +356,13 @@ function (_React$Component) {
 
               _this2.toMeFromParent({
                 type: "SET_PATH",
-                pathSegments: pathSegments
+                pathSegments: pathSegments,
+                onSetPathComplete: function onSetPathComplete() {
+                  if (_this2.debug.noop) console.log("ReactActionStatePath.constructor SET PATH COMPLETED, updateHistory");
+                  ReactActionStatePath.topState = null;
+                  clearTimeout(_this2.completionCheck);
+                  return _this2.updateHistory();
+                }
               });
             }); // this starts after the return toChild so it completes.
           }
@@ -618,14 +624,15 @@ function (_React$Component) {
           this.pathSegments = undefined;
         }
 
+        if (this.onSetPathComplete) {
+          var func = this.onSetPathComplete;
+          this.onSetPathComplete = undefined;
+          return func();
+        }
+
         if (this.id !== 0) return this.props.rasp.toParent({
           type: "SET_PATH_COMPLETE"
-        });else {
-          if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET PATH COMPLETED, updateHistory");
-          ReactActionStatePath.topState = null;
-          clearTimeout(this.completionCheck);
-          return this.updateHistory();
-        }
+        });else console.error("id is 0 but no onSetPathComplete");
       } else if (action.type === "RESET") {
         this.setState(this.getDefaultState()); // after clearing the children clear this state
 
@@ -857,12 +864,16 @@ function (_React$Component) {
         if (this.pathSegments) console.error("ReactActionStatePath.toMeFromParent SET_PATH called, but previous SET_PATH was not complete", action, this.pathSegments);
         this.pathSegments = action.pathSegments; // save the list of segments until SET_PATH_COMPLETE, ... cleans it up. 
 
-        action.initialRASP = this.initialRASP; // segmentToState needs to apply this
-
-        action.segment = action.pathSegments[0];
-        if (this.toChild) return this.toChild(action);else this.waitingOn = {
+        if (action.onSetPathComplete) this.onSetPathComplete = action.onSetPathComplete;
+        var childAction = {
+          type: "SET_PATH",
+          pathSegments: action.pathSegments,
+          segment: action.pathSegments[0],
+          initialRASP: this.initialRASP
+        };
+        if (this.toChild) return this.toChild(childAction);else this.waitingOn = {
           nextFunc: function nextFunc() {
-            _this5.toChild(action);
+            _this5.toChild(childAction);
           }
         };
         return;
@@ -1679,17 +1690,25 @@ function (_ReactActionStatePath) {
 
             var pathSegments = unwrap(raspChildren.shift());
             var childRASP = Object.assign({}, _nextRASP, _defineProperty({}, that.keyField, key));
-            if (raspChildren.length) that.waitingOnResults = (_that$waitingOnResult = {}, _defineProperty(_that$waitingOnResult, that.keyField, key), _defineProperty(_that$waitingOnResult, "nextFunc", _unwrapChildren2.bind(that)), _that$waitingOnResult); // only advance to next child if there is one, waitingOnResults and waitingOn may happen in any order
-
+            if (raspChildren.length) that.waitingOnResults = (_that$waitingOnResult = {}, _defineProperty(_that$waitingOnResult, that.keyField, key), _defineProperty(_that$waitingOnResult, "nextFunc", function nextFunc() {
+              // only advance to next child if there is one, waitingOnResults and waitingOn may happen in any order
+              if (!that.waitingOnSetPath) _unwrapChildren2();
+            }), _that$waitingOnResult);
             that.waitingOn = {
               nextRASP: childRASP,
               nextFunc: function nextFunc() {
                 if (pathSegments.length) {
+                  that.waitingOnSetPath = true;
                   that.toChild[key]({
                     type: "SET_PATH",
-                    pathSegments: pathSegments
+                    pathSegments: pathSegments,
+                    onSetPathComplete: function onSetPathComplete() {
+                      that.waitingOnSetPath = undefined;
+                      if (!that.waitingOnResults) return _unwrapChildren2();
+                    }
                   });
                 } else {
+                  // the child is in the path but has no state to set ex  0()
                   if (!raspChildren.length) {
                     _unwrapChildren2();
                   }
