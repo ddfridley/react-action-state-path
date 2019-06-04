@@ -1564,16 +1564,13 @@ function (_ReactActionStatePath) {
               });
             }
           } else {
-            keepChild.forEach(function (keep, child) {
-              // child id is the index
-              if (!keep) {
-                console.info("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE child not kept", child);
-                that.toChild[child]({
-                  type: "CLEAR_PATH"
-                });
-              }
-            });
-
+            /* Don't clear the children - it doesn't reset the parent's state and you won't have to reload data
+            keepChild.forEach((keep, child) => { // child id is the index
+                if (!keep) {
+                    console.info("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE child not kept", child);
+                    that.toChild[child]({ type: "CLEAR_PATH" });
+                }
+            })*/
             if (stackDepth + 1 >= stateStack.length) {
               // end of the line
               return _this15.props.rasp.toParent({
