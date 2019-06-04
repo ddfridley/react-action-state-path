@@ -1019,24 +1019,24 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
                     var key=raspChildren.shift();
                     if(parseInt(key,10)==key) key=parseInt(key,10); // if key could be an int, convert it to one. otherwise leave it alone.
                     var pathSegments=unwrap(raspChildren.shift());
-                    var childRASP=Object.assign({},nextRASP,{[this.keyField]: key})
-                    that.waitingOnResults={ [that.keyField]: key, nextFunc: unwrapChildren.bind(this)  } // waitingOnResults and waitingOn may happen in any order
-                    that.waitingOn={nextRASP: childRASP, nextFunc: ()=>this.qaction({type: "SET_PATH", pathSegments})};
+                    var childRASP=Object.assign({},nextRASP,{[that.keyField]: key})
+                    that.waitingOnResults={ [that.keyField]: key, nextFunc: unwrapChildren.bind(that)  } // waitingOnResults and waitingOn may happen in any order
+                    that.waitingOn={nextRASP: childRASP, nextFunc: ()=>that.props.rasp.toParent({type: "SET_PATH", pathSegments})};
                 } else {
-                    var key = nextRASP[this.keyField];
+                    var key = nextRASP[that.keyField];
                     if (typeof key !== 'undefined' && key !== null) {
-                        if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
+                        if (that.toChild[key]) that.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: that.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
                         else if (setBeforeWait) {
-                            this.waitingOn={nextRASP, nextFunc: ()=>this.props.rasp.toParent({type: "CONTINUE_SET_PATH", function: this.toChild[key]})};
-                            this.props.rasp.toParent({type: "SET_STATE", nextRASP});       
+                            that.waitingOn={nextRASP, nextFunc: ()=>that.props.rasp.toParent({type: "CONTINUE_SET_PATH", function: that.toChild[key]})};
+                            that.props.rasp.toParent({type: "SET_STATE", nextRASP});       
                         } else {
-                            if(this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
-                            this.waitingOn = {nextRASP};
+                            if(that.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
+                            that.waitingOn = {nextRASP};
                         }
-                    } else if(this.toChild['default']) {
-                        this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: this.toChild['default'] });
+                    } else if(that.toChild['default']) {
+                        that.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: that.toChild['default'] });
                     } else {
-                        this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: null });
+                        that.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: null });
                     }
                 }
             }
