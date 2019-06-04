@@ -2308,10 +2308,16 @@ function (_ReactActionStatePath) {
             that.waitingOn = {
               nextRASP: childRASP,
               nextFunc: function nextFunc() {
-                return that.toChild[key]({
-                  type: "SET_PATH",
-                  pathSegments: pathSegments
-                });
+                if (pathSegments.length) {
+                  that.toChild[key]({
+                    type: "SET_PATH",
+                    pathSegments: pathSegments
+                  });
+                } else {
+                  if (!raspChildren.length) {
+                    _unwrapChildren2();
+                  }
+                }
               }
             };
           } else {
