@@ -1526,8 +1526,6 @@ function (_ReactActionStatePath) {
         delete nextRASP.raspChildren;
         delete keepChild['default']; // don't delete default if it is there
 
-        var that = this;
-
         var _unwrapChildren2 = function unwrapChildren() {
           if (raspChildren && raspChildren.length) {
             var _raspChildren$shift = raspChildren.shift(),
@@ -1537,8 +1535,8 @@ function (_ReactActionStatePath) {
             keepChild[_key2] = true;
             var childRASP = Object.assign({}, nextRASP, _defineProperty({}, _this15.keyField, _key2));
 
-            if (that.toChild[_key2]) {
-              that.toChild[_key2]({
+            if (_this15.toChild[_key2]) {
+              _this15.toChild[_key2]({
                 type: "ONPOPSTATE",
                 stateStack: _stateStack,
                 stackDepth: 0
@@ -1546,10 +1544,10 @@ function (_ReactActionStatePath) {
 
               return _unwrapChildren2();
             } else {
-              that.waitingOn({
+              _this15.waitingOn({
                 nextRASP: childRASP,
                 nextFunc: function nextFunc() {
-                  that.toChild[_key2]({
+                  _this15.toChild[_key2]({
                     type: "ONPOPSTATE",
                     stateStack: _stateStack,
                     stackDepth: 0
@@ -1558,7 +1556,8 @@ function (_ReactActionStatePath) {
                   _unwrapChildren2();
                 }
               });
-              return that.props.rasp.toParent({
+
+              return _this15.props.rasp.toParent({
                 type: "SET_STATE",
                 nextRASP: childRASP
               });
@@ -1568,7 +1567,7 @@ function (_ReactActionStatePath) {
             keepChild.forEach((keep, child) => { // child id is the index
                 if (!keep) {
                     console.info("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE child not kept", child);
-                    that.toChild[child]({ type: "CLEAR_PATH" });
+                    this.toChild[child]({ type: "CLEAR_PATH" });
                 }
             })*/
             if (stackDepth + 1 >= stateStack.length) {
@@ -1579,10 +1578,10 @@ function (_ReactActionStatePath) {
               });
             }
 
-            var key = nextRASP[that.keyField];
+            var key = nextRASP[_this15.keyField];
 
             var nextFunc = function nextFunc() {
-              return that.toChild[key]({
+              return _this15.toChild[key]({
                 type: "ONPOPSTATE",
                 stateStack: stateStack,
                 stackDepth: stackDepth + 1
@@ -1590,24 +1589,26 @@ function (_ReactActionStatePath) {
             };
 
             if (typeof key !== 'undefined' && key !== null) {
-              if (that.toChild[key]) {
+              if (_this15.toChild[key]) {
                 nextFunc();
-                that.props.rasp.toParent({
+
+                _this15.props.rasp.toParent({
                   type: "SET_STATE",
                   nextRASP: nextRASP,
                   nextFunc: nextFunc
                 });
               } else {
-                that.waitingOn = {
+                _this15.waitingOn = {
                   nextRASP: nextRASP,
                   nextFunc: nextFunc
                 };
-                that.props.rasp.toParent({
+
+                _this15.props.rasp.toParent({
                   type: "SET_STATE",
                   nextRASP: nextRASP
                 });
               }
-            } else if (that.toChild[key = 'default']) {
+            } else if (_this15.toChild[key = 'default']) {
               nextFunc();
             } else {
               console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE but no child", action);
@@ -1682,32 +1683,31 @@ function (_ReactActionStatePath) {
           console.error("ReactActionStatePathMulti.toMeFromParent SET_PATH expected an even number in unwrap", raspChildren);
         }
 
-        var that = this;
-
         var _unwrapChildren2 = function _unwrapChildren() {
           if (raspChildren.length) {
-            var _that$waitingOnResult;
+            var _this15$waitingOnResu;
 
             var key = raspChildren.shift();
             if (parseInt(key, 10) == key) key = parseInt(key, 10); // if key could be an int, convert it to one. otherwise leave it alone.
 
             var pathSegments = unwrap(raspChildren.shift());
-            var childRASP = Object.assign({}, _nextRASP, _defineProperty({}, that.keyField, key));
-            if (raspChildren.length) that.waitingOnResults = (_that$waitingOnResult = {}, _defineProperty(_that$waitingOnResult, that.keyField, key), _defineProperty(_that$waitingOnResult, "nextFunc", function nextFunc() {
+            var childRASP = Object.assign({}, _nextRASP, _defineProperty({}, _this15.keyField, key));
+            if (raspChildren.length) _this15.waitingOnResults = (_this15$waitingOnResu = {}, _defineProperty(_this15$waitingOnResu, _this15.keyField, key), _defineProperty(_this15$waitingOnResu, "nextFunc", function nextFunc() {
               // only advance to next child if there is one, waitingOnResults and waitingOn may happen in any order
-              if (!that.waitingOnSetPath) _unwrapChildren2();
-            }), _that$waitingOnResult);
-            that.waitingOn = {
+              if (!_this15.waitingOnSetPath) _unwrapChildren2();
+            }), _this15$waitingOnResu);
+            _this15.waitingOn = {
               nextRASP: childRASP,
               nextFunc: function nextFunc() {
                 if (pathSegments.length) {
-                  that.waitingOnSetPath = true;
-                  that.toChild[key]({
+                  _this15.waitingOnSetPath = true;
+
+                  _this15.toChild[key]({
                     type: "SET_PATH",
                     pathSegments: pathSegments,
                     onSetPathComplete: function onSetPathComplete() {
-                      that.waitingOnSetPath = undefined;
-                      if (!that.waitingOnResults) return _unwrapChildren2();
+                      _this15.waitingOnSetPath = undefined;
+                      if (!_this15.waitingOnResults) return _unwrapChildren2();
                     }
                   });
                 } else {
@@ -1718,47 +1718,49 @@ function (_ReactActionStatePath) {
                 }
               }
             };
-            that.props.rasp.toParent({
+
+            _this15.props.rasp.toParent({
               type: "SET_STATE",
               nextRASP: childRASP
             });
           } else {
-            var key = _nextRASP[that.keyField];
+            var key = _nextRASP[_this15.keyField];
 
             if (typeof key !== 'undefined' && key !== null) {
-              if (that.toChild[key]) that.props.rasp.toParent({
+              if (_this15.toChild[key]) _this15.props.rasp.toParent({
                 type: 'SET_STATE_AND_CONTINUE',
                 nextRASP: _nextRASP,
-                function: that.toChild[key]
+                function: _this15.toChild[key]
               }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
               else if (setBeforeWait) {
-                  that.waitingOn = {
+                  _this15.waitingOn = {
                     nextRASP: _nextRASP,
                     nextFunc: function nextFunc() {
-                      return that.props.rasp.toParent({
+                      return _this15.props.rasp.toParent({
                         type: "CONTINUE_SET_PATH",
-                        function: that.toChild[key]
+                        function: _this15.toChild[key]
                       });
                     }
                   };
-                  that.props.rasp.toParent({
+
+                  _this15.props.rasp.toParent({
                     type: "SET_STATE",
                     nextRASP: _nextRASP
                   });
                 } else {
-                  if (that.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", _nextRASP);
-                  that.waitingOn = {
+                  if (_this15.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", _nextRASP);
+                  _this15.waitingOn = {
                     nextRASP: _nextRASP
                   };
                 }
-            } else if (that.toChild['default']) {
-              that.props.rasp.toParent({
+            } else if (_this15.toChild['default']) {
+              _this15.props.rasp.toParent({
                 type: 'SET_STATE_AND_CONTINUE',
                 nextRASP: _nextRASP,
-                function: that.toChild['default']
+                function: _this15.toChild['default']
               });
             } else {
-              that.props.rasp.toParent({
+              _this15.props.rasp.toParent({
                 type: 'SET_STATE_AND_CONTINUE',
                 nextRASP: _nextRASP,
                 function: null

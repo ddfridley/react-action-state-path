@@ -941,41 +941,40 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
             var {raspChildren}=nextRASP;
             delete nextRASP.raspChildren;
             delete keepChild['default']; // don't delete default if it is there
-            var that=this;
             var unwrapChildren=()=>{
                 if(raspChildren && raspChildren.length){
                     const{key, stateStack}=raspChildren.shift();
                     keepChild[key]=true;
                     const childRASP=Object.assign({},nextRASP,{[this.keyField]: key})
-                    if(that.toChild[key]) {
-                        that.toChild[key]({type: "ONPOPSTATE", stateStack, stackDepth: 0}); 
+                    if(this.toChild[key]) {
+                        this.toChild[key]({type: "ONPOPSTATE", stateStack, stackDepth: 0}); 
                         return unwrapChildren();
                     } else {
-                        that.waitingOn({nextRASP: childRASP, nextFunc: ()=>{that.toChild[key]({type: "ONPOPSTATE", stateStack, stackDepth: 0}); unwrapChildren();}})
-                        return that.props.rasp.toParent({type: "SET_STATE", nextRASP: childRASP});
+                        this.waitingOn({nextRASP: childRASP, nextFunc: ()=>{this.toChild[key]({type: "ONPOPSTATE", stateStack, stackDepth: 0}); unwrapChildren();}})
+                        return this.props.rasp.toParent({type: "SET_STATE", nextRASP: childRASP});
                     }
                 } else {
                     /* Don't clear the children - it doesn't reset the parent's state and you won't have to reload data
                     keepChild.forEach((keep, child) => { // child id is the index
                         if (!keep) {
                             console.info("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE child not kept", child);
-                            that.toChild[child]({ type: "CLEAR_PATH" });
+                            this.toChild[child]({ type: "CLEAR_PATH" });
                         }
                     })*/
                     if(stackDepth+1 >= stateStack.length) { // end of the line
                         return this.props.rasp.toParent({ type: "SET_STATE", nextRASP });
                     } 
-                    var key = nextRASP[that.keyField];
-                    var nextFunc=()=>that.toChild[key]({type: "ONPOPSTATE", stateStack, stackDepth: stackDepth+1 });
+                    var key = nextRASP[this.keyField];
+                    var nextFunc=()=>this.toChild[key]({type: "ONPOPSTATE", stateStack, stackDepth: stackDepth+1 });
                     if (typeof key !== 'undefined' && key !== null) {
-                        if(that.toChild[key]) {
+                        if(this.toChild[key]) {
                             nextFunc();
-                            that.props.rasp.toParent({type: "SET_STATE", nextRASP, nextFunc});
+                            this.props.rasp.toParent({type: "SET_STATE", nextRASP, nextFunc});
                         } else {
-                            that.waitingOn={nextRASP, nextFunc};
-                            that.props.rasp.toParent({type: "SET_STATE", nextRASP});     
+                            this.waitingOn={nextRASP, nextFunc};
+                            this.props.rasp.toParent({type: "SET_STATE", nextRASP});     
                         }
-                    } else if(that.toChild[key='default']) {
+                    } else if(this.toChild[key='default']) {
                         nextFunc();
                     } else {
                         console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE but no child", action )
@@ -1023,22 +1022,21 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
             const { nextRASP, setBeforeWait} = this.segmentToState({type: "SET_PATH", segment: parts[0], initialRASP: action.initialRASP});
             var raspChildren=unwrap(parts[1]); // undefined if undefined
             if(raspChildren && raspChildren.length & 1) {console.error("ReactActionStatePathMulti.toMeFromParent SET_PATH expected an even number in unwrap", raspChildren )}
-            var that=this;
             var unwrapChildren=()=>{
                 if(raspChildren.length){
                     var key=raspChildren.shift();
                     if(parseInt(key,10)==key) key=parseInt(key,10); // if key could be an int, convert it to one. otherwise leave it alone.
                     var pathSegments=unwrap(raspChildren.shift());
-                    var childRASP=Object.assign({},nextRASP,{[that.keyField]: key})
-                    if(raspChildren.length) that.waitingOnResults={ [that.keyField]: key, nextFunc: ()=>{// only advance to next child if there is one, waitingOnResults and waitingOn may happen in any order
-                        if(!that.waitingOnSetPath) unwrapChildren()
+                    var childRASP=Object.assign({},nextRASP,{[this.keyField]: key})
+                    if(raspChildren.length) this.waitingOnResults={ [this.keyField]: key, nextFunc: ()=>{// only advance to next child if there is one, waitingOnResults and waitingOn may happen in any order
+                        if(!this.waitingOnSetPath) unwrapChildren()
                     }} 
-                    that.waitingOn={nextRASP: childRASP, nextFunc: ()=>{
+                    this.waitingOn={nextRASP: childRASP, nextFunc: ()=>{
                         if(pathSegments.length){
-                            that.waitingOnSetPath=true;
-                            that.toChild[key]({type: "SET_PATH", pathSegments, onSetPathComplete: ()=>{
-                                that.waitingOnSetPath=undefined;
-                                if(!that.waitingOnResults) return unwrapChildren();
+                            this.waitingOnSetPath=true;
+                            this.toChild[key]({type: "SET_PATH", pathSegments, onSetPathComplete: ()=>{
+                                this.waitingOnSetPath=undefined;
+                                if(!this.waitingOnResults) return unwrapChildren();
                             }})
                         } else { // the child is in the path but has no state to set ex  0()
                             if(!raspChildren.length){
@@ -1046,22 +1044,22 @@ export class ReactActionStatePathMulti extends ReactActionStatePathClient{
                             }
                         }
                     }};
-                    that.props.rasp.toParent({type: "SET_STATE", nextRASP: childRASP})
+                    this.props.rasp.toParent({type: "SET_STATE", nextRASP: childRASP})
                 } else {
-                    var key = nextRASP[that.keyField];
+                    var key = nextRASP[this.keyField];
                     if (typeof key !== 'undefined' && key !== null) {
-                        if (that.toChild[key]) that.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: that.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
+                        if (this.toChild[key]) this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: this.toChild[key] }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
                         else if (setBeforeWait) {
-                            that.waitingOn={nextRASP, nextFunc: ()=>that.props.rasp.toParent({type: "CONTINUE_SET_PATH", function: that.toChild[key]})};
-                            that.props.rasp.toParent({type: "SET_STATE", nextRASP});       
+                            this.waitingOn={nextRASP, nextFunc: ()=>this.props.rasp.toParent({type: "CONTINUE_SET_PATH", function: this.toChild[key]})};
+                            this.props.rasp.toParent({type: "SET_STATE", nextRASP});       
                         } else {
-                            if(that.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
-                            that.waitingOn = {nextRASP};
+                            if(this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", nextRASP);
+                            this.waitingOn = {nextRASP};
                         }
-                    } else if(that.toChild['default']) {
-                        that.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: that.toChild['default'] });
+                    } else if(this.toChild['default']) {
+                        this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: this.toChild['default'] });
                     } else {
-                        that.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: null });
+                        this.props.rasp.toParent({ type: 'SET_STATE_AND_CONTINUE', nextRASP, function: null });
                     }
                 }
             }
