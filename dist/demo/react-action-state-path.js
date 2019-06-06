@@ -258,11 +258,6 @@ function (_React$Component) {
       near: false
     };
     _this2.waitingOn = false;
-    _this2.initialRASP = Object.assign({}, {
-      shape: _this2.props.rasp && _this2.props.rasp.shape ? _this2.props.rasp.shape : 'truncated',
-      depth: _this2.props.rasp ? _this2.props.rasp.depth + 1 : 0 // for debugging  - this is my depth to check
-
-    }, _this2.props.initialRASP);
 
     if (typeof window !== 'undefined') {
       // browser side, there should be no rasp
@@ -395,6 +390,13 @@ function (_React$Component) {
 
     _this2.id = ReactActionStatePath.nextId++; // get the next id
 
+    _this2.initialRASP = Object.assign({}, {
+      shape: _this2.props.rasp && _this2.props.rasp.shape ? _this2.props.rasp.shape : 'truncated',
+      depth: _this2.props.rasp ? _this2.props.rasp.depth + 1 : 0,
+      // for debugging  - this is my depth to check
+      raspId: _this2.id,
+      toParent: _this2.toMeFromChild.bind(_assertThisInitialized(_assertThisInitialized(_this2)))
+    }, _this2.props.initialRASP);
     _this2.state = _this2.getDefaultState(); //below are variables not restored by RESET
 
     if (typeof window !== 'undefined') ReactActionStatePath.thiss[_this2.id] = {
@@ -463,6 +465,34 @@ function (_React$Component) {
       }
     }
   }, {
+    key: "setStateIfChanged",
+    value: function setStateIfChanged(nextRASP, nextFunc) {
+      var _rasp = Object.assign({}, this.state.rasp);
+
+      var _nextRASP = Object.assign({}, nextRASP);
+
+      delete _rasp.toParent;
+      delete _nextRASP.toParent; // functions can't be in pushState - may or may not be there
+
+      if (_rasp.raspId !== _nextRASP.raspId) {
+        console.error("setStateIfChanged mismatch id's", this.state.rasp, nextRASP);
+        delete _nextRASP.raspId;
+      }
+
+      ;
+
+      if (_rasp.depth !== _nextRASP.depth) {
+        console.error("setStateIfChanged mismatch in depth", this.state.rasp, nextRASP);
+        delete _nextRASP.depth;
+      }
+
+      if (equaly(_rasp, _nextRASP)) {
+        if (nextFunc) return nextFunc();else return; // don't change state and possible cause rerender
+      } else return this.setState({
+        rasp: Object.assign({}, this.state.rasp, _nextRASP)
+      }, nextFunc);
+    }
+  }, {
     key: "toMeFromChild",
     value: function toMeFromChild(action) {
       var _this4 = this;
@@ -524,9 +554,7 @@ function (_React$Component) {
         return;
       } else if (action.type === "SET_STATE") {
         if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_STATE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
-        if (equaly(this.state.rasp, action.nextRASP) && action.nextFunc) action.nextFunc();else this.setState({
-          rasp: Object.assign({}, this.state.rasp, action.nextRASP)
-        }, action.nextFunc);
+        return this.setStateIfChanged(action.nextRASP, action.nextFunc);
       } else if (action.type === "SET_TITLE") {
         if (this.debug.noop) console.log("ReactActionStatePath.toMeFromChild SET_TITLE", this.id, this.props.rasp && this.props.rasp.depth, action.nextRASP);
         this.childTitle = action.title; // this is only for pretty debugging
@@ -650,26 +678,28 @@ function (_React$Component) {
             if (this.debug.noop) console.log("ReactActionStatePath.toChildFromParent path being added", this.id, nextRASP.pathSegment);
           }
 
+          var rasp = Object.assign({}, this.state.rasp, nextRASP);
+
           if (this.id !== 0 && !ReactActionStatePath.topState && (action.type === "DESCENDANT_FOCUS" || action.type === "DESCENDANT_UNFOCUS" || action.duration)) {
             if (typeof action.duration === 'number') action.duration -= 1;
             action.distance += 1;
             this.setState({
-              rasp: nextRASP
+              rasp: rasp
             }, function () {
               return action.direction === 'ASCEND' ? _this4.props.rasp.toParent(action) : action.direction === 'DESCEND' ? _this4.toChild(action) : console.error("ReactActionStatePath direction unknown", action, _this4.id, _this4.childName, _this4.childTitle);
             });
           } else if (this.id !== 0) {
             this.setState({
-              rasp: nextRASP
+              rasp: rasp
             });
           } else {
             // this is the root, after changing shape, remind me so I can update the window.histor
-            if (equaly(this.state.rasp, nextRASP)) {
+            if (equaly(this.state.rasp, rasp)) {
               if (this.debug.noop) console.info("ReactActionStatePath.toMeFromChild actionToState equaly updateHistory", action);
               this.updateHistory();
             } // updateHistory now!
             else this.setState({
-                rasp: nextRASP
+                rasp: rasp
               }, function () {
                 if (_this4.debug.noop) console.info("ReactActionStatePath.toMeFromChild actionToState setState updateHistory", action);
                 qhistory.call(_this4, function () {
@@ -806,7 +836,12 @@ function (_React$Component) {
         // the top RASP state of the array is the root component
         if (!this.toChild) {
           console.error("ReactActionStatePath.toMeFromParetn GET_STATE child not ready", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
-          return [Object.assign({}, this.state.rasp)];
+
+          var _this$state$rasp = this.state.rasp,
+              toParent = _this$state$rasp.toParent,
+              rasp = _objectWithoutProperties(_this$state$rasp, ["toParent"]);
+
+          return [rasp];
         } else return this.toChild(action);
       } else if (action.type === "RESET") {
         if (this.toChild) this.toChild(action); // reset children first, then reset parent (depth first)
@@ -818,25 +853,15 @@ function (_React$Component) {
         return filter.function(action, delta);
       }), true // process any action filters and always evaluate to true
       ) && this.actionToState && (nextRASP = this.actionToState(action, this.state.rasp, "PARENT", this.getDefaultState().rasp, delta)) !== null) {
-        if (!equaly(this.state.rasp, nextRASP)) {
-          // really something changed
-          if (this.id !== 0) {
-            this.setState({
-              rasp: nextRASP
-            });
-          } else // no parent to tell of the change
-            this.setState({
-              rasp: nextRASP
-            }, function () {
-              if (_this5.debug.noop) console.log("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
-              qhistory.call(_this5, function () {
-                return _this5.updateHistory;
-              }, 0); // update history after statechage events are processed
-            });
-        } // no change, nothing to do
+        // no change, nothing to do
+        var nextFunc = function nextFunc() {
+          if (_this5.debug.noop) console.log("ReactActionStatePath.toMeFromParent CONTINUE_SET_PATH updateHistory");
+          qhistory.call(_this5, function () {
+            return _this5.updateHistory;
+          }, 0); // update history after statechage events are processed
+        };
 
-
-        return null;
+        return this.setStateIfChanged(nextRASP, this.id && nextFunc);
       } else if (action.type === "CLEAR_PATH") {
         // clear the path and reset the RASP state back to what the constructor would
         if (this.toChild) this.toChild(action); // clear children first
@@ -981,7 +1006,20 @@ function (_React$Component) {
         return true;
       }
 
-      if (!(0, _shallowequal.default)(this.props, newProps)) {
+      var a = Object.assign({}, newProps);
+      var b = Object.assign({}, this.props);
+      delete a.children;
+      delete b.children;
+
+      if (!equaly(a.rasp, b.rasp)) {
+        if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props.rasp", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps);
+        return true;
+      }
+
+      delete a.rasp;
+      delete b.rasp;
+
+      if (!(0, _shallowequal.default)(a, b)) {
         if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps);
         return true;
       }
@@ -1002,11 +1040,7 @@ function (_React$Component) {
 
 
       return _react.default.Children.map(_react.default.Children.only(children), function (child) {
-        newProps.rasp = Object.assign({}, _this7.state.rasp, {
-          depth: _this7.initialRASP.depth,
-          raspId: _this7.id,
-          toParent: _this7.toMeFromChild.bind(_this7)
-        });
+        newProps.rasp = Object.assign({}, _this7.state.rasp);
         Object.keys(child.props).forEach(function (childProp) {
           return delete newProps[childProp];
         }); // allow child props to overwrite parent props
@@ -1247,8 +1281,8 @@ function (_React$Component2) {
           return keepChild[child] = false;
         });
         var nextRASP = stateStack[stackDepth];
-        var _nextRASP = nextRASP,
-            raspChildren = _nextRASP.raspChildren;
+        var _nextRASP2 = nextRASP,
+            raspChildren = _nextRASP2.raspChildren;
         delete nextRASP.raspChildren;
         delete keepChild['default']; // don't delete default if it is there
 
@@ -1270,7 +1304,7 @@ function (_React$Component2) {
 
               return unwrapChildren();
             } else {
-              _this12.waitingOn({
+              _this12.waitingOn = {
                 nextRASP: childRASP,
                 nextFunc: function nextFunc() {
                   _this12.toChild[_key]({
@@ -1281,8 +1315,7 @@ function (_React$Component2) {
 
                   unwrapChildren();
                 }
-              });
-
+              };
               return _this12.props.rasp.toParent({
                 type: "SET_STATE",
                 nextRASP: childRASP
@@ -1634,7 +1667,7 @@ function (_ReactActionStatePath) {
 
               return _unwrapChildren2();
             } else {
-              _this15.waitingOn({
+              _this15.waitingOn = {
                 nextRASP: childRASP,
                 nextFunc: function nextFunc() {
                   _this15.toChild[_key3]({
@@ -1645,8 +1678,7 @@ function (_ReactActionStatePath) {
 
                   _unwrapChildren2();
                 }
-              });
-
+              };
               return _this15.props.rasp.toParent({
                 type: "SET_STATE",
                 nextRASP: childRASP
@@ -1715,7 +1747,7 @@ function (_ReactActionStatePath) {
 
         var _this$props$rasp2 = this.props.rasp,
             toParent = _this$props$rasp2.toParent,
-            rasp = _objectWithoutProperties(_this$props$rasp2, ["toParent"]); // exclude the function which can not be saved as part of the state
+            rasp = _objectWithoutProperties(_this$props$rasp2, ["toParent"]); // exclude the function which can not be saved as part of the pushstate
 
 
         var raspChildren = Object.keys(this.toChild).map(function (child) {
@@ -1764,7 +1796,7 @@ function (_ReactActionStatePath) {
           segment: parts[0],
           initialRASP: action.initialRASP
         }),
-            _nextRASP2 = _this$segmentToState.nextRASP,
+            _nextRASP3 = _this$segmentToState.nextRASP,
             setBeforeWait = _this$segmentToState.setBeforeWait;
 
         var raspChildren = unwrap(parts[1]); // undefined if undefined
@@ -1781,7 +1813,7 @@ function (_ReactActionStatePath) {
             if (parseInt(key, 10) == key) key = parseInt(key, 10); // if key could be an int, convert it to one. otherwise leave it alone.
 
             var pathSegments = unwrap(raspChildren.shift());
-            var childRASP = Object.assign({}, _nextRASP2, _defineProperty({}, _this15.keyField, key));
+            var childRASP = Object.assign({}, _nextRASP3, _defineProperty({}, _this15.keyField, key));
             if (raspChildren.length) _this15.waitingOnResults = (_this15$waitingOnResu = {}, _defineProperty(_this15$waitingOnResu, _this15.keyField, key), _defineProperty(_this15$waitingOnResu, "nextFunc", function nextFunc() {
               // only advance to next child if there is one, waitingOnResults and waitingOn may happen in any order
               if (!_this15.waitingOnSetPath) _unwrapChildren2();
@@ -1814,17 +1846,17 @@ function (_ReactActionStatePath) {
               nextRASP: childRASP
             });
           } else {
-            var key = _nextRASP2[_this15.keyField];
+            var key = _nextRASP3[_this15.keyField];
 
             if (typeof key !== 'undefined' && key !== null) {
               if (_this15.toChild[key]) _this15.props.rasp.toParent({
                 type: 'SET_STATE_AND_CONTINUE',
-                nextRASP: _nextRASP2,
+                nextRASP: _nextRASP3,
                 function: _this15.toChild[key]
               }); // note: toChild of button might be undefined becasue ItemStore hasn't loaded it yet
               else if (setBeforeWait) {
                   _this15.waitingOn = {
-                    nextRASP: _nextRASP2,
+                    nextRASP: _nextRASP3,
                     nextFunc: function nextFunc() {
                       return _this15.props.rasp.toParent({
                         type: "CONTINUE_SET_PATH",
@@ -1835,24 +1867,24 @@ function (_ReactActionStatePath) {
 
                   _this15.props.rasp.toParent({
                     type: "SET_STATE",
-                    nextRASP: _nextRASP2
+                    nextRASP: _nextRASP3
                   });
                 } else {
-                  if (_this15.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", _nextRASP2);
+                  if (_this15.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent SET_PATH waitingOn", _nextRASP3);
                   _this15.waitingOn = {
-                    nextRASP: _nextRASP2
+                    nextRASP: _nextRASP3
                   };
                 }
             } else if (_this15.toChild['default']) {
               _this15.props.rasp.toParent({
                 type: 'SET_STATE_AND_CONTINUE',
-                nextRASP: _nextRASP2,
+                nextRASP: _nextRASP3,
                 function: _this15.toChild['default']
               });
             } else {
               _this15.props.rasp.toParent({
                 type: 'SET_STATE_AND_CONTINUE',
-                nextRASP: _nextRASP2,
+                nextRASP: _nextRASP3,
                 function: null
               });
             }
