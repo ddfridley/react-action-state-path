@@ -770,6 +770,7 @@ export class ReactActionStatePathClient extends React.Component {
   toMeFromParent(action) {
     if(this.debug.noop) console.info("ReactActionStatePathClient.toMeFromParent", this.constructor.name, this.childTitle, this.props.rasp.raspId, this.props.rasp.depth, action);
     if (action.type === "ONPOPSTATE") {
+        /*
         let { stateStack, stackDepth } = action;
         var key = stateStack[stackDepth][this.keyField];
         let sent = false;
@@ -790,8 +791,60 @@ export class ReactActionStatePathClient extends React.Component {
                 return;
             } else
                 return this.props.rasp.toParent({ type: "SET_STATE", nextRASP: stateStack[stackDepth] });
+        }*/
+        if (this.debug.noop) console.log("ReactActionStatePathClient.toMeFromParent ONPOPSTATE", this.props.rasp.depth, action);
+        var { stackDepth, stateStack } = action;
+        var keepChild = [];
+        Object.keys(this.toChild).forEach(child => keepChild[child] = false);
+        var nextRASP=stateStack[stackDepth];
+        var {raspChildren}=nextRASP;
+        delete nextRASP.raspChildren;
+        delete keepChild['default']; // don't delete default if it is there
+        var unwrapChildren=()=>{
+            if(raspChildren && raspChildren.length){
+                const{key, stateStack}=raspChildren.shift();
+                keepChild[key]=true;
+                const childRASP=Object.assign({},nextRASP,{[this.keyField]: key})
+                if(this.toChild[key]) {
+                    this.toChild[key]({type: "ONPOPSTATE", stateStack, stackDepth: 0}); 
+                    return unwrapChildren();
+                } else {
+                    this.waitingOn({nextRASP: childRASP, nextFunc: ()=>{this.toChild[key]({type: "ONPOPSTATE", stateStack, stackDepth: 0}); unwrapChildren();}})
+                    return this.props.rasp.toParent({type: "SET_STATE", nextRASP: childRASP});
+                }
+            } else {
+                /* Don't clear the children - it doesn't reset the parent's state and you won't have to reload data
+                keepChild.forEach((keep, child) => { // child id is the index
+                    if (!keep) {
+                        console.info("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE child not kept", child);
+                        this.toChild[child]({ type: "CLEAR_PATH" });
+                    }
+                })*/
+                if(stackDepth+1 >= stateStack.length) { // end of the line
+                    return this.props.rasp.toParent({ type: "SET_STATE", nextRASP });
+                } 
+                var key = nextRASP[this.keyField];
+                var nextFunc=()=>this.toChild[key]({type: "ONPOPSTATE", stateStack, stackDepth: stackDepth+1 });
+                if (typeof key !== 'undefined' && key !== null) {
+                    if(this.toChild[key]) {
+                        nextFunc();
+                        this.props.rasp.toParent({type: "SET_STATE", nextRASP, nextFunc});
+                    } else {
+                        this.waitingOn={nextRASP, nextFunc};
+                        this.props.rasp.toParent({type: "SET_STATE", nextRASP});     
+                    }
+                } else if(this.toChild[key='default']) {
+                    nextFunc();
+                } else {
+                    console.error("ReactActionStatePathMulti.toMeFromParent ONPOPSTATE but no child", action )
+                }
+            }
         }
+        unwrapChildren();
+        return;
+
     } else if (action.type === "GET_STATE") {
+        /*
       var key = this.props.rasp[this.keyField];
       var {toParent, ...rasp}=this.props.rasp; // exclude the function which can not be saved as part of the state
       if (typeof key !== 'undefined' && key !== null){
@@ -803,6 +856,27 @@ export class ReactActionStatePathClient extends React.Component {
       } else if(this.toChild['default']) {
           return [rasp].concat(this.toChild['default'](action)); // pass the action to the default child
       } else return [rasp]; // end of the line
+      */
+        // get the state info from all the children and combind them into one Object
+
+        if (this.debug.noop) console.log("ReactActionStatePathMulti.toMeFromParent GET_STATE", this.props.rasp.depth, action);
+        var key = this.props.rasp[this.keyField];
+        var {toParent, ...rasp}=this.props.rasp; // exclude the function which can not be saved as part of the state
+        var childState=[];
+        var raspChildren= Object.keys(this.toChild).reduce((acc,child) => {
+            if((typeof key !== 'undefined' && key !== null && child===key)||(child==='default' && !childState.length)){  // if this child isis the key, or of there is no key and some child is named 'default'
+                childState=this.toChild[child]({ type: "GET_STATE" })
+            } else {
+                acc.push({
+                    stateStack: this.toChild[child]({ type: "GET_STATE" }),
+                    key: child
+                })
+            }
+            return acc;
+        },[]);
+        if (raspChildren.length && !(raspChildren.length==1 && !raspChildren[0].stateStack)) // if there is a child list, and it is not a list of one child with no state
+            rasp.raspChildren=raspChildren; // inactive children are stored in the parents structure,
+        return [rasp].concat(childState) // state of the active child is in the list
     } else if (action.type === "CLEAR_PATH") {  // clear the path and reset the RASP state back to what the const
         var key = this.props.rasp[this.keyField];
         if (typeof key !== 'undefined' && key !== null){
