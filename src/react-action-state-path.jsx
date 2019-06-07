@@ -119,6 +119,46 @@ var separate=function(s){
     return a;
 }
 
+// separates a string by '/'. '()'s and anything with are discarded
+var unNested=function(s){
+    if(typeof s!== 'string') return undefined;
+    var a=[]; // the array to return
+    var e=''; // an element in the array.
+    let l=s.length;
+    let i=0;
+    if(s[0]==='/')i++; // strip off any leading /
+    let d=0; // depth of ()'s
+    let c;
+    while(i<l){
+        c=s[i];
+        if(!d){
+            if(c==='/'){
+                a.push(e);
+                e='';
+            }else if(c==='('){
+                d++
+            }else // at the level a ) is just added to the e
+                e+=c;
+        }else if(d===1){
+            if(c===')'){
+                a.push(e);
+                e='';
+                d--;
+            }else if(c==='('){
+                d++;
+            }else // at this level ) is just added to the e
+                ;
+        } else {
+            if(c===')')
+                d--;
+            else if(c==='(')
+                d++;
+        }
+        i++;
+    }
+    if(e) a.push(e);
+    return a;
+}
 var queue=0;
 
 var qaction=function(func){
@@ -629,7 +669,7 @@ export class ReactActionStatePath extends React.Component {
                 parts.shift() // localhost:6006
             }
             parts=parts.join('/');
-            if (curPath !== parts && stateStack.stateStack[stateStack.stateStack.length-1].shape !== 'redirect') { // push the new state and path onto history
+            if (unNested(curPath).join('/') !== unNested(parts).join('/') && stateStack.stateStack[stateStack.stateStack.length-1].shape !== 'redirect') { // push the new state and path onto history
                 if(this.debug.noop) console.log("ReactActionStatePath.toMeFromParent pushState", { stateStack }, { curPath });
                 top.history.pushState(stateStack, '', '/'+curPath); // history on top in case in iframe like in storybook
             } else { // update the state of the current historys
