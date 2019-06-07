@@ -1076,6 +1076,11 @@ function (_React$Component) {
         return true;
       }
 
+      if (a.style != b.style) {
+        console.log("ReactActionStatePath.shouldComponentUpdate yes props.style", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps);
+        return true;
+      }
+
       if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate no", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps, this.state, newState);
       return false;
     }
