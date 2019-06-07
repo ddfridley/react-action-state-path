@@ -690,6 +690,7 @@ export class ReactActionStatePath extends React.Component {
         if(!equaly(this.state,newState)) {if(this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes state", this.id, this.props.rasp && this.props.rasp.depth, this.childName,  this.state,newState); return true;}
         var a=Object.assign({},newProps);
         var b=Object.assign({},this.props);
+        if(a.children!=b.children) {if(this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props.children", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps); return true;}
         delete a.children;
         delete b.children;
         if(!equaly(a.rasp,b.rasp)) {if(this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props.rasp", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps); return true;}

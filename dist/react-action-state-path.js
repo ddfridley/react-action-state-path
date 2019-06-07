@@ -1053,6 +1053,12 @@ function (_React$Component) {
 
       var a = Object.assign({}, newProps);
       var b = Object.assign({}, this.props);
+
+      if (a.children != b.children) {
+        if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props.children", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps);
+        return true;
+      }
+
       delete a.children;
       delete b.children;
 
