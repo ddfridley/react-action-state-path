@@ -582,7 +582,7 @@ export class ReactActionStatePath extends React.Component {
             // it works by recursivelly calling GET_STATE from here to the end and then unshifting the RASP state of each component onto an array
             // the top RASP state of the array is the root component
             if(!this.toChild) {
-                console.error("ReactActionStatePath.toMeFromParetn GET_STATE child not ready", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
+                //console.error("ReactActionStatePath.toMeFromParetn GET_STATE child not ready", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
                 var {toParent, ...rasp}=this.state.rasp;
                 return [rasp];
             } else 
@@ -690,14 +690,12 @@ export class ReactActionStatePath extends React.Component {
         if(!equaly(this.state,newState)) {if(this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes state", this.id, this.props.rasp && this.props.rasp.depth, this.childName,  this.state,newState); return true;}
         var a=Object.assign({},newProps);
         var b=Object.assign({},this.props);
-        if(a.children!=b.children) {if(this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props.children", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps); return true;}
         delete a.children;
         delete b.children;
         if(!equaly(a.rasp,b.rasp)) {if(this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props.rasp", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps); return true;}
         delete a.rasp;
         delete b.rasp;
         if(!shallowequal(a, b)) {if(this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps); return true;}
-        if(a.style != b.style) {console.log("ReactActionStatePath.shouldComponentUpdate yes props.style", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps); return true;}
         if(this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate no", this.id, this.props.rasp && this.props.rasp.depth, this.childName,  this.props, newProps, this.state, newState);
         return false;
     }

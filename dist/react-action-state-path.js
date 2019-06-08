@@ -880,8 +880,7 @@ function (_React$Component) {
         // it works by recursivelly calling GET_STATE from here to the end and then unshifting the RASP state of each component onto an array
         // the top RASP state of the array is the root component
         if (!this.toChild) {
-          console.error("ReactActionStatePath.toMeFromParetn GET_STATE child not ready", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
-
+          //console.error("ReactActionStatePath.toMeFromParetn GET_STATE child not ready", this.id, this.props.rasp && this.props.rasp.depth, this.state.rasp);
           var _this$state$rasp = this.state.rasp,
               toParent = _this$state$rasp.toParent,
               rasp = _objectWithoutProperties(_this$state$rasp, ["toParent"]);
@@ -1053,12 +1052,6 @@ function (_React$Component) {
 
       var a = Object.assign({}, newProps);
       var b = Object.assign({}, this.props);
-
-      if (a.children != b.children) {
-        if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props.children", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps);
-        return true;
-      }
-
       delete a.children;
       delete b.children;
 
@@ -1072,11 +1065,6 @@ function (_React$Component) {
 
       if (!(0, _shallowequal.default)(a, b)) {
         if (this.debug.noop) console.log("ReactActionStatePath.shouldComponentUpdate yes props", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps);
-        return true;
-      }
-
-      if (a.style != b.style) {
-        console.log("ReactActionStatePath.shouldComponentUpdate yes props.style", this.id, this.props.rasp && this.props.rasp.depth, this.childName, this.props, newProps);
         return true;
       }
 
