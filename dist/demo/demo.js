@@ -2268,6 +2268,20 @@ function (_React$Component2) {
           function: _this13.actionFilters[filterType].bind(_this13)
         });
       });
+    } // ignore children when decideing if props have changed
+
+  }, {
+    key: "shouldComponentUpdate",
+    value: function shouldComponentUpdate(nextProps, nextState) {
+      var a = Object.assign({}, this.props);
+      var b = Object.assign({}, nextProps);
+      delete a.children;
+      delete b.children;
+      if (!(0, _shallowequal.default)(a, b)) return true;
+      a = Object.assign({}, this.state);
+      b = Object.assign({}, nextState);
+      if (!(0, _shallowequal.default)(a, b)) return true;
+      return false;
     }
   }]);
 

@@ -1040,6 +1040,19 @@ export class ReactActionStatePathClient extends React.Component {
     );
     }
 
+    // ignore children when decideing if props have changed
+    shouldComponentUpdate(nextProps,nextState){
+        let a=Object.assign({},this.props);
+        let b=Object.assign({},nextProps);
+        delete a.children;
+        delete b.children;
+        if(!shallowequal(a,b)) return true;
+        a=Object.assign({},this.state);
+        b=Object.assign({},nextState);
+        if(!shallowequal(a,b)) return true;
+        return false;
+    }
+
 }
 
 // for PathMulti the keyField should be a number
