@@ -51,7 +51,7 @@
   "dependencies": {
     "classnames": "^2.2.5",
     "clone": "^2.1.1",
-    "express": "^4.16.4",
+    "express": "^4.17.3",
     "lodash": "^4.17.11",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
